@@ -7,7 +7,8 @@
         android:label="MyAnimeList"
         android:theme="@style/Theme.MyApplication"
         android:icon="@drawable/ico"
-        android:roundIcon="@mipmap/ic_launcher_round">
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:enableOnBackInvokedCallback="true">
 
         <activity
             android:name=".MainActivity"
