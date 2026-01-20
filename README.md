@@ -1,7 +1,7 @@
 # MAList
 MAList 🎬
 
-​MAList is a simple and flexible application for creating lists. While I originally developed it to track anime, it can be used for anything, including TV shows or even shopping lists. This is my first project written in Kotlin, created purely for my own personal needs and preferences.  
+​MAList is a simple and flexible application for creating lists. While I originally developed for anime, but it can be used for anything, including TV shows or even shopping lists. This is my first project written in Kotlin, created purely for my own personal needs and preferences.  
 ​
 ✨ Features
 
