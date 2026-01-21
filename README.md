@@ -24,6 +24,9 @@ MAList 🎬
 ​-UI: Jetpack Compose with Shared Element Transitions for smooth animations between screens.
 
 -​Data Storage: Data is saved in JSON format using the Gson library.
+<p align="center">
+  <img src="images/1000008355.jpg" width="350">
+</p>
 
 ​-Image Loading: Coil is used for efficient local image rendering.
 
