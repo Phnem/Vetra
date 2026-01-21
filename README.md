@@ -41,9 +41,9 @@ MAList 🎬
 ​This project is licensed under the MIT License.
 
 <p align="center" style="white-space: nowrap;">
-  <img src="images/screens/1000008451.jpg" width="200">
-  <img src="images/screens/1000008465.jpg" width="200">
-  <img src="images/screens/1000008466.jpg" width="200">
-  <img src="images/screens/1000008467.jpg" width="200">
-  <img src="images/screens/1000008468.jpg" width="200">
+  <img src="1000008451.jpg" width="200">
+  <img src="1000008465.jpg" width="200">
+  <img src="1000008466.jpg" width="200">
+  <img src="1000008467.jpg" width="200">
+  <img src="1000008468.jpg" width="200">
 </p>
