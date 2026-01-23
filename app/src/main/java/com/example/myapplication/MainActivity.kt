@@ -202,33 +202,22 @@ class AnimeRepository {
 }
 
 // ==========================================
-// THEME & COLORS (UPDATED)
+// THEME & COLORS
 // ==========================================
 
-// Фон всего приложения (глубокий темный)
 val AppBackground = Color(0xFF121214)
-
-// Градиент карточки
 val CardGradientStart = Color(0xFF252529)
 val CardGradientEnd = Color(0xFF18181A)
+val OneUiCardBg = CardGradientStart // Alias for compatibility
 
-// Псевдоним для совместимости (FIXED ERROR)
-val OneUiCardBg = CardGradientStart
-
-// Другие цвета
 val OneUiBlue = Color(0xFF3E82F7)
 val OneUiBluePastel = Color(0xFF90CAF9)
 val OneUiRed = Color(0xFFFF3B30)
 
-// Текст
 val TextPrimary = Color(0xFFF0F0F2)
 val TextSecondary = Color(0xFF8E8E93)
 
-// Рейтинг
-val StarColor = Color(0xFFFF8C00) // Оранжевый
-val RatingChipBg = Color(0xFF000000).copy(alpha = 0.4f)
-
-// Цвета для StarRatingBar (оставим для совместимости)
+// Цвета рейтинга
 val RateColor1 = Color(0xFFD32F2F)
 val RateColor2 = Color(0xFFE64A19)
 val RateColor3 = Color(0xFFF57C00)
@@ -236,7 +225,8 @@ val RateColor4 = Color(0xFFFBC02D)
 val RateColor5 = Color(0xFF388E3C)
 val RateColorEmpty = Color(0xFF424242)
 
-// Кисть для "света" по контуру (кант)
+val RatingChipBg = Color(0xFF000000).copy(alpha = 0.4f)
+
 val BorderGradient = Brush.linearGradient(
     colors = listOf(
         Color.White.copy(alpha = 0.15f),
@@ -246,6 +236,18 @@ val BorderGradient = Brush.linearGradient(
     start = Offset(0f, 0f),
     end = Offset(300f, 300f)
 )
+
+// Helper для получения цвета по рейтингу
+fun getRatingColor(rating: Int): Color {
+    return when (rating) {
+        1 -> RateColor1
+        2 -> RateColor2
+        3 -> RateColor3
+        4 -> RateColor4
+        5 -> RateColor5
+        else -> TextSecondary
+    }
+}
 
 @Composable
 fun OneUiTheme(content: @Composable () -> Unit) {
@@ -620,6 +622,8 @@ fun OneUiTextField(value: String, onValueChange: (String) -> Unit, placeholder: 
 
 @Composable
 fun RatingChip(rating: Int) {
+    // FIX 1: Используем цвет, соответствующий рейтингу (1-5)
+    val starTint = getRatingColor(rating)
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
@@ -628,7 +632,7 @@ fun RatingChip(rating: Int) {
         contentAlignment = Alignment.Center
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = StarColor, modifier = Modifier.size(14.dp))
+            Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = starTint, modifier = Modifier.size(14.dp))
             Spacer(modifier = Modifier.width(4.dp))
             Text(text = rating.toString(), color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
         }
@@ -789,6 +793,7 @@ fun MalistTopBar(currentSort: SortOption, onSortSelected: (SortOption) -> Unit) 
 
 @Composable
 fun StatsCard(title: String, icon: ImageVector, isExpanded: Boolean, onClick: () -> Unit, rankColor: Color? = null, content: @Composable () -> Unit) {
+    // FIX 2: Цвет карточки StatsCard теперь светлее, чем фон шторки (CardGradientStart vs AppBackground)
     Card(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).clickable { onClick() }.animateContentSize(), colors = CardDefaults.cardColors(containerColor = CardGradientStart)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) { Icon(imageVector = icon, contentDescription = null, tint = OneUiBluePastel, modifier = Modifier.size(24.dp)); Spacer(modifier = Modifier.width(12.dp)); Text(text = title, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold) }
@@ -943,10 +948,12 @@ fun HomeScreen(nav: NavController, vm: AnimeViewModel, sharedTransitionScope: Sh
         }
 
         if (showSortSheet) { ModalBottomSheet(onDismissRequest = { showSortSheet = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer) { Column(modifier = Modifier.padding(bottom = 32.dp)) { Text("Sort by", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)); SortOption.values().forEach { option -> NavigationDrawerItem(label = { Text(option.label) }, icon = { }, selected = vm.sortOption == option, onClick = { performHaptic(view, false); vm.sortOption = option; showSortSheet = false }, modifier = Modifier.padding(horizontal = 12.dp), colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent, selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), selectedTextColor = MaterialTheme.colorScheme.primary)) } } } }
-        if (showCSheet) { ModalBottomSheet(onDismissRequest = { showCSheet = false }, containerColor = OneUiCardBg) { WatchStatsContent(animeList = vm.animeList) } }
+        // FIX 2: Изменен цвет фона шторки на AppBackground, чтобы карточки выделялись
+        if (showCSheet) { ModalBottomSheet(onDismissRequest = { showCSheet = false }, containerColor = AppBackground) { WatchStatsContent(animeList = vm.animeList) } }
 
         if (showNotifSheet) {
-            ModalBottomSheet(onDismissRequest = { showNotifSheet = false }, containerColor = OneUiCardBg) {
+            // FIX 2: То же самое для уведомлений
+            ModalBottomSheet(onDismissRequest = { showNotifSheet = false }, containerColor = AppBackground) {
                 NotificationContent(updates = vm.updates, isChecking = vm.isCheckingUpdates, onAccept = { vm.acceptUpdate(it, view.context) }, onDismiss = { vm.dismissUpdate(it) })
             }
         }
