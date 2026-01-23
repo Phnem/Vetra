@@ -90,7 +90,7 @@ import kotlin.math.min
 // ONE UI THEME & COLORS
 // ==========================================
 
-val OneUiBlack = Color(0xFF000000)
+val OneUiBlack = Color(0xFF181818) // Наш новый темно-серый фон
 val OneUiListBg = Color(0xFF080808)
 val OneUiCardBg = Color(0xFF1C1C1E)
 val OneUiCardLight = Color(0xFF2C2C2E)
@@ -107,7 +107,7 @@ val RateColor2 = Color(0xFFE64A19)
 val RateColor3 = Color(0xFFF57C00)
 val RateColor4 = Color(0xFFFBC02D)
 val RateColor5 = Color(0xFF388E3C)
-val RateColorEmpty = Color(0xFF424242) // Серый для пустых звезд
+val RateColorEmpty = Color(0xFF424242)
 
 @Composable
 fun OneUiTheme(content: @Composable () -> Unit) {
@@ -307,6 +307,38 @@ enum class SortOption(val label: String) {
 // UI COMPONENTS
 // ==========================================
 
+// --- НОВЫЙ ФОН: ТОЧЕЧНЫЙ ПАТТЕРН (DOTS) ---
+@Composable
+fun DottedBackground() {
+    // Цвет фона (Темно-серый, почти черный, как на скрине)
+    val bgColor = Color(0xFF181818)
+    // Цвет точек (Серый, полупрозрачный)
+    val dotColor = Color.Gray.copy(alpha = 0.15f)
+
+    Canvas(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bgColor)
+    ) {
+        val dotRadius = 1.5.dp.toPx() // Размер точки
+        val spacing = 20.dp.toPx()    // Расстояние между точками
+
+        // Рисуем сетку из точек
+        var x = spacing / 2
+        while (x < size.width) {
+            var y = spacing / 2
+            while (y < size.height) {
+                drawCircle(
+                    color = dotColor,
+                    radius = dotRadius,
+                    center = Offset(x, y)
+                )
+                y += spacing
+            }
+            x += spacing
+        }
+    }
+}
 val OneUiShape = RoundedCornerShape(26.dp)
 
 fun performHaptic(view: android.view.View, isStrong: Boolean = false) {
@@ -416,21 +448,76 @@ fun StarRatingBar(
 fun EpisodeSuggestions(onSelect: (String) -> Unit) {
     val suggestions = listOf("12", "13", "24", "36", "48", "100")
 
-    @OptIn(ExperimentalLayoutApi::class)
-    FlowRow(
+    // Используем Row вместо LazyRow, чтобы элементы могли растягиваться
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        // Небольшой отступ между элементами (4dp, чтобы влезло всё)
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         suggestions.forEach { num ->
             Box(
                 modifier = Modifier
+                    .weight(1f) // Каждый пузырек занимает равную долю ширины
                     .clip(CircleShape)
-                    .background(Color(0xFF2C2C2E))
+                    .background(OneUiCardBg)
+                    .border(1.dp, Color.White, CircleShape)
                     .clickable { onSelect(num) }
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(vertical = 10.dp), // Отступ сверху/снизу для высоты кнопки
+                contentAlignment = Alignment.Center
             ) {
-                Text(text = num, color = OneUiBlue, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Text(
+                    text = num,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp // Шрифт чуть меньше, чтобы "100" точно влезло
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AnimatedSaveFab(
+    isEnabled: Boolean,
+    onClick: () -> Unit
+) {
+    // Состояние для анимации: false = дискета, true = галочка
+    var isSaved by remember { mutableStateOf(false) }
+
+    FloatingActionButton(
+        onClick = {
+            // ВАЖНО: Проверяем isEnabled перед запуском действий
+            if (isEnabled && !isSaved) {
+                isSaved = true // Запускаем анимацию только если активно
+                onClick() // Выполняем сохранение
+            }
+        },
+        // Цвет: Синий если активно, Темно-серый (неактивный) если нет
+        containerColor = if (isEnabled) OneUiBlue else Color(0xFF424242),
+        contentColor = if (isEnabled) Color.White else Color.Gray, // Иконка тоже тускнеет
+        shape = CircleShape,
+        modifier = Modifier.size(64.dp)
+    ) {
+        // Анимация смены иконки
+        AnimatedContent(
+            targetState = isSaved,
+            transitionSpec = {
+                (scaleIn() + fadeIn()) togetherWith (scaleOut() + fadeOut())
+            },
+            label = "save_animation"
+        ) { saved ->
+            if (saved) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Saved",
+                    modifier = Modifier.size(28.dp)
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Save,
+                    contentDescription = "Save",
+                    modifier = Modifier.size(28.dp)
+                )
             }
         }
     }
@@ -1238,53 +1325,20 @@ fun HomeScreen(
     val showScrollToTop by remember { derivedStateOf { listState.firstVisibleItemIndex > 2 } }
 
     Scaffold(
-        containerColor = OneUiBlack,
-        // Убрали bottomBar отсюда, чтобы сделать кастомный док
+        containerColor = Color.Transparent,
         bottomBar = {},
-
-        // --- КНОПКА ПОИСКА (ЛУПА) СПРАВА ---
-        floatingActionButton = {
-            // Показываем лупу только если не открыто превью
-            if (selectedAnimeForPreview == null) {
-                FloatingActionButton(
-                    onClick = {
-                        performHaptic(view, false)
-                        isSearchVisible = !isSearchVisible
-                        if (!isSearchVisible) {
-                            vm.searchQuery = ""
-                            focusManager.clearFocus()
-                            kbd?.hide()
-                        }
-                    },
-                    // Если поиск активен - синий, иначе серый. Полупрозрачность 60%
-                    containerColor = (if (isSearchVisible) OneUiBlue else Color(0xFF333333)).copy(alpha = 0.6f),
-                    contentColor = Color.White,
-                    shape = CircleShape,
-                    modifier = Modifier
-                        .padding(bottom = 10.dp) // Чуть поднимем, чтобы быть на уровне дока
-                        .navigationBarsPadding() // Учитываем системные отступы
-                ) {
-                    Icon(
-                        imageVector = if (isSearchVisible) Icons.Default.Close else Icons.Default.Search,
-                        contentDescription = "Search"
-                    )
-                }
-            }
-        }
+        // МЫ УБРАЛИ floatingActionButton ОТСЮДА
+        floatingActionButton = {}
     ) { innerPadding ->
 
-        Box(modifier = Modifier
-            .fillMaxSize()
-            // .padding(top = innerPadding.calculateTopPadding()) <--- ЭТУ СТРОКУ УДАЛИ (иначе будет дырка сверху)
-        ) {
-            // --- 1. ВСТАВЛЯЕМ ЭТОТ БЛОК (В САМОЕ НАЧАЛО BOX) ---
+        Box(modifier = Modifier.fillMaxSize()) {
+            DottedBackground()
             Box(modifier = Modifier.zIndex(5f).align(Alignment.TopCenter)) {
-                // Внутри Box -> Box (где zIndex(5f)):
                 MalistTopBar(
-                    currentSort = vm.sortOption, // Передаем текущее значение
+                    currentSort = vm.sortOption,
                     onSortSelected = { newOption ->
                         performHaptic(view, false)
-                        vm.sortOption = newOption // Обновляем сортировку
+                        vm.sortOption = newOption
                     }
                 )
             }
@@ -1296,8 +1350,6 @@ fun HomeScreen(
                     .fillMaxSize()
                     .blur(blurAmount)
             ) {
-
-
                 // Список
                 Box(
                     modifier = Modifier
@@ -1314,7 +1366,6 @@ fun HomeScreen(
                     } else {
                         LazyColumn(
                             state = listState,
-                            // Добавляем отступ снизу побольше, чтобы док не перекрывал контент
                             contentPadding = PaddingValues(top = 120.dp, bottom = 120.dp, start = 16.dp, end = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
@@ -1341,33 +1392,29 @@ fun HomeScreen(
             }
 
             // --- ПАРЯЩИЙ ДОК (FLOATING DOCK) ---
-            // Скрываем, если открыт поиск или превью
             if (selectedAnimeForPreview == null && !isSearchVisible) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 40.dp) // Отступ от низа экрана (левитация)
+                        .padding(bottom = 40.dp)
                         .navigationBarsPadding() // Учитываем системную полоску навигации
-                        .zIndex(3f) // Поверх списка
+                        .zIndex(3f)
                 ) {
-                    // Сама "пилюля"
                     Surface(
-                        shape = CircleShape, // Полностью круглые края
-                        // Светло-серый цвет, полупрозрачный (60%)
+                        shape = CircleShape,
                         color = Color(0xFF3E3E40).copy(alpha = 0.6f),
-                        shadowElevation = 10.dp, // Тень для объема
+                        shadowElevation = 10.dp,
                         tonalElevation = 5.dp
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.spacedBy(24.dp), // Расстояние между иконками
+                            horizontalArrangement = Arrangement.spacedBy(24.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // 1. Плюс (Добавить) с Анимацией
                             with(sharedTransitionScope) {
                                 Box(
                                     modifier = Modifier
-                                        .size(28.dp) // Размер области нажатия
+                                        .size(28.dp)
                                         .sharedBounds(
                                             rememberSharedContentState(key = "fab_container"),
                                             animatedVisibilityScope = animatedVisibilityScope,
@@ -1393,7 +1440,6 @@ fun HomeScreen(
                                 }
                             }
 
-                            // 2. Буква "C" в круге
                             Box(
                                 modifier = Modifier
                                     .size(26.dp)
@@ -1415,7 +1461,6 @@ fun HomeScreen(
                                 )
                             }
 
-                            // 3. Уведомления (Колокольчик)
                             Icon(
                                 imageVector = Icons.Default.Notifications,
                                 contentDescription = "Notifications",
@@ -1435,7 +1480,36 @@ fun HomeScreen(
                 }
             }
 
-            // --- ВСПЛЫВАЮЩАЯ ПАНЕЛЬ ПОИСКА (Над доком) ---
+            // --- КНОПКА ПОИСКА (ТЕПЕРЬ ТУТ, ВМЕСТЕ С ДОКОМ) ---
+            if (selectedAnimeForPreview == null) {
+                FloatingActionButton(
+                    onClick = {
+                        performHaptic(view, false)
+                        isSearchVisible = !isSearchVisible
+                        if (!isSearchVisible) {
+                            vm.searchQuery = ""
+                            focusManager.clearFocus()
+                            kbd?.hide()
+                        }
+                    },
+                    containerColor = (if (isSearchVisible) OneUiBlue else Color(0xFF333333)).copy(alpha = 0.6f),
+                    contentColor = Color.White,
+                    shape = CircleShape,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        // Применяем ТОЧНО ТАКИЕ ЖЕ отступы, как у Дока, чтобы они были на одной линии
+                        .navigationBarsPadding()
+                        .padding(bottom = 40.dp, end = 16.dp)
+                        .zIndex(3f)
+                ) {
+                    Icon(
+                        imageVector = if (isSearchVisible) Icons.Default.Close else Icons.Default.Search,
+                        contentDescription = "Search"
+                    )
+                }
+            }
+
+            // --- ВСПЛЫВАЮЩАЯ ПАНЕЛЬ ПОИСКА ---
             AnimatedVisibility(
                 visible = isSearchVisible,
                 enter = slideInVertically { it } + fadeIn(),
@@ -1444,11 +1518,9 @@ fun HomeScreen(
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    // Сначала применяем отступ клавиатуры:
                     .windowInsetsPadding(WindowInsets.ime)
-                    // Затем небольшой отступ, чтобы поле не прилипало к самой клавиатуре (или к низу экрана):
                     .padding(bottom = 16.dp)
-                    .zIndex(10f)             // Поверх затемнения (которое zIndex 2f)
+                    .zIndex(10f)
             ) {
                 val glowColor = Color.White.copy(alpha = 0.15f)
                 val borderColor = Color.White.copy(alpha = 0.1f)
@@ -1493,7 +1565,6 @@ fun HomeScreen(
                 }
             }
 
-            // Затемнение фона
             if (shouldBlur && selectedAnimeForPreview == null) {
                 Box(
                     modifier = Modifier
@@ -1508,7 +1579,6 @@ fun HomeScreen(
                 )
             }
 
-            // Превью (Overlay)
             AnimatedVisibility(
                 visible = selectedAnimeForPreview != null,
                 enter = fadeIn() + scaleIn(initialScale = 0.9f) + slideInVertically { it / 6 },
@@ -1531,7 +1601,6 @@ fun HomeScreen(
                 }
             }
 
-            // Кнопка наверх (Сдвинута левее, чтобы не мешать FAB)
             AnimatedVisibility(
                 visible = showScrollToTop && !isSearchVisible && selectedAnimeForPreview == null,
                 enter = fadeIn() + scaleIn(),
@@ -1557,7 +1626,6 @@ fun HomeScreen(
             }
         }
 
-        // --- BOTTOM SHEETS (С ИЗМЕНЕНИЯМИ ДЛЯ "C") ---
         if (showSortSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showSortSheet = false },
@@ -1591,7 +1659,6 @@ fun HomeScreen(
                 onDismissRequest = { showCSheet = false },
                 containerColor = OneUiCardBg
             ) {
-                // ПЕРЕДАЕМ СПИСОК АНИМЕ В НОВУЮ СТАТИСТИКУ
                 WatchStatsContent(animeList = vm.animeList)
             }
         }
@@ -1632,7 +1699,10 @@ fun AddEditScreen(
     var rate by remember { mutableIntStateOf(anime?.rating ?: 0) }
     var uri by remember { mutableStateOf<Uri?>(null) }
 
-    // Логика блокировки кнопки Save
+    // Для задержки перед выходом (чтобы увидеть анимацию галочки)
+    val scope = rememberCoroutineScope()
+
+    // Логика доступности кнопки
     val hasChanges by remember(title, ep, rate, uri) {
         derivedStateOf {
             if (id == null) {
@@ -1661,122 +1731,123 @@ fun AddEditScreen(
 
         Scaffold(
             modifier = Modifier.fillMaxSize().then(sharedModifier),
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = Color.Transparent,
             topBar = {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 40.dp, start = 16.dp, end = 16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding() // Учитываем челку
+                        .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = { nav.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", modifier = if (id == null) Modifier.sharedElement(rememberSharedContentState(key = "fab_icon"), animatedVisibilityScope = animatedVisibilityScope) else Modifier)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White, modifier = if (id == null) Modifier.sharedElement(rememberSharedContentState(key = "fab_icon"), animatedVisibilityScope = animatedVisibilityScope) else Modifier)
                     }
                     Spacer(Modifier.width(16.dp))
                     Text(text = if (id == null) "Add title" else "Edit title", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = OneUiText)
                 }
-            }
-        ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .padding(24.dp)
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Картинка
-                Box(
-                    modifier = Modifier
-                        .width(180.dp)
-                        .aspectRatio(0.7f)
-                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(32.dp))
-                        .clickable {
-                            performHaptic(view, false)
-                            launcher.launch("image/*")
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    val imageModifier = if (id != null) Modifier.sharedElement(rememberSharedContentState(key = "image_${id}"), animatedVisibilityScope = animatedVisibilityScope) else Modifier
-                    Box(modifier = Modifier.fillMaxSize().then(imageModifier).clip(RoundedCornerShape(32.dp))) {
-                        if (uri != null) AsyncImage(uri, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                        else if (anime?.imageFileName != null) AsyncImage(vm.getImgPath(anime.imageFileName), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                        else Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Default.AddPhotoAlternate, null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.secondary); Text("Add Photo", color = MaterialTheme.colorScheme.secondary) }
-                    }
-                }
-
-                Spacer(Modifier.height(32.dp))
-
-                // Название + Копирование
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        OneUiTextField(
-                            value = title,
-                            onValueChange = { title = it },
-                            placeholder = "Title",
-                            singleLine = false,
-                            maxLines = 4
-                        )
-                    }
-                    if (title.isNotEmpty()) {
-                        Spacer(Modifier.width(8.dp))
-                        AnimatedCopyButton(textToCopy = title)
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                // Серии
-                OneUiTextField(
-                    value = ep,
-                    onValueChange = { if (it.all { c -> c.isDigit() }) ep = it },
-                    placeholder = "Episodes",
-                    keyboardType = KeyboardType.Number
-                )
-
-                Spacer(Modifier.height(12.dp))
-
-                // Пузырьки серий
-                EpisodeSuggestions { selectedEp ->
-                    performHaptic(view, false)
-                    ep = selectedEp
-                }
-
-                Spacer(Modifier.height(32.dp))
-
-                // ЗВЕЗДНЫЙ РЕЙТИНГ
-                Text("Rating", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary)
-                Spacer(Modifier.height(16.dp))
-                StarRatingBar(rating = rate) { newRate ->
-                    performHaptic(view, false)
-                    rate = newRate
-                }
-
-                Spacer(Modifier.weight(1f))
-                Spacer(Modifier.height(24.dp))
-
-                // Кнопка Save
-                Button(
+            },
+            // Вставляем нашу новую кнопку сюда. Она будет "плавать" справа внизу.
+            floatingActionButton = {
+                AnimatedSaveFab(
+                    isEnabled = hasChanges,
                     onClick = {
                         performHaptic(view, false)
                         if (title.isNotEmpty()) {
-                            if (id != null) vm.updateAnime(ctx, id, title, ep.toIntOrNull()?:0, rate, uri)
-                            else vm.addAnime(ctx, title, ep.toIntOrNull()?:0, rate, uri)
-                            nav.popBackStack()
-                        } else Toast.makeText(ctx, "Enter title", Toast.LENGTH_SHORT).show()
-                    },
-                    enabled = hasChanges,
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                            // Запускаем корутину, чтобы подождать анимацию галочки (например, 600мс) перед выходом
+                            scope.launch {
+                                delay(600)
+                                if (id != null) vm.updateAnime(ctx, id, title, ep.toIntOrNull()?:0, rate, uri)
+                                else vm.addAnime(ctx, title, ep.toIntOrNull()?:0, rate, uri)
+                                nav.popBackStack()
+                            }
+                        } else {
+                            Toast.makeText(ctx, "Enter title", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                )
+            }
+        ) { innerPadding ->
+            Box(modifier = Modifier.fillMaxSize()) {
+                // --- ВСТАВЛЯЕМ ФОН ---
+                DottedBackground()
+                Column(
+                    modifier = Modifier
+                        .padding(innerPadding)
+                        .padding(horizontal = 24.dp)
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()), // Прокрутка теперь работает корректно
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        "Save",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (hasChanges) Color.White else OneUiTextDim
+                    Spacer(Modifier.height(16.dp))
+
+                    // Картинка
+                    Box(
+                        modifier = Modifier
+                            .width(180.dp)
+                            .aspectRatio(0.7f)
+                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(32.dp))
+                            .clickable {
+                                performHaptic(view, false)
+                                launcher.launch("image/*")
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val imageModifier = if (id != null) Modifier.sharedElement(rememberSharedContentState(key = "image_${id}"), animatedVisibilityScope = animatedVisibilityScope) else Modifier
+                        Box(modifier = Modifier.fillMaxSize().then(imageModifier).clip(RoundedCornerShape(32.dp))) {
+                            if (uri != null) AsyncImage(uri, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                            else if (anime?.imageFileName != null) AsyncImage(vm.getImgPath(anime.imageFileName), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                            else Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Default.AddPhotoAlternate, null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.secondary); Text("Add Photo", color = MaterialTheme.colorScheme.secondary) }
+                        }
+                    }
+
+                    Spacer(Modifier.height(32.dp))
+
+                    // Название
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            OneUiTextField(
+                                value = title,
+                                onValueChange = { title = it },
+                                placeholder = "Title",
+                                singleLine = false,
+                                maxLines = 4
+                            )
+                        }
+                        if (title.isNotEmpty()) {
+                            Spacer(Modifier.width(8.dp))
+                            AnimatedCopyButton(textToCopy = title)
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+
+                    // Серии
+                    OneUiTextField(
+                        value = ep,
+                        onValueChange = { if (it.all { c -> c.isDigit() }) ep = it },
+                        placeholder = "Episodes",
+                        keyboardType = KeyboardType.Number
                     )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // Пузырьки серий (в одну строку)
+                    EpisodeSuggestions { selectedEp ->
+                        performHaptic(view, false)
+                        ep = selectedEp
+                    }
+
+                    Spacer(Modifier.height(24.dp))
+
+                    // ЗВЕЗДНЫЙ РЕЙТИНГ (Поднят выше, убрана надпись Rating)
+                    StarRatingBar(rating = rate) { newRate ->
+                        performHaptic(view, false)
+                        rate = newRate
+                    }
+
+                    // Большой отступ снизу, чтобы контент не перекрывался плавающей кнопкой при прокрутке до конца
+                    Spacer(Modifier.height(120.dp))
                 }
             }
         }
