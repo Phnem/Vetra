@@ -35,6 +35,7 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -42,15 +43,8 @@ import androidx.compose.ui.*
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -104,6 +98,14 @@ import java.net.URLEncoder
 import java.text.DecimalFormat
 import java.util.UUID
 import kotlin.math.min
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 
 // ==========================================
 // NETWORK & DATA LAYER
@@ -217,7 +219,7 @@ val BrandRed = Color(0xFFFF453A)
 
 val RateColor1 = Color(0xFFFF453A)
 val RateColor2 = Color(0xFFFF9F0A)
-val RateColor3 = Color(0xFFFFD60A)
+val RateColor3 = Color(0xFFFFD60A) // Gold
 val RateColor4 = Color(0xFF32D74B)
 val RateColor5 = Color(0xFF30D158)
 val RateColorEmpty = Color(0xFF8E8E93)
@@ -329,13 +331,23 @@ data class Anime(
     val rating: Int,
     val imageFileName: String?,
     val orderIndex: Int,
-    val dateAdded: Long = System.currentTimeMillis()
+    val dateAdded: Long = System.currentTimeMillis(),
+    // ОБНОВЛЕНИЕ: ДОБАВЛЕНО ПОЛЕ ДЛЯ ИЗБРАННОГО
+    val isFavorite: Boolean = false
 )
 
 data class RankedAnime(
     val anime: Anime,
     val score: Int
 )
+
+enum class SortOption(val label: String) {
+    DATE_NEWEST("Newest First"),
+    RATING_HIGH("Highest Rated"),
+    AZ("Name (A-Z)"),
+    // ОБНОВЛЕНИЕ: ОПЦИЯ СОРТИРОВКИ ПО ИЗБРАННОМУ
+    FAVORITES("Favorites")
+}
 
 class AnimeViewModel : ViewModel() {
     private val _animeList = mutableStateListOf<Anime>()
@@ -387,6 +399,16 @@ class AnimeViewModel : ViewModel() {
         checkForUpdates()
     }
 
+    // ОБНОВЛЕНИЕ: ЛОГИКА ДЛЯ FAVORITES
+    fun toggleFavorite(id: String) {
+        val idx = _animeList.indexOfFirst { it.id == id }
+        if (idx != -1) {
+            val item = _animeList[idx]
+            _animeList[idx] = item.copy(isFavorite = !item.isFavorite)
+            save()
+        }
+    }
+
     fun checkForUpdates(force: Boolean = false) {
         if (!force && !needsUpdateCheck && _updates.isEmpty()) return
         if (isCheckingUpdates) return
@@ -433,7 +455,7 @@ class AnimeViewModel : ViewModel() {
     fun addAnime(ctx: Context, title: String, ep: Int, rate: Int, uri: Uri?) {
         val id = UUID.randomUUID().toString()
         val img = if (uri != null) saveImg(ctx, uri, id) else null
-        _animeList.add(0, Anime(id, title, ep, rate, img, (_animeList.maxOfOrNull { it.orderIndex }?:0)+1))
+        _animeList.add(0, Anime(id = id, title = title, episodes = ep, rating = rate, imageFileName = img, orderIndex = (_animeList.maxOfOrNull { it.orderIndex }?:0)+1))
         save()
         needsUpdateCheck = true
     }
@@ -515,6 +537,8 @@ class AnimeViewModel : ViewModel() {
             SortOption.DATE_NEWEST -> list.sortedByDescending { it.dateAdded }
             SortOption.RATING_HIGH -> list.sortedByDescending { it.rating }
             SortOption.AZ -> list.sortedBy { it.title }
+            // ОБНОВЛЕНИЕ: СОРТИРОВКА FAVORITES (работает как фильтр)
+            SortOption.FAVORITES -> list.filter { it.isFavorite }.sortedBy { it.title }
         }
     }
 
@@ -539,12 +563,6 @@ class AnimeViewModel : ViewModel() {
         }
         return cost[lhsLength]
     }
-}
-
-enum class SortOption(val label: String) {
-    DATE_NEWEST("Newest First"),
-    RATING_HIGH("Highest Rated"),
-    AZ("Name (A-Z)")
 }
 
 // ==========================================
@@ -584,21 +602,44 @@ fun GlassActionDock(
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Получаем текущую тему (нужно для логики бордюра)
+    val isDark = isSystemInDarkTheme()
+
     val topPadding by animateDpAsState(
         targetValue = if (isFloating) 16.dp else 0.dp,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "dockPadding"
     )
 
-    val isDark = isSystemInDarkTheme()
-    val targetTint = if (isDark) Color.Black.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.05f)
-    val tintColor by animateColorAsState(targetValue = if (isFloating) targetTint else Color.Transparent, label = "tint")
-    val blurRadius by animateDpAsState(targetValue = if (isFloating) 20.dp else 0.dp, label = "blur")
-    val shineColorBase = if (isDark) Color.White.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.7f)
-    val shineAlpha by animateFloatAsState(targetValue = if (isFloating) 1f else 0f, label = "shineAlpha")
-    val borderStrokeBase = if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.2f)
+    // --- ИЗМЕНЕНИЕ 1: Повышенная непрозрачность (0.8f -> 0.96f) ---
+    // Теперь фон почти полностью перекрывает контент сзади
+    val targetTint = MaterialTheme.colorScheme.background.copy(alpha = 0.96f)
+
+    val tintColor by animateColorAsState(
+        targetValue = if (isFloating) targetTint else Color.Transparent,
+        label = "tint"
+    )
+
+    val blurRadius by animateDpAsState(targetValue = if (isFloating) 30.dp else 0.dp, label = "blur")
+
+    // --- ИЗМЕНЕНИЕ 2: Исправление серой рамки в светлой теме ---
+    // Если тема светлая -> рамка полностью прозрачная (убираем "грязь")
+    // Если тема темная -> рамка чуть видна (белый блик)
+    val borderStrokeBase = if (isDark) {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+    } else {
+        Color.Transparent
+    }
+
     val borderColor by animateColorAsState(targetValue = if (isFloating) borderStrokeBase else Color.Transparent, label = "border")
-    val buttonBgColor by animateColorAsState(targetValue = if (isFloating) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), label = "btnBg")
+
+    val shineColorBase = if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.6f)
+    val shineAlpha by animateFloatAsState(targetValue = if (isFloating) 1f else 0f, label = "shineAlpha")
+
+    val buttonBgColor by animateColorAsState(
+        targetValue = if (isFloating) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        label = "btnBg"
+    )
     val dividerAlpha by animateFloatAsState(targetValue = if (isFloating) 1f else 0f, label = "divAlpha")
     var expanded by remember { mutableStateOf(false) }
 
@@ -607,14 +648,29 @@ fun GlassActionDock(
             .padding(top = topPadding)
             .statusBarsPadding()
             .clip(RoundedCornerShape(32.dp))
-            .hazeChild(state = hazeState, shape = RoundedCornerShape(32.dp), style = HazeStyle(blurRadius = blurRadius, tint = tintColor))
+            .hazeChild(
+                state = hazeState,
+                shape = RoundedCornerShape(32.dp),
+                style = HazeStyle(blurRadius = blurRadius, tint = tintColor)
+            )
             .border(0.5.dp, borderColor, RoundedCornerShape(32.dp))
     ) {
         if (shineAlpha > 0f) {
             Canvas(modifier = Modifier.matchParentSize()) {
                 val rect = Rect(offset = Offset.Zero, size = size)
                 val path = Path().apply { addRoundRect(RoundRect(rect, CornerRadius(32.dp.toPx()))) }
-                drawPath(path, brush = Brush.verticalGradient(colors = listOf(shineColorBase.copy(alpha = shineColorBase.alpha * shineAlpha), Color.Transparent, Color.Transparent, shineColorBase.copy(alpha = 0.1f * shineAlpha))), style = Stroke(width = 2.dp.toPx()))
+                drawPath(
+                    path,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            shineColorBase.copy(alpha = shineColorBase.alpha * shineAlpha),
+                            Color.Transparent,
+                            Color.Transparent,
+                            shineColorBase.copy(alpha = 0.05f * shineAlpha)
+                        )
+                    ),
+                    style = Stroke(width = 1.dp.toPx())
+                )
             }
         }
 
@@ -628,13 +684,23 @@ fun GlassActionDock(
                     Icon(imageVector = Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort", tint = MaterialTheme.colorScheme.onSurface)
                 }
                 MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(16.dp))) {
-                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer, offset = DpOffset(x = 0.dp, y = 8.dp)) {
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.96f), // Меню тоже делаем плотнее
+                        offset = DpOffset(x = 0.dp, y = 8.dp)
+                    ) {
                         SortOption.values().forEach { option ->
                             val isSelected = sortOption == option
                             DropdownMenuItem(
                                 text = { Text(text = option.label, color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                                 trailingIcon = {
-                                    val icon = when (option) { SortOption.DATE_NEWEST -> Icons.Default.DateRange; SortOption.RATING_HIGH -> Icons.Default.Star; SortOption.AZ -> Icons.AutoMirrored.Filled.Sort }
+                                    val icon = when (option) {
+                                        SortOption.DATE_NEWEST -> Icons.Default.DateRange
+                                        SortOption.RATING_HIGH -> Icons.Default.Star
+                                        SortOption.AZ -> Icons.AutoMirrored.Filled.Sort
+                                        SortOption.FAVORITES -> Icons.Default.Favorite
+                                    }
                                     Icon(imageVector = icon, contentDescription = null, tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary)
                                 },
                                 onClick = { onSortSelected(option); expanded = false }
@@ -721,8 +787,6 @@ fun AnimatedCopyButton(textToCopy: String) {
     }
 }
 
-// --- НОВЫЕ АНИМИРОВАННЫЕ КОМПОНЕНТЫ ВВОДА ---
-
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun SharedTransitionScope.TextAsIndividualLetters(
@@ -740,11 +804,7 @@ fun SharedTransitionScope.TextAsIndividualLetters(
                     sharedContentState = rememberSharedContentState(key = "hint_$index"),
                     animatedVisibilityScope = animatedContentScope,
                     boundsTransform = { _, _ ->
-                        // УСКОРЕННАЯ анимация (stiffness = 1000f)
-                        spring(
-                            dampingRatio = Spring.DampingRatioLowBouncy,
-                            stiffness = 1000f
-                        )
+                        spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = 1000f)
                     }
                 ),
                 style = style,
@@ -766,10 +826,7 @@ fun AnimatedOneUiTextField(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
-
-    // Логика: если фокус ИЛИ есть текст -> подсказка наверху
     val showHintAbove = isFocused || value.isNotEmpty()
-
     val containerColor = MaterialTheme.colorScheme.surfaceVariant
     val textColor = MaterialTheme.colorScheme.onSurface
     val hintColor = MaterialTheme.colorScheme.secondary
@@ -777,7 +834,6 @@ fun AnimatedOneUiTextField(
     val hintStyleInner = TextStyle(fontSize = 18.sp)
     val hintStyleOuter = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold)
 
-    // ВАЖНО: BasicTextField теперь СНАРУЖИ. Он стабилен и не пересоздается.
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
@@ -786,11 +842,8 @@ fun AnimatedOneUiTextField(
         singleLine = singleLine,
         maxLines = maxLines,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         decorationBox = { innerTextField ->
-            // SharedTransitionLayout внутри decorationBox
             SharedTransitionLayout {
                 AnimatedContent(
                     targetState = showHintAbove,
@@ -798,62 +851,18 @@ fun AnimatedOneUiTextField(
                     label = "hintAnimation"
                 ) { targetShowAbove ->
                     if (targetShowAbove) {
-                        // STATE: ПОДСКАЗКА СВЕРХУ (Hint Above)
                         Column(modifier = Modifier.fillMaxWidth()) {
-                            // 1. Текст подсказки (снаружи)
-                            Box(
-                                modifier = Modifier
-                                    .padding(start = 24.dp, bottom = 4.dp)
-                                    .height(16.dp)
-                            ) {
-                                TextAsIndividualLetters(
-                                    animatedContentScope = this@AnimatedContent,
-                                    text = placeholder,
-                                    style = hintStyleOuter,
-                                    textColor = MaterialTheme.colorScheme.primary
-                                )
+                            Box(modifier = Modifier.padding(start = 24.dp, bottom = 4.dp).height(16.dp)) {
+                                TextAsIndividualLetters(animatedContentScope = this@AnimatedContent, text = placeholder, style = hintStyleOuter, textColor = MaterialTheme.colorScheme.primary)
                             }
-
-                            // 2. Контейнер ввода
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .sharedElement(
-                                        rememberSharedContentState(key = "container"),
-                                        animatedVisibilityScope = this@AnimatedContent
-                                    )
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(containerColor)
-                                    .padding(horizontal = 24.dp, vertical = 16.dp),
-                                contentAlignment = Alignment.CenterStart
-                            ) {
+                            Box(modifier = Modifier.fillMaxWidth().sharedElement(rememberSharedContentState(key = "container"), animatedVisibilityScope = this@AnimatedContent).clip(RoundedCornerShape(20.dp)).background(containerColor).padding(horizontal = 24.dp, vertical = 16.dp), contentAlignment = Alignment.CenterStart) {
                                 innerTextField()
                             }
                         }
                     } else {
-                        // STATE: ПОДСКАЗКА ВНУТРИ (Hint Inside)
                         Column(modifier = Modifier.fillMaxWidth()) {
-                            // Пустой Box наверху, чтобы сохранить структуру (опционально) или просто сразу контейнер
-                            // Используем sharedElement для контейнера
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .sharedElement(
-                                        rememberSharedContentState(key = "container"),
-                                        animatedVisibilityScope = this@AnimatedContent
-                                    )
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(containerColor)
-                                    .padding(horizontal = 24.dp, vertical = 16.dp),
-                                contentAlignment = Alignment.CenterStart
-                            ) {
-                                // Подсказка внутри, рядом с текстом
-                                TextAsIndividualLetters(
-                                    animatedContentScope = this@AnimatedContent,
-                                    text = placeholder,
-                                    style = hintStyleInner,
-                                    textColor = hintColor
-                                )
+                            Box(modifier = Modifier.fillMaxWidth().sharedElement(rememberSharedContentState(key = "container"), animatedVisibilityScope = this@AnimatedContent).clip(RoundedCornerShape(20.dp)).background(containerColor).padding(horizontal = 24.dp, vertical = 16.dp), contentAlignment = Alignment.CenterStart) {
+                                TextAsIndividualLetters(animatedContentScope = this@AnimatedContent, text = placeholder, style = hintStyleInner, textColor = hintColor)
                                 innerTextField()
                             }
                         }
@@ -891,15 +900,15 @@ fun ThemeSwitch(darkTheme: Boolean, onToggle: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun OneUiAnimeCard(
     anime: Anime,
     viewModel: AnimeViewModel,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit
+    onClick: () -> Unit
+    // Мы УДАЛИЛИ onLongClick — карточка больше не умеет вызывать меню
 ) {
     val imageFile = remember(anime.imageFileName) { viewModel.getImgPath(anime.imageFileName) }
     val view = LocalView.current
@@ -916,7 +925,8 @@ fun OneUiAnimeCard(
                 .background(brush = Brush.verticalGradient(colors = listOf(surfaceColor, surfaceVariant)), shape = cardShape)
                 .border(width = 1.dp, color = borderColor, shape = cardShape)
                 .clip(cardShape)
-                .combinedClickable(onClick = { performHaptic(view, "light"); onClick() }, onLongClick = { performHaptic(view, "light"); onLongClick() })
+                // ВАЖНО: Тут теперь просто clickable. Мы вырезали механизм долгого нажатия.
+                .clickable { performHaptic(view, "light"); onClick() }
         ) {
             Row(modifier = Modifier.fillMaxSize().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(modifier = Modifier.aspectRatio(1f).fillMaxHeight().sharedElement(rememberSharedContentState(key = "image_${anime.id}"), animatedVisibilityScope = animatedVisibilityScope).clip(RoundedCornerShape(18.dp)).background(Color.Black)) {
@@ -926,7 +936,13 @@ fun OneUiAnimeCard(
                 Spacer(Modifier.width(16.dp))
                 Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(modifier = Modifier.weight(1f).padding(end = 8.dp), verticalArrangement = Arrangement.Center) {
-                        Text(text = anime.title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface, lineHeight = 20.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = anime.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface, lineHeight = 20.sp, modifier = Modifier.weight(1f, false))
+                            if (anime.isFavorite) {
+                                Spacer(Modifier.width(4.dp))
+                                Icon(Icons.Default.Star, contentDescription = "Favorite", tint = RateColor3, modifier = Modifier.size(16.dp))
+                            }
+                        }
                         Spacer(Modifier.height(4.dp))
                         Text(text = "${anime.episodes} episodes", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
                     }
@@ -942,6 +958,7 @@ fun SimpleAnimePreviewOverlay(anime: Anime, viewModel: AnimeViewModel, onDismiss
     val imageFile = remember(anime.imageFileName) { viewModel.getImgPath(anime.imageFileName) }
     var showConfirmDialog by remember { mutableStateOf(false) }
     val view = LocalView.current
+
     Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { if (!showConfirmDialog) { performHaptic(view, "light"); onDismiss() } }.zIndex(50f), contentAlignment = Alignment.Center) {
         AnimatedVisibility(visible = !showConfirmDialog, enter = fadeIn(), exit = fadeOut()) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center, modifier = Modifier.padding(24.dp)) {
@@ -950,7 +967,10 @@ fun SimpleAnimePreviewOverlay(anime: Anime, viewModel: AnimeViewModel, onDismiss
                     else Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(anime.title.take(1), fontSize = 60.sp, color = Color.Gray) }
                     Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)), startY = 300f)))
                     Column(modifier = Modifier.align(Alignment.BottomStart).padding(20.dp)) {
-                        Text(text = anime.title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = anime.title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.weight(1f, false))
+                            if (anime.isFavorite) { Icon(Icons.Default.Star, null, tint = RateColor3, modifier = Modifier.padding(start = 8.dp).size(24.dp)) }
+                        }
                         Spacer(Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Surface(color = BrandBlue.copy(alpha = 0.8f), shape = CircleShape) { Text(text = "${anime.episodes} EP", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) }
@@ -963,7 +983,20 @@ fun SimpleAnimePreviewOverlay(anime: Anime, viewModel: AnimeViewModel, onDismiss
                 AnimatedTrashButton(onClick = { performHaptic(view, "warning"); showConfirmDialog = true })
             }
         }
-        if (showConfirmDialog) DeleteConfirmationDialog(onConfirm = { performHaptic(view, "warning"); onDelete() }, onCancel = { performHaptic(view, "light"); showConfirmDialog = false })
+
+        if (showConfirmDialog) {
+            SpringBottomDialog(
+                title = "Delete title?",
+                subtitle = "There’s no “undo”, no “Ctrl+Z”...",
+                confirmText = "Delete",
+                icon = Icons.Default.Delete,
+                accentColor = BrandRed,
+                // Передаем картинку
+                imageFile = imageFile, // Тут переменная imageFile уже вычислена выше в этой функции
+                onConfirm = { performHaptic(view, "warning"); onDelete() },
+                onCancel = { performHaptic(view, "light"); showConfirmDialog = false }
+            )
+        }
     }
 }
 
@@ -977,24 +1010,164 @@ fun AnimatedTrashButton(onClick: () -> Unit) {
 }
 
 @Composable
-fun DeleteConfirmationDialog(onConfirm: () -> Unit, onCancel: () -> Unit) {
+fun SpringBottomDialog(
+    title: String,
+    subtitle: String,
+    confirmText: String,
+    icon: ImageVector,
+    accentColor: Color,
+    imageFile: File? = null,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit
+) {
     var visible by remember { mutableStateOf(false) }
+    val view = LocalView.current
+
     LaunchedEffect(Unit) { visible = true }
-    Dialog(onDismissRequest = onCancel) {
-        AnimatedVisibility(visible = visible, enter = scaleIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(), exit = scaleOut() + fadeOut()) {
-            Box(modifier = Modifier.clip(RoundedCornerShape(32.dp)).background(DarkSurface).border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(32.dp)).padding(24.dp)) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(modifier = Modifier.size(60.dp).clip(CircleShape).background(BrandRed.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) { Icon(Icons.Default.DeleteForever, null, tint = BrandRed, modifier = Modifier.size(32.dp)) }
-                    Spacer(Modifier.height(16.dp))
-                    Text("Delete title?", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
-                    Spacer(Modifier.height(8.dp))
-                    Text("This action cannot be undone.", style = MaterialTheme.typography.bodyMedium, color = DarkTextSecondary, textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(24.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Box(modifier = Modifier.weight(1f).height(50.dp).clip(RoundedCornerShape(25.dp)).background(Color.White.copy(alpha = 0.1f)).clickable { onCancel() }, contentAlignment = Alignment.Center) { Text("Cancel", color = Color.White, fontWeight = FontWeight.SemiBold) }
-                        Spacer(Modifier.width(12.dp))
-                        Box(modifier = Modifier.weight(1f).height(50.dp).clip(RoundedCornerShape(25.dp)).background(BrandRed).clickable { onConfirm() }, contentAlignment = Alignment.Center) { Text("Delete", color = Color.White, fontWeight = FontWeight.Bold) }
+
+    fun dismiss() {
+        visible = false
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            onCancel()
+        }, 300)
+    }
+
+    BackHandler { dismiss() }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(100f),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        // 1. Полупрозрачный фон
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn(animationSpec = tween(300)),
+            exit = fadeOut(animationSpec = tween(300))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.6f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { dismiss() }
+            )
+        }
+
+        // 2. Сама карточка
+        AnimatedVisibility(
+            visible = visible,
+            enter = slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
+            ) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }, animationSpec = tween(200)) + fadeOut()
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .navigationBarsPadding()
+                    .padding(bottom = 16.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
+                // --- ЛОГИКА: КАРТИНКА ИЛИ ИКОНКА ---
+                if (imageFile != null) {
+                    // Если есть файл - показываем ПОСТЕР (Вертикальный и большой)
+                    Box(
+                        modifier = Modifier
+                            .height(280.dp) // Увеличили высоту для вертикального постера
+                            .aspectRatio(0.7f) // Стандартные пропорции аниме-постера
+                            .shadow(elevation = 16.dp, shape = RoundedCornerShape(20.dp), spotColor = accentColor) // Тень с оттенком
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color.Gray)
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(imageFile)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        // Легкий градиент снизу, чтобы картинка красиво вписывалась
+                        Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.2f)))))
                     }
+                    Spacer(Modifier.height(24.dp))
+                } else {
+                    // Если файла нет - показываем ИКОНКУ (как раньше)
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp) // Чуть увеличил размер иконки для баланса
+                            .clip(CircleShape)
+                            .background(accentColor.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = accentColor,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                    Spacer(Modifier.height(20.dp))
+                }
+
+                // Заголовок
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                // Подзаголовок
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.secondary,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 20.sp
+                )
+
+                Spacer(Modifier.height(32.dp))
+
+                // Кнопка действия
+                Button(
+                    onClick = {
+                        performHaptic(view, "success")
+                        onConfirm()
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = accentColor, contentColor = Color.White),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+                    Text(text = confirmText, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                // Кнопка отмены
+                TextButton(
+                    onClick = {
+                        performHaptic(view, "light")
+                        dismiss()
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+                    Text(text = "Cancel", fontSize = 18.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
@@ -1114,6 +1287,62 @@ fun NotificationContent(updates: List<AnimeUpdate>, isChecking: Boolean, onAccep
     }
 }
 
+// ==========================================
+// SWIPE LOGIC & COMPOSABLES (NEW)
+// ==========================================
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeBackground(dismissState: SwipeToDismissBoxState) {
+    // ИСПРАВЛЕНИЕ: Смотрим на dismissDirection (куда тянут), а не на targetValue (результат)
+    // Это позволяет цвету появляться мгновенно при начале движения
+    val direction = dismissState.dismissDirection
+
+    val color by animateColorAsState(
+        when (direction) {
+            SwipeToDismissBoxValue.EndToStart -> BrandRed     // Тянем влево (Удалить)
+            SwipeToDismissBoxValue.StartToEnd -> RateColor3   // Тянем вправо (Избранное)
+            else -> Color.Transparent
+        }, label = "swipeColor"
+    )
+
+    // Выбираем иконку и выравнивание
+    val alignment = when (direction) {
+        SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+        SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+        else -> Alignment.Center
+    }
+
+    val icon = when (direction) {
+        SwipeToDismissBoxValue.StartToEnd -> Icons.Outlined.Star
+        SwipeToDismissBoxValue.EndToStart -> Icons.Default.Delete
+        else -> Icons.Default.Delete
+    }
+
+    // Анимация масштаба иконки
+    val scale by animateFloatAsState(
+        if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) 1.2f else 0.8f,
+        label = "iconScale"
+    )
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(color, RoundedCornerShape(24.dp))
+            .padding(horizontal = 24.dp),
+        contentAlignment = alignment
+    ) {
+        // Показываем иконку только если есть цвет (избегаем мелькания в покое)
+        if (color != Color.Transparent) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.scale(scale),
+                tint = Color.White
+            )
+        }
+    }
+}
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -1133,20 +1362,29 @@ fun HomeScreen(
     var showNotifSheet by remember { mutableStateOf(false) }
     var isSearchVisible by remember { mutableStateOf(false) }
     val searchFocusRequester = remember { FocusRequester() }
-    var selectedAnimeForPreview by remember { mutableStateOf<Anime?>(null) }
-    var currentPreviewAnime by remember { mutableStateOf<Anime?>(null) }
+
+    // УБРАНО: selectedAnimeForPreview и currentPreviewAnime
+
+    var animeToDelete by remember { mutableStateOf<Anime?>(null) }
+    var animeToFavorite by remember { mutableStateOf<Anime?>(null) }
+
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) { vm.checkForUpdates() }
-    if (selectedAnimeForPreview != null) currentPreviewAnime = selectedAnimeForPreview
-    BackHandler(enabled = isSearchVisible || vm.searchQuery.isNotEmpty() || selectedAnimeForPreview != null) {
-        if (selectedAnimeForPreview != null) { performHaptic(view, "light"); selectedAnimeForPreview = null }
-        else if (isSearchVisible) { performHaptic(view, "light"); isSearchVisible = false; vm.searchQuery = ""; focusManager.clearFocus(); kbd?.hide() }
+
+    // УБРАНА проверка selectedAnimeForPreview в BackHandler
+    BackHandler(enabled = isSearchVisible || vm.searchQuery.isNotEmpty()) {
+        if (isSearchVisible) { performHaptic(view, "light"); isSearchVisible = false; vm.searchQuery = ""; focusManager.clearFocus(); kbd?.hide() }
     }
+
     val listState = rememberLazyListState()
     val isHeaderFloating by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 10 } }
     val showScrollToTop by remember { derivedStateOf { listState.firstVisibleItemIndex > 4 } }
     val bgColor = MaterialTheme.colorScheme.background
+
+    // УБРАНО selectedAnimeForPreview из условий блюра
+    val shouldBlur = (isSearchVisible && vm.searchQuery.isBlank()) || showCSheet || showNotifSheet || animeToDelete != null || animeToFavorite != null
+    val blurAmount by animateDpAsState(targetValue = if (shouldBlur) 10.dp else 0.dp, label = "blur")
 
     Scaffold(containerColor = Color.Transparent, bottomBar = {}, floatingActionButton = {}) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
@@ -1161,14 +1399,20 @@ fun HomeScreen(
                     modifier = Modifier.padding(top = 12.dp)
                 )
             }
-            val shouldBlur = (isSearchVisible && vm.searchQuery.isBlank()) || selectedAnimeForPreview != null || showCSheet || showNotifSheet
-            val blurAmount by animateDpAsState(targetValue = if (shouldBlur) 10.dp else 0.dp, label = "blur")
 
             Column(modifier = Modifier.fillMaxSize().blur(blurAmount)) {
                 Box(modifier = Modifier.fillMaxSize().weight(1f).background(bgColor)) {
                     val list = vm.getDisplayList()
                     if (list.isEmpty()) {
-                        Column { MalistWorkspaceTopBar(isDarkTheme = isDarkTheme, onToggleTheme = onToggleTheme); Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("List is empty (or no matches)", color = MaterialTheme.colorScheme.secondary) } }
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            MalistWorkspaceTopBar(isDarkTheme = isDarkTheme, onToggleTheme = onToggleTheme)
+                            Box(modifier = Modifier.weight(1f)) {
+                                EmptyStateView(
+                                    title = if (vm.searchQuery.isNotEmpty()) "No results found" else if (vm.sortOption == SortOption.FAVORITES) "No Favorites yet" else "Nothing in folder",
+                                    subtitle = if (vm.searchQuery.isNotEmpty()) "Try searching for something else." else if (vm.sortOption == SortOption.FAVORITES) "Swipe right to add to favorites." else "Looks empty over here."
+                                )
+                            }
+                        }
                     } else {
                         LazyColumn(
                             state = listState,
@@ -1178,8 +1422,39 @@ fun HomeScreen(
                         ) {
                             item { MalistWorkspaceTopBar(isDarkTheme = isDarkTheme, onToggleTheme = onToggleTheme) }
                             items(list, key = { it.id }) { anime ->
-                                Box(modifier = Modifier.animateItem().padding(horizontal = 16.dp)) {
-                                    OneUiAnimeCard(anime = anime, viewModel = vm, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope, onClick = { nav.navigate("add_anime?animeId=${anime.id}") }, onLongClick = { performHaptic(view, "light"); selectedAnimeForPreview = anime })
+
+                                val dismissState = rememberSwipeToDismissBoxState(
+                                    confirmValueChange = {
+                                        when(it) {
+                                            SwipeToDismissBoxValue.StartToEnd -> {
+                                                performHaptic(view, "success")
+                                                animeToFavorite = anime
+                                                false
+                                            }
+                                            SwipeToDismissBoxValue.EndToStart -> {
+                                                performHaptic(view, "warning")
+                                                animeToDelete = anime
+                                                false
+                                            }
+                                            else -> false
+                                        }
+                                    },
+                                    positionalThreshold = { totalDistance -> totalDistance * 0.5f }
+                                )
+
+                                SwipeToDismissBox(
+                                    state = dismissState,
+                                    backgroundContent = { SwipeBackground(dismissState) },
+                                    modifier = Modifier.padding(horizontal = 16.dp).animateItem()
+                                ) {
+                                    OneUiAnimeCard(
+                                        anime = anime,
+                                        viewModel = vm,
+                                        sharedTransitionScope = sharedTransitionScope,
+                                        animatedVisibilityScope = animatedVisibilityScope,
+                                        onClick = { nav.navigate("add_anime?animeId=${anime.id}") }
+                                        // УБРАНО: onLongClick
+                                    )
                                 }
                             }
                         }
@@ -1187,7 +1462,8 @@ fun HomeScreen(
                 }
             }
 
-            if (selectedAnimeForPreview == null && !isSearchVisible) {
+            // УБРАНА проверка selectedAnimeForPreview
+            if (!isSearchVisible && animeToDelete == null && animeToFavorite == null) {
                 GlassBottomNavigation(
                     hazeState = hazeState,
                     nav = nav,
@@ -1244,14 +1520,52 @@ fun HomeScreen(
                 }
                 LaunchedEffect(Unit) { searchFocusRequester.requestFocus(); kbd?.show() }
             }
-            if (shouldBlur && selectedAnimeForPreview == null) { Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { focusManager.clearFocus(); isSearchVisible = false; kbd?.hide() }.zIndex(2f)) }
-            AnimatedVisibility(visible = selectedAnimeForPreview != null, enter = fadeIn() + scaleIn(initialScale = 0.9f) + slideInVertically { it / 6 }, exit = fadeOut() + scaleOut(targetScale = 0.9f) + slideOutVertically { it / 6 }, modifier = Modifier.zIndex(50f)) {
-                currentPreviewAnime?.let { anime -> SimpleAnimePreviewOverlay(anime = anime, viewModel = vm, onDismiss = { selectedAnimeForPreview = null }, onDelete = { scope.launch { selectedAnimeForPreview = null; delay(250); vm.deleteAnime(anime.id) } }) }
+
+            // УБРАНА проверка selectedAnimeForPreview из Blur Overlay
+            if (shouldBlur && animeToDelete == null && animeToFavorite == null) {
+                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { focusManager.clearFocus(); isSearchVisible = false; kbd?.hide() }.zIndex(2f))
             }
-            AnimatedVisibility(visible = showScrollToTop && !isSearchVisible && selectedAnimeForPreview == null, enter = fadeIn() + scaleIn(), exit = fadeOut() + scaleOut(), modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 160.dp, end = 24.dp).zIndex(1f)) {
+
+            // УБРАНО: AnimatedVisibility для SimpleAnimePreviewOverlay
+
+            if (animeToDelete != null) {
+                SpringBottomDialog(
+                    title = "Delete title?",
+                    subtitle = "There’s no “undo”, no “Ctrl+Z”...",
+                    confirmText = "Delete",
+                    icon = Icons.Default.Delete,
+                    accentColor = BrandRed,
+                    imageFile = vm.getImgPath(animeToDelete?.imageFileName),
+                    onConfirm = {
+                        vm.deleteAnime(animeToDelete!!.id)
+                        animeToDelete = null
+                    },
+                    onCancel = { animeToDelete = null }
+                )
+            }
+
+            if (animeToFavorite != null) {
+                SpringBottomDialog(
+                    title = "Add to favorites?",
+                    subtitle = "Future you will thank you)",
+                    confirmText = "Set Favorite",
+                    icon = Icons.Default.Star,
+                    accentColor = RateColor3,
+                    imageFile = vm.getImgPath(animeToFavorite?.imageFileName),
+                    onConfirm = {
+                        vm.toggleFavorite(animeToFavorite!!.id)
+                        animeToFavorite = null
+                    },
+                    onCancel = { animeToFavorite = null }
+                )
+            }
+
+            // УБРАНА проверка selectedAnimeForPreview
+            AnimatedVisibility(visible = showScrollToTop && !isSearchVisible && animeToDelete == null && animeToFavorite == null, enter = fadeIn() + scaleIn(), exit = fadeOut() + scaleOut(), modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 160.dp, end = 24.dp).zIndex(1f)) {
                 Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(Color(0xFF333333).copy(alpha = 0.8f)).clickable { performHaptic(view, "light"); scope.launch { listState.animateScrollToItem(0) } }, contentAlignment = Alignment.Center) { Icon(Icons.Default.KeyboardArrowUp, "Up", tint = Color.White) }
             }
         }
+
         if (showCSheet) {
             ModalBottomSheet(onDismissRequest = { showCSheet = false }, containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.9f), scrimColor = Color.Transparent) { WatchStatsContent(animeList = vm.animeList) }
         }
@@ -1262,6 +1576,7 @@ fun HomeScreen(
         }
     }
 }
+
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun AddEditScreen(nav: NavController, vm: AnimeViewModel, id: String?, sharedTransitionScope: SharedTransitionScope, animatedVisibilityScope: AnimatedVisibilityScope) {
@@ -1283,11 +1598,9 @@ fun AddEditScreen(nav: NavController, vm: AnimeViewModel, id: String?, sharedTra
         Scaffold(modifier = Modifier.fillMaxSize().then(sharedModifier), containerColor = Color.Transparent, topBar = { Row(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = textC, modifier = if (id == null) Modifier.sharedElement(rememberSharedContentState(key = "fab_icon"), animatedVisibilityScope = animatedVisibilityScope) else Modifier) }; Spacer(Modifier.width(16.dp)); Text(text = if (id == null) "Add title" else "Edit title", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = textC) } }, floatingActionButton = { AnimatedSaveFab(isEnabled = hasChanges, onClick = { performHaptic(view, "success"); if (title.isNotEmpty()) { scope.launch { delay(600); if (id != null) vm.updateAnime(ctx, id, title, ep.toIntOrNull()?:0, rate, uri) else vm.addAnime(ctx, title, ep.toIntOrNull()?:0, rate, uri); nav.popBackStack() } } else { Toast.makeText(ctx, "Enter title", Toast.LENGTH_SHORT).show() } }) }) { innerPadding ->
             Box(modifier = Modifier.fillMaxSize()) {
                 Box(modifier = Modifier.fillMaxSize().background(bg))
-                // ИСПРАВЛЕНИЕ: Добавил .imePadding() к скролл-контейнеру.
-                // Теперь клавиатура не будет перекрывать поле ввода.
                 Column(modifier = Modifier
                     .padding(innerPadding)
-                    .imePadding() // <--- ВАЖНО: Учитываем клавиатуру
+                    .imePadding()
                     .padding(horizontal = 24.dp)
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -1302,7 +1615,6 @@ fun AddEditScreen(nav: NavController, vm: AnimeViewModel, id: String?, sharedTra
                     }
                     Spacer(Modifier.height(32.dp))
 
-                    // --- ИСПРАВЛЕННЫЙ БЛОК ВВОДА ---
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(modifier = Modifier.weight(1f)) {
                             AnimatedOneUiTextField(
@@ -1327,7 +1639,6 @@ fun AddEditScreen(nav: NavController, vm: AnimeViewModel, id: String?, sharedTra
                         placeholder = "Episodes Watched",
                         keyboardType = KeyboardType.Number
                     )
-                    // ----------------------------------------
 
                     Spacer(Modifier.height(12.dp))
                     EpisodeSuggestions { selectedEp -> performHaptic(view, "light"); ep = selectedEp }
@@ -1367,4 +1678,46 @@ class MainActivity : ComponentActivity() {
             val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:$packageName")); startActivity(intent); Toast.makeText(this, "Need file access", Toast.LENGTH_LONG).show()
         }
     }
+}
+
+@Composable
+fun EmptyStateView(
+    modifier: Modifier = Modifier,
+    title: String = "Nothing in folder",
+    subtitle: String = "Looks empty over here."
+) {
+    Column(
+        modifier = modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        ModernEmptyFolderIcon(modifier = Modifier.size(120.dp))
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.secondary
+        )
+    }
+}
+
+@Composable
+fun ModernEmptyFolderIcon(modifier: Modifier = Modifier) {
+    androidx.compose.foundation.Image(
+        painter = androidx.compose.ui.res.painterResource(id = R.drawable.img),
+        contentDescription = null,
+        modifier = modifier,
+        contentScale = androidx.compose.ui.layout.ContentScale.Fit
+    )
 }
