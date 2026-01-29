@@ -1,1459 +1,1231 @@
-package com.example.myapplication
+    package com.example.myapplication
 
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.os.Build
-import android.os.Bundle
-import android.os.Environment
-import android.provider.Settings
-import android.view.HapticFeedbackConstants
-import android.view.View
-import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Star
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.*
-import androidx.compose.ui.draw.*
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.path
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.DpOffset
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.zIndex
-import androidx.core.view.WindowCompat
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
-import com.google.gson.Gson
-import com.google.gson.JsonParser
-import com.google.gson.reflect.TypeToken
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.haze
-import dev.chrisbanes.haze.hazeChild
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
-import java.net.HttpURLConnection
-import java.net.URL
-import java.net.URLEncoder
-import java.text.DecimalFormat
-import java.util.UUID
-import kotlin.math.min
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
+    import android.content.Context
+            import android.content.Intent
+            import android.net.Uri
+            import android.os.Build
+            import android.os.Bundle
+            import android.os.Environment
+            import android.provider.Settings
+            import android.view.HapticFeedbackConstants
+            import android.view.View
+            import android.widget.Toast
+            import androidx.activity.ComponentActivity
+            import androidx.activity.compose.BackHandler
+            import androidx.activity.compose.rememberLauncherForActivityResult
+            import androidx.activity.compose.setContent
+            import androidx.activity.result.contract.ActivityResultContracts
+            import androidx.compose.animation.*
+            import androidx.compose.animation.core.*
+            import androidx.compose.foundation.*
+            import androidx.compose.foundation.gestures.Orientation
+            import androidx.compose.foundation.interaction.MutableInteractionSource
+            import androidx.compose.foundation.interaction.collectIsFocusedAsState
+            import androidx.compose.foundation.layout.*
+            import androidx.compose.foundation.lazy.LazyColumn
+            import androidx.compose.foundation.lazy.LazyListState
+            import androidx.compose.foundation.lazy.items
+            import androidx.compose.foundation.lazy.rememberLazyListState
+            import androidx.compose.foundation.shape.CircleShape
+            import androidx.compose.foundation.shape.RoundedCornerShape
+            import androidx.compose.foundation.text.BasicTextField
+            import androidx.compose.foundation.text.KeyboardActions
+            import androidx.compose.foundation.text.KeyboardOptions
+            import androidx.compose.material.icons.Icons
+            import androidx.compose.material.icons.automirrored.filled.ArrowBack
+            import androidx.compose.material.icons.automirrored.filled.Sort
+            import androidx.compose.material.icons.filled.*
+            import androidx.compose.material.icons.outlined.Delete
+            import androidx.compose.material.icons.outlined.Settings
+            import androidx.compose.material.icons.outlined.Star
+            import androidx.compose.material.icons.outlined.Language
+            import androidx.compose.material.icons.outlined.SystemUpdate
+            import androidx.compose.material3.*
+            import androidx.compose.runtime.*
+            import androidx.compose.runtime.saveable.rememberSaveable
+            import androidx.compose.ui.*
+            import androidx.compose.ui.draw.*
+            import androidx.compose.ui.focus.FocusRequester
+            import androidx.compose.ui.focus.focusRequester
+            import androidx.compose.ui.geometry.CornerRadius
+            import androidx.compose.ui.geometry.Offset
+            import androidx.compose.ui.geometry.Rect
+            import androidx.compose.ui.geometry.RoundRect
+            import androidx.compose.ui.graphics.Brush
+            import androidx.compose.ui.graphics.Color
+            import androidx.compose.ui.graphics.Path
+            import androidx.compose.ui.graphics.SolidColor
+            import androidx.compose.ui.graphics.drawscope.Stroke
+            import androidx.compose.ui.graphics.vector.ImageVector
+            import androidx.compose.ui.graphics.vector.path
+            import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+            import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+            import androidx.compose.ui.input.nestedscroll.nestedScroll
+            import androidx.compose.ui.layout.ContentScale
+            import androidx.compose.ui.layout.onSizeChanged
+            import androidx.compose.ui.platform.LocalClipboardManager
+            import androidx.compose.ui.platform.LocalContext
+            import androidx.compose.ui.platform.LocalFocusManager
+            import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+            import androidx.compose.ui.platform.LocalView
+            import androidx.compose.ui.text.AnnotatedString
+            import androidx.compose.ui.text.TextStyle
+            import androidx.compose.ui.text.font.FontWeight
+            import androidx.compose.ui.text.input.ImeAction
+            import androidx.compose.ui.text.input.KeyboardType
+            import androidx.compose.ui.text.style.TextAlign
+            import androidx.compose.ui.text.style.TextOverflow
+            import androidx.compose.ui.unit.DpOffset
+            import androidx.compose.ui.unit.IntOffset
+            import androidx.compose.ui.unit.Velocity
+            import androidx.compose.ui.unit.dp
+            import androidx.compose.ui.unit.sp
+            import androidx.compose.ui.window.Dialog
+            import androidx.compose.ui.zIndex
+            import androidx.core.view.WindowCompat
+            import androidx.lifecycle.ViewModel
+            import androidx.lifecycle.viewModelScope
+            import androidx.lifecycle.viewmodel.compose.viewModel
+            import androidx.navigation.NavController
+            import androidx.navigation.compose.NavHost
+            import androidx.navigation.compose.composable
+            import androidx.navigation.compose.rememberNavController
+            import androidx.navigation.navArgument
+            import coil.compose.AsyncImage
+            import coil.request.ImageRequest
+            import com.google.gson.Gson
+            import com.google.gson.JsonParser
+            import com.google.gson.reflect.TypeToken
+            import dev.chrisbanes.haze.HazeState
+            import dev.chrisbanes.haze.HazeStyle
+            import dev.chrisbanes.haze.haze
+            import dev.chrisbanes.haze.hazeChild
+            import kotlinx.coroutines.Dispatchers
+            import kotlinx.coroutines.delay
+            import kotlinx.coroutines.launch
+            import kotlinx.coroutines.sync.Mutex
+            import kotlinx.coroutines.sync.withLock
+            import kotlinx.coroutines.withContext
+            import java.io.File
+            import java.io.FileOutputStream
+            import java.net.HttpURLConnection
+            import java.net.URL
+            import java.net.URLEncoder
+            import java.text.DecimalFormat
+            import java.util.UUID
+            import kotlin.math.min
+            import kotlin.math.roundToInt
+            import kotlin.math.sign
+
+// ==========================================
+// LOCALIZATION
+// ==========================================
+
+            enum class AppLanguage {
+    RU, EN
+}
+
+    data class UiStrings(
+        val appName: String,
+        val searchPlaceholder: String,
+        val newestFirst: String,
+        val highestRated: String,
+        val nameAZ: String,
+        val favorites: String,
+        val settings: String,
+        val emptyTitle: String,
+        val emptySubtitle: String,
+        val noResults: String,
+        val noFavorites: String,
+        val statsTitle: String,
+        val statsSubtitle: String,
+        val episodesWatched: String,
+        val timeSpent: String,
+        val avgRating: String,
+        val rankTitle: String,
+        val updatesTitle: String,
+        val updatesChecking: String,
+        val updatesUpToDate: String,
+        val deleteTitle: String,
+        val deleteSubtitle: String,
+        val deleteConfirm: String,
+        val favTitle: String,
+        val favSubtitle: String,
+        val favConfirm: String,
+        val cancel: String,
+        val addTitle: String,
+        val editTitle: String,
+        val animeTitleHint: String,
+        val episodesHint: String,
+        val addPhoto: String,
+        val enterTitleToast: String,
+        val updatedToast: String,
+        val languageName: String,
+        // SETTINGS SPECIFIC
+        val settingsScreenTitle: String,
+        val languageCardTitle: String,
+        val langRu: String,
+        val langEn: String,
+        val checkForUpdateTitle: String,
+        val checkButtonText: String
+    )
+
+    val RussianStrings = UiStrings(
+        appName = "MAList",
+        searchPlaceholder = "Поиск в коллекции...",
+        newestFirst = "Сначала новые",
+        highestRated = "Высокий рейтинг",
+        nameAZ = "По названию (А-Я)",
+        favorites = "Избранное",
+        settings = "Настройки",
+        emptyTitle = "В папке пусто",
+        emptySubtitle = "Кажется, здесь еще ничего нет.",
+        noResults = "Ничего не найдено",
+        noFavorites = "Нет избранного",
+        statsTitle = "Ваша статистика",
+        statsSubtitle = "Все, что вы посмотрели",
+        episodesWatched = "Эпизодов просмотрено",
+        timeSpent = "Затраченное время",
+        avgRating = "Средний рейтинг",
+        rankTitle = "Ваш ранг:",
+        updatesTitle = "Обновления",
+        updatesChecking = "Проверка API (Shikimori, Jikan, TMDB)...\nЭто может занять некоторое время.",
+        updatesUpToDate = "У вас все актуально!",
+        deleteTitle = "Удалить тайтл?",
+        deleteSubtitle = "Это действие нельзя будет отменить.",
+        deleteConfirm = "Удалить",
+        favTitle = "Добавить в избранное?",
+        favSubtitle = "Будущий вы скажет вам «спасибо» :)",
+        favConfirm = "В избранное",
+        cancel = "Отмена",
+        addTitle = "Добавить тайтл",
+        editTitle = "Изменить",
+        animeTitleHint = "Название аниме",
+        episodesHint = "Просмотрено серий",
+        addPhoto = "Добавить фото",
+        enterTitleToast = "Введите название",
+        updatedToast = "Обновлено: ",
+        languageName = "RU",
+        settingsScreenTitle = "Настройки",
+        languageCardTitle = "Язык",
+        langRu = "Русский",
+        langEn = "English",
+        checkForUpdateTitle = "Проверка обновлений",
+        checkButtonText = "Проверить"
+    )
+
+    val EnglishStrings = UiStrings(
+        appName = "MAList",
+        searchPlaceholder = "Search collection...",
+        newestFirst = "Newest First",
+        highestRated = "Highest Rated",
+        nameAZ = "Name (A-Z)",
+        favorites = "Favorites",
+        settings = "Settings",
+        emptyTitle = "Nothing in folder",
+        emptySubtitle = "Looks empty over here.",
+        noResults = "No results found",
+        noFavorites = "No favorites yet",
+        statsTitle = "Your Watch Stats",
+        statsSubtitle = "Everything you’ve watched so far",
+        episodesWatched = "Episodes watched",
+        timeSpent = "Time spent watching",
+        avgRating = "Average rating",
+        rankTitle = "Your rank:",
+        updatesTitle = "Updates",
+        updatesChecking = "Checking APIs (Shikimori, Jikan, TMDB)...\nThis will take a moment.",
+        updatesUpToDate = "You are up to date!",
+        deleteTitle = "Delete title?",
+        deleteSubtitle = "There’s no “undo”, no “Ctrl+Z”...",
+        deleteConfirm = "Delete",
+        favTitle = "Add to favorites?",
+        favSubtitle = "Future you will thank you)",
+        favConfirm = "Set Favorite",
+        cancel = "Cancel",
+        addTitle = "Add title",
+        editTitle = "Edit title",
+        animeTitleHint = "Anime Title",
+        episodesHint = "Episodes Watched",
+        addPhoto = "Add Photo",
+        enterTitleToast = "Enter title",
+        updatedToast = "Updated: ",
+        languageName = "EN",
+        settingsScreenTitle = "Settings",
+        languageCardTitle = "Language",
+        langRu = "Russian",
+        langEn = "English",
+        checkForUpdateTitle = "Check for update",
+        checkButtonText = "Check"
+    )
+
+    fun getStrings(lang: AppLanguage): UiStrings = when(lang) {
+        AppLanguage.RU -> RussianStrings
+        AppLanguage.EN -> EnglishStrings
+    }
+
+// ==========================================
+// OVERSCROLL UTILS
+// ==========================================
+
+    val CustomEasing: Easing = CubicBezierEasing(0.5f, 0.5f, 1.0f, 0.25f)
+
+    @Composable
+    fun Modifier.customOverscroll(
+        listState: LazyListState,
+        onNewOverscrollAmount: (Float) -> Unit,
+        animationSpec: SpringSpec<Float> = spring(stiffness = Spring.StiffnessLow)
+    ) = customOverscroll(
+        orientation = remember { listState.layoutInfo.orientation },
+        onNewOverscrollAmount = onNewOverscrollAmount,
+        animationSpec = animationSpec
+    )
+
+    @Composable
+    fun Modifier.customOverscroll(
+        orientation: Orientation,
+        onNewOverscrollAmount: (Float) -> Unit,
+        animationSpec: SpringSpec<Float> = spring(stiffness = Spring.StiffnessLow)
+    ): Modifier {
+        val overscrollAmountAnimatable = remember { Animatable(0f) }
+        var length by remember { mutableFloatStateOf(1f) }
+        val scope = rememberCoroutineScope()
+
+        LaunchedEffect(Unit) {
+            snapshotFlow { overscrollAmountAnimatable.value }.collect {
+                onNewOverscrollAmount(
+                    CustomEasing.transform(it / (length * 1.5f)) * length
+                )
+            }
+        }
+
+        val nestedScrollConnection = remember {
+            object : NestedScrollConnection {
+                private fun calculateOverscroll(available: Offset): Float {
+                    val previous = overscrollAmountAnimatable.value
+                    val newValue = previous + when (orientation) {
+                        Orientation.Vertical -> available.y
+                        Orientation.Horizontal -> available.x
+                    }
+                    return when {
+                        previous > 0 -> newValue.coerceAtLeast(0f)
+                        previous < 0 -> newValue.coerceAtMost(0f)
+                        else -> newValue
+                    }
+                }
+
+                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                    if (overscrollAmountAnimatable.value != 0f && source != NestedScrollSource.SideEffect) {
+                        scope.launch {
+                            overscrollAmountAnimatable.snapTo(calculateOverscroll(available))
+                        }
+                        return available
+                    }
+                    return super.onPreScroll(available, source)
+                }
+
+                override fun onPostScroll(
+                    consumed: Offset,
+                    available: Offset,
+                    source: NestedScrollSource
+                ): Offset {
+                    scope.launch {
+                        overscrollAmountAnimatable.snapTo(calculateOverscroll(available))
+                    }
+                    return Offset.Zero
+                }
+
+                override suspend fun onPreFling(available: Velocity): Velocity {
+                    val availableVelocity = when (orientation) {
+                        Orientation.Vertical -> available.y
+                        Orientation.Horizontal -> available.x
+                    }
+
+                    if (overscrollAmountAnimatable.value != 0f && availableVelocity != 0f) {
+                        val previousSign = overscrollAmountAnimatable.value.sign
+                        var consumedVelocity = availableVelocity
+                        val predictedEndValue = exponentialDecay<Float>().calculateTargetValue(
+                            initialValue = overscrollAmountAnimatable.value,
+                            initialVelocity = availableVelocity,
+                        )
+                        if (predictedEndValue.sign == previousSign) {
+                            overscrollAmountAnimatable.animateTo(
+                                targetValue = 0f,
+                                initialVelocity = availableVelocity,
+                                animationSpec = animationSpec,
+                            )
+                        } else {
+                            try {
+                                overscrollAmountAnimatable.animateDecay(
+                                    initialVelocity = availableVelocity,
+                                    animationSpec = exponentialDecay()
+                                ) {
+                                    if (value.sign != previousSign) {
+                                        consumedVelocity -= velocity
+                                        scope.launch {
+                                            overscrollAmountAnimatable.snapTo(0f)
+                                        }
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                // ignore interruption
+                            }
+                        }
+
+                        return when (orientation) {
+                            Orientation.Vertical -> Velocity(0f, consumedVelocity)
+                            Orientation.Horizontal -> Velocity(consumedVelocity, 0f)
+                        }
+                    }
+                    return super.onPreFling(available)
+                }
+
+                override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                    val availableVelocity = when (orientation) {
+                        Orientation.Vertical -> available.y
+                        Orientation.Horizontal -> available.x
+                    }
+
+                    overscrollAmountAnimatable.animateTo(
+                        targetValue = 0f,
+                        initialVelocity = availableVelocity,
+                        animationSpec = animationSpec
+                    )
+
+                    return available
+                }
+            }
+        }
+
+        return this
+            .onSizeChanged {
+                length = when (orientation) {
+                    Orientation.Vertical -> it.height.toFloat()
+                    Orientation.Horizontal -> it.width.toFloat()
+                }
+            }
+            .nestedScroll(nestedScrollConnection)
+    }
 
 // ==========================================
 // NETWORK & DATA LAYER
 // ==========================================
 
-data class AnimeUpdate(
-    val animeId: String,
-    val title: String,
-    val currentEpisodes: Int,
-    val newEpisodes: Int,
-    val source: String
-)
+    data class AnimeUpdate(
+        val animeId: String,
+        val title: String,
+        val currentEpisodes: Int,
+        val newEpisodes: Int,
+        val source: String
+    )
 
-object ApiRateLimiter {
-    private val mutex = Mutex()
-    suspend fun <T> executeSafe(block: suspend () -> T): T {
-        mutex.withLock {
-            delay(1200)
-            return block()
+    data class GithubReleaseInfo(
+        val tagName: String,
+        val htmlUrl: String
+    )
+
+    object ApiRateLimiter {
+        private val mutex = Mutex()
+        suspend fun <T> executeSafe(block: suspend () -> T): T {
+            mutex.withLock {
+                delay(1200)
+                return block()
+            }
         }
     }
-}
 
-class AnimeRepository {
-    private val tmdbKey = "4f4dc3cd35d58a551162eefe92ff549c"
+    class AnimeRepository {
+        private val tmdbKey = "4f4dc3cd35d58a551162eefe92ff549c"
 
-    suspend fun findTotalEpisodes(title: String): Pair<Int, String>? = withContext(Dispatchers.IO) {
-        val shikiResult = checkShikimori(title)
-        if (shikiResult != null && shikiResult > 0) return@withContext shikiResult to "Shikimori"
+        suspend fun findTotalEpisodes(title: String): Pair<Int, String>? = withContext(Dispatchers.IO) {
+            val shikiResult = checkShikimori(title)
+            if (shikiResult != null && shikiResult > 0) return@withContext shikiResult to "Shikimori"
 
-        val jikanResult = checkJikan(title)
-        if (jikanResult != null && jikanResult > 0) return@withContext jikanResult to "Jikan"
+            val jikanResult = checkJikan(title)
+            if (jikanResult != null && jikanResult > 0) return@withContext jikanResult to "Jikan"
 
-        val tmdbResult = checkTmdb(title)
-        if (tmdbResult != null && tmdbResult > 0) return@withContext tmdbResult to "TMDB"
+            val tmdbResult = checkTmdb(title)
+            if (tmdbResult != null && tmdbResult > 0) return@withContext tmdbResult to "TMDB"
 
-        return@withContext null
-    }
+            return@withContext null
+        }
 
-    private suspend fun checkShikimori(query: String): Int? {
-        return try {
-            ApiRateLimiter.executeSafe {
-                val searchUrl = "https://shikimori.one/api/animes?search=${enc(query)}&limit=1"
-                val json = getJson(searchUrl).asJsonArray
-                if (json.size() == 0) return@executeSafe null
-                val id = json[0].asJsonObject.get("id").asInt
-                json[0].asJsonObject.get("episodes").let { if(it.isJsonNull) 0 else it.asInt }
-            }
-        } catch (e: Exception) { null }
-    }
-
-    private suspend fun checkJikan(query: String): Int? {
-        return try {
-            ApiRateLimiter.executeSafe {
-                val searchUrl = "https://api.jikan.moe/v4/anime?q=${enc(query)}&limit=1"
-                val resp = getJson(searchUrl).asJsonObject
-                val data = resp.getAsJsonArray("data")
-                if (data == null || data.size() == 0) return@executeSafe null
-                val anime = data[0].asJsonObject
-                if (anime.get("episodes").isJsonNull) 0 else anime.get("episodes").asInt
-            }
-        } catch (e: Exception) { null }
-    }
-
-    private suspend fun checkTmdb(query: String): Int? {
-        return try {
-            ApiRateLimiter.executeSafe {
-                val searchUrl = "https://api.themoviedb.org/3/search/tv?api_key=$tmdbKey&query=${enc(query)}"
-                val results = getJson(searchUrl).asJsonObject.getAsJsonArray("results")
-                if (results != null && results.size() > 0) {
-                    val id = results[0].asJsonObject.get("id").asInt
-                    val detailsUrl = "https://api.themoviedb.org/3/tv/$id?api_key=$tmdbKey"
-                    val details = getJson(detailsUrl).asJsonObject
-                    val seasons = details.getAsJsonArray("seasons")
-                    var total = 0
-                    seasons.forEach { s ->
-                        val seasonObj = s.asJsonObject
-                        val sNum = seasonObj.get("season_number").asInt
-                        if (sNum > 0) total += seasonObj.get("episode_count").asInt
-                    }
-                    return@executeSafe total
+        private suspend fun checkShikimori(query: String): Int? {
+            return try {
+                ApiRateLimiter.executeSafe {
+                    val searchUrl = "https://shikimori.one/api/animes?search=${enc(query)}&limit=1"
+                    val json = getJson(searchUrl).asJsonArray
+                    if (json.size() == 0) return@executeSafe null
+                    json[0].asJsonObject.get("episodes").let { if(it.isJsonNull) 0 else it.asInt }
                 }
+            } catch (e: Exception) { null }
+        }
+
+        private suspend fun checkJikan(query: String): Int? {
+            return try {
+                ApiRateLimiter.executeSafe {
+                    val searchUrl = "https://api.jikan.moe/v4/anime?q=${enc(query)}&limit=1"
+                    val resp = getJson(searchUrl).asJsonObject
+                    val data = resp.getAsJsonArray("data")
+                    if (data == null || data.size() == 0) return@executeSafe null
+                    val anime = data[0].asJsonObject
+                    if (anime.get("episodes").isJsonNull) 0 else anime.get("episodes").asInt
+                }
+            } catch (e: Exception) { null }
+        }
+
+        private suspend fun checkTmdb(query: String): Int? {
+            return try {
+                ApiRateLimiter.executeSafe {
+                    val searchUrl = "https://api.themoviedb.org/3/search/tv?api_key=$tmdbKey&query=${enc(query)}"
+                    val results = getJson(searchUrl).asJsonObject.getAsJsonArray("results")
+                    if (results != null && results.size() > 0) {
+                        val id = results[0].asJsonObject.get("id").asInt
+                        val detailsUrl = "https://api.themoviedb.org/3/tv/$id?api_key=$tmdbKey"
+                        val details = getJson(detailsUrl).asJsonObject
+                        val seasons = details.getAsJsonArray("seasons")
+                        var total = 0
+                        seasons.forEach { s ->
+                            val seasonObj = s.asJsonObject
+                            val sNum = seasonObj.get("season_number").asInt
+                            if (sNum > 0) total += seasonObj.get("episode_count").asInt
+                        }
+                        return@executeSafe total
+                    }
+                    null
+                }
+            } catch (e: Exception) { null }
+        }
+
+        // ПРОВЕРКА ОБНОВЛЕНИЙ НА GITHUB
+        suspend fun checkGithubUpdate(): GithubReleaseInfo? = withContext(Dispatchers.IO) {
+            try {
+                // URL ПОСЛЕДНЕГО РЕЛИЗА
+                val url = "https://api.github.com/repos/Phnem/MAList/releases/latest"
+                val json = getJson(url).asJsonObject
+                val tag = json.get("tag_name").asString
+                // ОБНОВЛЕНИЕ URL ДЛЯ СКАЧИВАНИЯ (ИЩЕМ ПЕРВЫЙ АССЕТ .APK)
+                var downloadUrl = json.get("html_url").asString // FALLBACK НА СТРАНИЦУ РЕЛИЗА
+                val assets = json.getAsJsonArray("assets")
+                if (assets != null && assets.size() > 0) {
+                    // ПОПРОБУЕМ НАЙТИ APK
+                    for (i in 0 until assets.size()) {
+                        val asset = assets[i].asJsonObject
+                        val name = asset.get("name").asString
+                        if (name.endsWith(".apk", ignoreCase = true)) {
+                            downloadUrl = asset.get("browser_download_url").asString
+                            break
+                        }
+                    }
+                }
+                GithubReleaseInfo(tag, downloadUrl)
+            } catch (e: Exception) {
+                e.printStackTrace()
                 null
             }
-        } catch (e: Exception) { null }
-    }
-
-    private fun getJson(urlString: String): com.google.gson.JsonElement {
-        val url = URL(urlString)
-        val conn = url.openConnection() as HttpURLConnection
-        conn.requestMethod = "GET"
-        conn.connectTimeout = 5000
-        conn.readTimeout = 5000
-        if (conn.responseCode in 200..299) {
-            val jsonStr = conn.inputStream.bufferedReader().use { it.readText() }
-            return JsonParser.parseString(jsonStr)
-        } else {
-            throw Exception("HTTP ${conn.responseCode}")
         }
+
+        private fun getJson(urlString: String): com.google.gson.JsonElement {
+            val url = URL(urlString)
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "GET"
+            conn.setRequestProperty("User-Agent", "MAList-App") // ВАЖНО ДЛЯ GITHUB
+            conn.connectTimeout = 5000
+            conn.readTimeout = 5000
+            if (conn.responseCode in 200..299) {
+                val jsonStr = conn.inputStream.bufferedReader().use { it.readText() }
+                return JsonParser.parseString(jsonStr)
+            } else {
+                throw Exception("HTTP ${conn.responseCode}")
+            }
+        }
+        private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
     }
-    private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
-}
 
 // ==========================================
 // THEME & COLORS
 // ==========================================
 
-val BrandBlue = Color(0xFF3E82F7)
-val BrandBlueSoft = Color(0xFF5E92F3)
-val BrandRed = Color(0xFFFF453A)
+    val BrandBlue = Color(0xFF3E82F7)
+    val BrandBlueSoft = Color(0xFF5E92F3)
+    val BrandRed = Color(0xFFFF453A)
 
-val RateColor1 = Color(0xFFFF453A)
-val RateColor2 = Color(0xFFFF9F0A)
-val RateColor3 = Color(0xFFFFD60A) // Gold
-val RateColor4 = Color(0xFF32D74B)
-val RateColor5 = Color(0xFF30D158)
-val RateColorEmpty = Color(0xFF8E8E93)
+    val RateColor1 = Color(0xFFFF453A)
+    val RateColor2 = Color(0xFFFF9F0A)
+    val RateColor3 = Color(0xFFFFD60A)
+    val RateColor4 = Color(0xFF32D74B)
+    val RateColor5 = Color(0xFF30D158)
+    val RateColorEmpty = Color(0xFF8E8E93)
 
-val DarkBackground = Color(0xFF111318)
-val DarkSurface = Color(0xFF1F222B)
-val DarkSurfaceVariant = Color(0xFF262A35)
-val DarkTextPrimary = Color(0xFFF2F2F7)
-val DarkTextSecondary = Color(0xFF9898A0)
-val DarkBorder = Color(0xFFFFFFFF).copy(alpha = 0.08f)
+    val DarkBackground = Color(0xFF111318)
+    val DarkSurface = Color(0xFF1F222B)
+    val DarkSurfaceVariant = Color(0xFF262A35)
+    val DarkTextPrimary = Color(0xFFF2F2F7)
+    val DarkTextSecondary = Color(0xFF9898A0)
+    val DarkBorder = Color(0xFFFFFFFF).copy(alpha = 0.08f)
 
-val LightBackground = Color(0xFFF0F2F5)
-val LightSurface = Color(0xFFFFFFFF)
-val LightSurfaceVariant = Color(0xFFF9F9FB)
-val LightTextPrimary = Color(0xFF1C1C1E)
-val LightTextSecondary = Color(0xFF8E8E93)
-val LightBorder = Color(0xFF000000).copy(alpha = 0.04f)
+    val LightBackground = Color(0xFFF0F2F5)
+    val LightSurface = Color(0xFFFFFFFF)
+    val LightSurfaceVariant = Color(0xFFF9F9FB)
+    val LightTextPrimary = Color(0xFF1C1C1E)
+    val LightTextSecondary = Color(0xFF8E8E93)
+    val LightBorder = Color(0xFF000000).copy(alpha = 0.04f)
 
-val RatingChipBg = Color.Black.copy(alpha = 0.4f)
+    val RatingChipBg = Color.Black.copy(alpha = 0.4f)
 
-fun getRatingColor(rating: Int): Color {
-    return when (rating) {
-        1 -> RateColor1
-        2 -> RateColor2
-        3 -> RateColor3
-        4 -> RateColor4
-        5 -> RateColor5
-        else -> Color.Gray
-    }
-}
-
-@Composable
-fun OneUiTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit
-) {
-    val colors = if (darkTheme) {
-        darkColorScheme(
-            background = DarkBackground,
-            surface = DarkSurface,
-            surfaceVariant = DarkSurfaceVariant,
-            primary = BrandBlueSoft,
-            onBackground = DarkTextPrimary,
-            onSurface = DarkTextPrimary,
-            secondary = DarkTextSecondary,
-            outline = DarkBorder,
-            error = BrandRed,
-            surfaceContainer = Color(0xFF2C2C2E)
-        )
-    } else {
-        lightColorScheme(
-            background = LightBackground,
-            surface = LightSurface,
-            surfaceVariant = LightSurfaceVariant,
-            primary = BrandBlue,
-            onBackground = LightTextPrimary,
-            onSurface = LightTextPrimary,
-            secondary = LightTextSecondary,
-            outline = LightBorder,
-            error = BrandRed,
-            surfaceContainer = Color(0xFFFFFFFF)
-        )
-    }
-
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as ComponentActivity).window
-            WindowCompat.setDecorFitsSystemWindows(window, false)
-            val wic = androidx.core.view.WindowCompat.getInsetsController(window, view)
-            wic.isAppearanceLightStatusBars = !darkTheme
-            wic.isAppearanceLightNavigationBars = !darkTheme
+    fun getRatingColor(rating: Int): Color {
+        return when (rating) {
+            1 -> RateColor1
+            2 -> RateColor2
+            3 -> RateColor3
+            4 -> RateColor4
+            5 -> RateColor5
+            else -> Color.Gray
         }
     }
 
-    MaterialTheme(
-        colorScheme = colors,
-        typography = Typography(
-            titleMedium = TextStyle(
-                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
-                fontWeight = FontWeight.Medium,
-                fontSize = 17.sp,
-                letterSpacing = 0.2.sp
-            ),
-            bodyMedium = TextStyle(
-                fontSize = 14.sp,
-                color = colors.secondary,
-                letterSpacing = 0.1.sp
-            ),
-            headlineMedium = TextStyle(
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = colors.onBackground,
-                letterSpacing = (-0.5).sp
+    @Composable
+    fun OneUiTheme(
+        darkTheme: Boolean = isSystemInDarkTheme(),
+        content: @Composable () -> Unit
+    ) {
+        val colors = if (darkTheme) {
+            darkColorScheme(
+                background = DarkBackground,
+                surface = DarkSurface,
+                surfaceVariant = DarkSurfaceVariant,
+                primary = BrandBlueSoft,
+                onBackground = DarkTextPrimary,
+                onSurface = DarkTextPrimary,
+                secondary = DarkTextSecondary,
+                outline = DarkBorder,
+                error = BrandRed,
+                surfaceContainer = Color(0xFF2C2C2E)
             )
-        ),
-        content = content
-    )
-}
+        } else {
+            lightColorScheme(
+                background = LightBackground,
+                surface = LightSurface,
+                surfaceVariant = LightSurfaceVariant,
+                primary = BrandBlue,
+                onBackground = LightTextPrimary,
+                onSurface = LightTextPrimary,
+                secondary = LightTextSecondary,
+                outline = LightBorder,
+                error = BrandRed,
+                surfaceContainer = Color(0xFFFFFFFF)
+            )
+        }
+
+        val view = LocalView.current
+        if (!view.isInEditMode) {
+            SideEffect {
+                val window = (view.context as ComponentActivity).window
+                WindowCompat.setDecorFitsSystemWindows(window, false)
+                val wic = androidx.core.view.WindowCompat.getInsetsController(window, view)
+                wic.isAppearanceLightStatusBars = !darkTheme
+                wic.isAppearanceLightNavigationBars = !darkTheme
+            }
+        }
+
+        MaterialTheme(
+            colorScheme = colors,
+            typography = Typography(
+                titleMedium = TextStyle(
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 17.sp,
+                    letterSpacing = 0.2.sp
+                ),
+                bodyMedium = TextStyle(
+                    fontSize = 14.sp,
+                    color = colors.secondary,
+                    letterSpacing = 0.1.sp
+                ),
+                headlineMedium = TextStyle(
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.onBackground,
+                    letterSpacing = (-0.5).sp
+                )
+            ),
+            content = content
+        )
+    }
 
 // ==========================================
 // DATA & VIEWMODEL
 // ==========================================
 
-data class Anime(
-    val id: String = UUID.randomUUID().toString(),
-    val title: String,
-    val episodes: Int,
-    val rating: Int,
-    val imageFileName: String?,
-    val orderIndex: Int,
-    val dateAdded: Long = System.currentTimeMillis(),
-    // ОБНОВЛЕНИЕ: ДОБАВЛЕНО ПОЛЕ ДЛЯ ИЗБРАННОГО
-    val isFavorite: Boolean = false
-)
+    data class Anime(
+        val id: String = UUID.randomUUID().toString(),
+        val title: String,
+        val episodes: Int,
+        val rating: Int,
+        val imageFileName: String?,
+        val orderIndex: Int,
+        val dateAdded: Long = System.currentTimeMillis(),
+        val isFavorite: Boolean = false
+    )
 
-data class RankedAnime(
-    val anime: Anime,
-    val score: Int
-)
+    data class RankedAnime(
+        val anime: Anime,
+        val score: Int
+    )
 
-enum class SortOption(val label: String) {
-    DATE_NEWEST("Newest First"),
-    RATING_HIGH("Highest Rated"),
-    AZ("Name (A-Z)"),
-    // ОБНОВЛЕНИЕ: ОПЦИЯ СОРТИРОВКИ ПО ИЗБРАННОМУ
-    FAVORITES("Favorites")
-}
+    enum class SortOption {
+        DATE_NEWEST,
+        RATING_HIGH,
+        AZ,
+        FAVORITES;
 
-class AnimeViewModel : ViewModel() {
-    private val _animeList = mutableStateListOf<Anime>()
-    val animeList: List<Anime> get() = _animeList
-    var searchQuery by mutableStateOf("")
-    var sortOption by mutableStateOf(SortOption.DATE_NEWEST)
-
-    private val _updates = mutableStateListOf<AnimeUpdate>()
-    val updates: List<AnimeUpdate> get() = _updates
-    var isCheckingUpdates by mutableStateOf(false)
-    var needsUpdateCheck by mutableStateOf(true)
-
-    private val repository = AnimeRepository()
-    private val ROOT = "MyAnimeList"
-    private val IMG_DIR = "collection"
-    private val FILE_NAME = "list.json"
-    private val IGNORED_FILE_NAME = "ignored.json"
-
-    private var ignoredUpdatesMap = mutableMapOf<String, Int>()
-
-    private fun getRoot(): File {
-        val d = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-        val f = File(d, ROOT); if (!f.exists()) f.mkdirs(); return f
-    }
-    private fun getImgDir(): File { val f = File(getRoot(), IMG_DIR); if(!f.exists()) f.mkdirs(); return f }
-    private fun getDataFile(): File = File(getRoot(), FILE_NAME)
-    private fun getIgnoredFile(): File = File(getRoot(), IGNORED_FILE_NAME)
-
-    fun loadAnime() {
-        val f = getDataFile()
-        if (f.exists()) {
-            try {
-                val json = f.readText()
-                val list: List<Anime> = Gson().fromJson(json, object : TypeToken<List<Anime>>() {}.type) ?: emptyList()
-                _animeList.clear(); _animeList.addAll(list.sortedBy { it.orderIndex })
-            } catch (e: Exception) { e.printStackTrace() }
-        }
-
-        val fIgnored = getIgnoredFile()
-        if (fIgnored.exists()) {
-            try {
-                val json = fIgnored.readText()
-                val map: Map<String, Int> = Gson().fromJson(json, object : TypeToken<Map<String, Int>>() {}.type) ?: emptyMap()
-                ignoredUpdatesMap.putAll(map)
-            } catch (e: Exception) { e.printStackTrace() }
-        }
-
-        needsUpdateCheck = true
-        checkForUpdates()
-    }
-
-    // ОБНОВЛЕНИЕ: ЛОГИКА ДЛЯ FAVORITES
-    fun toggleFavorite(id: String) {
-        val idx = _animeList.indexOfFirst { it.id == id }
-        if (idx != -1) {
-            val item = _animeList[idx]
-            _animeList[idx] = item.copy(isFavorite = !item.isFavorite)
-            save()
+        fun getLabel(strings: UiStrings): String = when(this) {
+            DATE_NEWEST -> strings.newestFirst
+            RATING_HIGH -> strings.highestRated
+            AZ -> strings.nameAZ
+            FAVORITES -> strings.favorites
         }
     }
 
-    fun checkForUpdates(force: Boolean = false) {
-        if (!force && !needsUpdateCheck && _updates.isEmpty()) return
-        if (isCheckingUpdates) return
-        isCheckingUpdates = true
+    // СОСТОЯНИЯ ПРОВЕРКИ ОБНОВЛЕНИЯ
+    enum class AppUpdateStatus {
+        IDLE, LOADING, NO_UPDATE, UPDATE_AVAILABLE, ERROR
+    }
 
-        viewModelScope.launch {
+    class AnimeViewModel : ViewModel() {
+
+        var currentLanguage by mutableStateOf(AppLanguage.EN)
+            private set
+
+        val strings: UiStrings get() = getStrings(currentLanguage)
+
+        // СОСТОЯНИЕ ОБНОВЛЕНИЯ
+        var updateStatus by mutableStateOf(AppUpdateStatus.IDLE)
+            private set
+        var latestReleaseUrl by mutableStateOf<String?>(null)
+            private set
+        var currentVersionName by mutableStateOf("v1.0.0")
+            private set
+
+        private val SETTINGS_FILE = "settings.json"
+        private fun getSettingsFile(): File = File(getRoot(), SETTINGS_FILE)
+
+        fun toggleLanguage() {
+            currentLanguage = if (currentLanguage == AppLanguage.EN) AppLanguage.RU else AppLanguage.EN
+            saveSettings()
+        }
+
+        // НОВАЯ ФУНКЦИЯ ДЛЯ ЯВНОЙ УСТАНОВКИ ЯЗЫКА
+        fun setLanguage(lang: AppLanguage) {
+            currentLanguage = lang
+            saveSettings()
+        }
+
+        // ИНИЦИАЛИЗАЦИЯ ВЕРСИИ ПРИЛОЖЕНИЯ
+        fun initAppVersion(context: Context) {
             try {
-                val newUpdates = mutableListOf<AnimeUpdate>()
-                val currentList = _animeList.toList()
+                val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                currentVersionName = pInfo.versionName ?: "v1.0.0"
+            } catch (e: Exception) {
+                currentVersionName = "v1.0.0"
+            }
+        }
 
-                currentList.forEach { anime ->
-                    val result = repository.findTotalEpisodes(anime.title)
-                    if (result != null) {
-                        val (remoteEps, source) = result
-                        val isIgnored = ignoredUpdatesMap[anime.id] == remoteEps
-                        if (remoteEps > anime.episodes && !isIgnored) {
-                            newUpdates.add(AnimeUpdate(anime.id, anime.title, anime.episodes, remoteEps, source))
+        // ФУНКЦИЯ ПРОВЕРКИ ОБНОВЛЕНИЙ
+        fun checkAppUpdate(context: Context) {
+            if (updateStatus == AppUpdateStatus.LOADING) return
+            updateStatus = AppUpdateStatus.LOADING
+
+            // Используем уже инициализированную версию
+            val localVersion = currentVersionName
+
+            viewModelScope.launch {
+                try {
+                    val release = repository.checkGithubUpdate()
+                    if (release != null) {
+                        // СРАВНЕНИЕ ВЕРСИЙ (SEMANTIC VERSIONING)
+                        if (isNewerVersion(localVersion, release.tagName)) {
+                            latestReleaseUrl = release.htmlUrl
+                            updateStatus = AppUpdateStatus.UPDATE_AVAILABLE
+                        } else {
+                            updateStatus = AppUpdateStatus.NO_UPDATE
+                        }
+                    } else {
+                        updateStatus = AppUpdateStatus.ERROR
+                        delay(2000)
+                        updateStatus = AppUpdateStatus.IDLE
+                    }
+                } catch (e: Exception) {
+                    updateStatus = AppUpdateStatus.ERROR
+                    delay(2000)
+                    updateStatus = AppUpdateStatus.IDLE
+                }
+            }
+        }
+
+        // ЛОГИКА СРАВНЕНИЯ ВЕРСИЙ (MAJOR.MINOR.PATCH)
+        private fun isNewerVersion(local: String, remote: String): Boolean {
+            try {
+                // УДАЛЯЕМ ПРЕФИКС "v" И СУФФИКСЫ
+                val localClean = local.removePrefix("v").split("-")[0]
+                val remoteClean = remote.removePrefix("v").split("-")[0]
+
+                val localParts = localClean.split(".").map { it.toIntOrNull() ?: 0 }
+                val remoteParts = remoteClean.split(".").map { it.toIntOrNull() ?: 0 }
+
+                val length = maxOf(localParts.size, remoteParts.size)
+                for (i in 0 until length) {
+                    val l = localParts.getOrElse(i) { 0 }
+                    val r = remoteParts.getOrElse(i) { 0 }
+                    if (r > l) return true
+                    if (r < l) return false
+                }
+            } catch (e: Exception) {
+                return false
+            }
+            return false
+        }
+
+        private fun saveSettings() {
+            try {
+                val settings = mapOf("lang" to currentLanguage.name)
+                getSettingsFile().writeText(Gson().toJson(settings))
+            } catch(e: Exception) { e.printStackTrace() }
+        }
+
+        fun loadSettings() {
+            val f = getSettingsFile()
+            if (f.exists()) {
+                try {
+                    val json = f.readText()
+                    val map: Map<String, String> = Gson().fromJson(json, object : TypeToken<Map<String, String>>() {}.type)
+                    currentLanguage = AppLanguage.valueOf(map["lang"] ?: "EN")
+                } catch(e: Exception) { e.printStackTrace() }
+            }
+        }
+
+        private val _animeList = mutableStateListOf<Anime>()
+        val animeList: List<Anime> get() = _animeList
+        var searchQuery by mutableStateOf("")
+        var sortOption by mutableStateOf(SortOption.DATE_NEWEST)
+
+        private val _updates = mutableStateListOf<AnimeUpdate>()
+        val updates: List<AnimeUpdate> get() = _updates
+        var isCheckingUpdates by mutableStateOf(false)
+        var needsUpdateCheck by mutableStateOf(true)
+
+        private val repository = AnimeRepository()
+        private val ROOT = "MyAnimeList"
+        private val IMG_DIR = "collection"
+        private val FILE_NAME = "list.json"
+        private val IGNORED_FILE_NAME = "ignored.json"
+
+        private var ignoredUpdatesMap = mutableMapOf<String, Int>()
+
+        private fun getRoot(): File {
+            val d = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+            val f = File(d, ROOT); if (!f.exists()) f.mkdirs(); return f
+        }
+        private fun getImgDir(): File { val f = File(getRoot(), IMG_DIR); if(!f.exists()) f.mkdirs(); return f }
+        private fun getDataFile(): File = File(getRoot(), FILE_NAME)
+        private fun getIgnoredFile(): File = File(getRoot(), IGNORED_FILE_NAME)
+
+        fun loadAnime() {
+            val f = getDataFile()
+            if (f.exists()) {
+                try {
+                    val json = f.readText()
+                    val list: List<Anime> = Gson().fromJson(json, object : TypeToken<List<Anime>>() {}.type) ?: emptyList()
+                    _animeList.clear(); _animeList.addAll(list.sortedBy { it.orderIndex })
+                } catch (e: Exception) { e.printStackTrace() }
+            }
+
+            val fIgnored = getIgnoredFile()
+            if (fIgnored.exists()) {
+                try {
+                    val json = fIgnored.readText()
+                    val map: Map<String, Int> = Gson().fromJson(json, object : TypeToken<Map<String, Int>>() {}.type) ?: emptyMap()
+                    ignoredUpdatesMap.putAll(map)
+                } catch (e: Exception) { e.printStackTrace() }
+            }
+
+            needsUpdateCheck = true
+            checkForUpdates()
+        }
+
+        fun toggleFavorite(id: String) {
+            val idx = _animeList.indexOfFirst { it.id == id }
+            if (idx != -1) {
+                val item = _animeList[idx]
+                _animeList[idx] = item.copy(isFavorite = !item.isFavorite)
+                save()
+            }
+        }
+
+        fun checkForUpdates(force: Boolean = false) {
+            if (!force && !needsUpdateCheck && _updates.isEmpty()) return
+            if (isCheckingUpdates) return
+            isCheckingUpdates = true
+
+            viewModelScope.launch {
+                try {
+                    val newUpdates = mutableListOf<AnimeUpdate>()
+                    val currentList = _animeList.toList()
+
+                    currentList.forEach { anime ->
+                        val result = repository.findTotalEpisodes(anime.title)
+                        if (result != null) {
+                            val (remoteEps, source) = result
+                            val isIgnored = ignoredUpdatesMap[anime.id] == remoteEps
+                            if (remoteEps > anime.episodes && !isIgnored) {
+                                newUpdates.add(AnimeUpdate(anime.id, anime.title, anime.episodes, remoteEps, source))
+                            }
                         }
                     }
-                }
-                _updates.clear()
-                _updates.addAll(newUpdates)
-                if (_updates.isEmpty()) needsUpdateCheck = false
-            } catch (e: Exception) { e.printStackTrace() }
-            finally { isCheckingUpdates = false }
-        }
-    }
-
-    fun acceptUpdate(update: AnimeUpdate, ctx: Context) {
-        val anime = getAnimeById(update.animeId) ?: return
-        updateAnime(ctx, anime.id, anime.title, update.newEpisodes, anime.rating, null)
-        _updates.remove(update)
-    }
-
-    fun dismissUpdate(update: AnimeUpdate) {
-        ignoredUpdatesMap[update.animeId] = update.newEpisodes
-        saveIgnored()
-        _updates.remove(update)
-        if (_updates.isEmpty()) needsUpdateCheck = false
-    }
-
-    fun getAnimeById(id: String): Anime? = _animeList.find { it.id == id }
-
-    fun addAnime(ctx: Context, title: String, ep: Int, rate: Int, uri: Uri?) {
-        val id = UUID.randomUUID().toString()
-        val img = if (uri != null) saveImg(ctx, uri, id) else null
-        _animeList.add(0, Anime(id = id, title = title, episodes = ep, rating = rate, imageFileName = img, orderIndex = (_animeList.maxOfOrNull { it.orderIndex }?:0)+1))
-        save()
-        needsUpdateCheck = true
-    }
-
-    fun updateAnime(ctx: Context, id: String, title: String, ep: Int, rate: Int, uri: Uri?) {
-        val idx = _animeList.indexOfFirst { it.id == id }
-        if (idx == -1) return
-        var img = _animeList[idx].imageFileName
-        if (uri != null) {
-            val newImg = saveImg(ctx, uri, id)
-            if (newImg != null) {
-                _animeList[idx].imageFileName?.let { File(getImgDir(), it).delete() }
-                img = newImg
+                    _updates.clear()
+                    _updates.addAll(newUpdates)
+                    if (_updates.isEmpty()) needsUpdateCheck = false
+                } catch (e: Exception) { e.printStackTrace() }
+                finally { isCheckingUpdates = false }
             }
         }
-        _animeList[idx] = _animeList[idx].copy(title=title, episodes=ep, rating=rate, imageFileName=img)
-        save()
-        needsUpdateCheck = true
-        if (ignoredUpdatesMap.containsKey(id)) {
-            ignoredUpdatesMap.remove(id)
+
+        fun acceptUpdate(update: AnimeUpdate, ctx: Context) {
+            val anime = getAnimeById(update.animeId) ?: return
+            updateAnime(ctx, anime.id, anime.title, update.newEpisodes, anime.rating, null)
+            _updates.remove(update)
+        }
+
+        fun dismissUpdate(update: AnimeUpdate) {
+            ignoredUpdatesMap[update.animeId] = update.newEpisodes
             saveIgnored()
+            _updates.remove(update)
+            if (_updates.isEmpty()) needsUpdateCheck = false
         }
-    }
 
-    fun deleteAnime(id: String) {
-        val anime = _animeList.find { it.id == id } ?: return
-        anime.imageFileName?.let { File(getImgDir(), it).delete() }
-        _animeList.remove(anime)
-        save()
-        needsUpdateCheck = true
-    }
+        fun getAnimeById(id: String): Anime? = _animeList.find { it.id == id }
 
-    private fun save() { try { getDataFile().writeText(Gson().toJson(_animeList)) } catch(e:Exception){e.printStackTrace()} }
-    private fun saveIgnored() { try { getIgnoredFile().writeText(Gson().toJson(ignoredUpdatesMap)) } catch(e:Exception){e.printStackTrace()} }
-
-    private fun saveImg(ctx: Context, uri: Uri, id: String): String? {
-        return try {
-            val name = "img_${id}_${System.currentTimeMillis()}.jpg"
-            ctx.contentResolver.openInputStream(uri)?.use { i -> FileOutputStream(File(getImgDir(), name)).use { o -> i.copyTo(o) } }
-            name
-        } catch(e: Exception) { null }
-    }
-
-    fun getImgPath(name: String?): File? = if(name!=null) File(getImgDir(), name).let { if(it.exists()) it else null } else null
-
-    fun getDisplayList(): List<Anime> {
-        val rawQuery = searchQuery.trim()
-        if (rawQuery.isBlank()) return sortList(_animeList)
-        val normalizedQuery = rawQuery.lowercase()
-        val rankedList = _animeList.mapNotNull { anime ->
-            val score = calculateRelevanceScore(normalizedQuery, anime.title.lowercase())
-            if (score > 0) RankedAnime(anime, score) else null
+        fun addAnime(ctx: Context, title: String, ep: Int, rate: Int, uri: Uri?) {
+            val id = UUID.randomUUID().toString()
+            val img = if (uri != null) saveImg(ctx, uri, id) else null
+            _animeList.add(0, Anime(id = id, title = title, episodes = ep, rating = rate, imageFileName = img, orderIndex = (_animeList.maxOfOrNull { it.orderIndex }?:0)+1))
+            save()
+            needsUpdateCheck = true
         }
-        return rankedList.sortedWith(
-            compareByDescending<RankedAnime> { it.score }
-                .thenBy { it.anime.title }
-        ).map { it.anime }
-    }
 
-    private fun calculateRelevanceScore(query: String, title: String): Int {
-        if (title == query) return 100
-        if (title.startsWith(query)) return 90
-        val words = title.split(" ", "-", ":")
-        if (words.any { it.startsWith(query) }) return 80
-        if (title.contains(query)) return 60
-        if (query.length > 2) {
-            val dist = levenshtein(query, title)
-            val maxEdits = if (query.length < 6) 1 else 2
-            val prefix = title.take(query.length + 1)
-            val distPrefix = levenshtein(query, prefix)
-            if (dist <= maxEdits) return 50
-            if (distPrefix <= maxEdits) return 45
-        }
-        return 0
-    }
-
-    private fun sortList(list: List<Anime>): List<Anime> {
-        return when(sortOption) {
-            SortOption.DATE_NEWEST -> list.sortedByDescending { it.dateAdded }
-            SortOption.RATING_HIGH -> list.sortedByDescending { it.rating }
-            SortOption.AZ -> list.sortedBy { it.title }
-            // ОБНОВЛЕНИЕ: СОРТИРОВКА FAVORITES (работает как фильтр)
-            SortOption.FAVORITES -> list.filter { it.isFavorite }.sortedBy { it.title }
-        }
-    }
-
-    private fun levenshtein(lhs: CharSequence, rhs: CharSequence): Int {
-        if (lhs == rhs) return 0
-        if (lhs.isEmpty()) return rhs.length
-        if (rhs.isEmpty()) return lhs.length
-        val lhsLength = lhs.length
-        val rhsLength = rhs.length
-        var cost = IntArray(lhsLength + 1) { it }
-        var newCost = IntArray(lhsLength + 1) { 0 }
-        for (i in 1..rhsLength) {
-            newCost[0] = i
-            for (j in 1..lhsLength) {
-                val match = if (lhs[j - 1] == rhs[i - 1]) 0 else 1
-                val costReplace = cost[j - 1] + match
-                val costInsert = cost[j] + 1
-                val costDelete = newCost[j - 1] + 1
-                newCost[j] = min(min(costInsert, costDelete), costReplace)
+        fun updateAnime(ctx: Context, id: String, title: String, ep: Int, rate: Int, uri: Uri?) {
+            val idx = _animeList.indexOfFirst { it.id == id }
+            if (idx == -1) return
+            var img = _animeList[idx].imageFileName
+            if (uri != null) {
+                val newImg = saveImg(ctx, uri, id)
+                if (newImg != null) {
+                    _animeList[idx].imageFileName?.let { File(getImgDir(), it).delete() }
+                    img = newImg
+                }
             }
-            val swap = cost; cost = newCost; newCost = swap
+            _animeList[idx] = _animeList[idx].copy(title=title, episodes=ep, rating=rate, imageFileName=img)
+            save()
+            needsUpdateCheck = true
+            if (ignoredUpdatesMap.containsKey(id)) {
+                ignoredUpdatesMap.remove(id)
+                saveIgnored()
+            }
         }
-        return cost[lhsLength]
+
+        fun deleteAnime(id: String) {
+            val anime = _animeList.find { it.id == id } ?: return
+            anime.imageFileName?.let { File(getImgDir(), it).delete() }
+            _animeList.remove(anime)
+            save()
+            needsUpdateCheck = true
+        }
+
+        private fun save() { try { getDataFile().writeText(Gson().toJson(_animeList)) } catch(e:Exception){e.printStackTrace()} }
+        private fun saveIgnored() { try { getIgnoredFile().writeText(Gson().toJson(ignoredUpdatesMap)) } catch(e:Exception){e.printStackTrace()} }
+
+        private fun saveImg(ctx: Context, uri: Uri, id: String): String? {
+            return try {
+                val name = "img_${id}_${System.currentTimeMillis()}.jpg"
+                ctx.contentResolver.openInputStream(uri)?.use { i -> FileOutputStream(File(getImgDir(), name)).use { o -> i.copyTo(o) } }
+                name
+            } catch(e: Exception) { null }
+        }
+
+        fun getImgPath(name: String?): File? = if(name!=null) File(getImgDir(), name).let { if(it.exists()) it else null } else null
+
+        fun getDisplayList(): List<Anime> {
+            val rawQuery = searchQuery.trim()
+            if (rawQuery.isBlank()) return sortList(_animeList)
+            val normalizedQuery = rawQuery.lowercase()
+            val rankedList = _animeList.mapNotNull { anime ->
+                val score = calculateRelevanceScore(normalizedQuery, anime.title.lowercase())
+                if (score > 0) RankedAnime(anime, score) else null
+            }
+            return rankedList.sortedWith(
+                compareByDescending<RankedAnime> { it.score }
+                    .thenBy { it.anime.title }
+            ).map { it.anime }
+        }
+
+        private fun calculateRelevanceScore(query: String, title: String): Int {
+            if (title == query) return 100
+            if (title.startsWith(query)) return 90
+            val words = title.split(" ", "-", ":")
+            if (words.any { it.startsWith(query) }) return 80
+            if (title.contains(query)) return 60
+            if (query.length > 2) {
+                val dist = levenshtein(query, title)
+                val maxEdits = if (query.length < 6) 1 else 2
+                val prefix = title.take(query.length + 1)
+                val distPrefix = levenshtein(query, prefix)
+                if (dist <= maxEdits) return 50
+                if (distPrefix <= maxEdits) return 45
+            }
+            return 0
+        }
+
+        private fun sortList(list: List<Anime>): List<Anime> {
+            return when(sortOption) {
+                SortOption.DATE_NEWEST -> list.sortedByDescending { it.dateAdded }
+                SortOption.RATING_HIGH -> list.sortedByDescending { it.rating }
+                SortOption.AZ -> list.sortedBy { it.title }
+                SortOption.FAVORITES -> list.filter { it.isFavorite }.sortedBy { it.title }
+            }
+        }
+
+        private fun levenshtein(lhs: CharSequence, rhs: CharSequence): Int {
+            if (lhs == rhs) return 0
+            if (lhs.isEmpty()) return rhs.length
+            if (rhs.isEmpty()) return lhs.length
+            val lhsLength = lhs.length
+            val rhsLength = rhs.length
+            var cost = IntArray(lhsLength + 1) { it }
+            var newCost = IntArray(lhsLength + 1) { 0 }
+            for (i in 1..rhsLength) {
+                newCost[0] = i
+                for (j in 1..lhsLength) {
+                    val match = if (lhs[j - 1] == rhs[i - 1]) 0 else 1
+                    val costReplace = cost[j - 1] + match
+                    val costInsert = cost[j] + 1
+                    val costDelete = newCost[j - 1] + 1
+                    newCost[j] = min(min(costInsert, costDelete), costReplace)
+                }
+                val swap = cost; cost = newCost; newCost = swap
+            }
+            return cost[lhsLength]
+        }
     }
-}
 
 // ==========================================
 // UI COMPONENTS
 // ==========================================
 
-fun performHaptic(view: View, type: String) {
-    when (type) {
-        "success" -> {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-            } else {
-                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-            }
-        }
-        "warning" -> view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-        "light" -> {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-            } else {
-                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-            }
-        }
-    }
-}
-
-fun performHaptic(view: View, isStrong: Boolean) {
-    performHaptic(view, if (isStrong) "warning" else "light")
-}
-
-@Composable
-fun GlassActionDock(
-    hazeState: HazeState,
-    isFloating: Boolean,
-    sortOption: SortOption,
-    onSortSelected: (SortOption) -> Unit,
-    onSettingsClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    // Получаем текущую тему (нужно для логики бордюра)
-    val isDark = isSystemInDarkTheme()
-
-    val topPadding by animateDpAsState(
-        targetValue = if (isFloating) 16.dp else 0.dp,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "dockPadding"
-    )
-
-    // --- ИЗМЕНЕНИЕ 1: Повышенная непрозрачность (0.8f -> 0.96f) ---
-    // Теперь фон почти полностью перекрывает контент сзади
-    val targetTint = MaterialTheme.colorScheme.background.copy(alpha = 0.96f)
-
-    val tintColor by animateColorAsState(
-        targetValue = if (isFloating) targetTint else Color.Transparent,
-        label = "tint"
-    )
-
-    val blurRadius by animateDpAsState(targetValue = if (isFloating) 30.dp else 0.dp, label = "blur")
-
-    // --- ИЗМЕНЕНИЕ 2: Исправление серой рамки в светлой теме ---
-    // Если тема светлая -> рамка полностью прозрачная (убираем "грязь")
-    // Если тема темная -> рамка чуть видна (белый блик)
-    val borderStrokeBase = if (isDark) {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-    } else {
-        Color.Transparent
-    }
-
-    val borderColor by animateColorAsState(targetValue = if (isFloating) borderStrokeBase else Color.Transparent, label = "border")
-
-    val shineColorBase = if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.6f)
-    val shineAlpha by animateFloatAsState(targetValue = if (isFloating) 1f else 0f, label = "shineAlpha")
-
-    val buttonBgColor by animateColorAsState(
-        targetValue = if (isFloating) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        label = "btnBg"
-    )
-    val dividerAlpha by animateFloatAsState(targetValue = if (isFloating) 1f else 0f, label = "divAlpha")
-    var expanded by remember { mutableStateOf(false) }
-
-    Box(
-        modifier = modifier
-            .padding(top = topPadding)
-            .statusBarsPadding()
-            .clip(RoundedCornerShape(32.dp))
-            .hazeChild(
-                state = hazeState,
-                shape = RoundedCornerShape(32.dp),
-                style = HazeStyle(blurRadius = blurRadius, tint = tintColor)
-            )
-            .border(0.5.dp, borderColor, RoundedCornerShape(32.dp))
-    ) {
-        if (shineAlpha > 0f) {
-            Canvas(modifier = Modifier.matchParentSize()) {
-                val rect = Rect(offset = Offset.Zero, size = size)
-                val path = Path().apply { addRoundRect(RoundRect(rect, CornerRadius(32.dp.toPx()))) }
-                drawPath(
-                    path,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            shineColorBase.copy(alpha = shineColorBase.alpha * shineAlpha),
-                            Color.Transparent,
-                            Color.Transparent,
-                            shineColorBase.copy(alpha = 0.05f * shineAlpha)
-                        )
-                    ),
-                    style = Stroke(width = 1.dp.toPx())
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Box {
-                IconButton(onClick = { expanded = true }, modifier = Modifier.size(44.dp).clip(CircleShape).background(buttonBgColor)) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort", tint = MaterialTheme.colorScheme.onSurface)
-                }
-                MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(16.dp))) {
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.96f), // Меню тоже делаем плотнее
-                        offset = DpOffset(x = 0.dp, y = 8.dp)
-                    ) {
-                        SortOption.values().forEach { option ->
-                            val isSelected = sortOption == option
-                            DropdownMenuItem(
-                                text = { Text(text = option.label, color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                                trailingIcon = {
-                                    val icon = when (option) {
-                                        SortOption.DATE_NEWEST -> Icons.Default.DateRange
-                                        SortOption.RATING_HIGH -> Icons.Default.Star
-                                        SortOption.AZ -> Icons.AutoMirrored.Filled.Sort
-                                        SortOption.FAVORITES -> Icons.Default.Favorite
-                                    }
-                                    Icon(imageVector = icon, contentDescription = null, tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary)
-                                },
-                                onClick = { onSortSelected(option); expanded = false }
-                            )
-                        }
-                    }
-                }
-            }
-            Box(modifier = Modifier.height(20.dp).width(1.dp).alpha(dividerAlpha).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)))
-            IconButton(onClick = onSettingsClick, modifier = Modifier.size(44.dp).clip(CircleShape).background(buttonBgColor)) {
-                Icon(imageVector = Icons.Outlined.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurface)
-            }
-        }
-    }
-}
-
-val StarIconVector: ImageVector get() = ImageVector.Builder(name = "Star", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f).path(fill = SolidColor(Color.Black), fillAlpha = 1f, stroke = null, strokeAlpha = 1f, pathFillType = androidx.compose.ui.graphics.PathFillType.NonZero) { moveTo(8.243f, 7.34f); lineTo(1.863f, 8.265f); lineTo(1.75f, 8.288f); arcTo(1f, 1f, 0f, false, false, 1.31f, 9.972f); lineTo(5.932f, 14.471f); lineTo(4.842f, 20.826f); lineTo(4.829f, 20.936f); arcTo(1f, 1f, 0f, false, false, 6.293f, 21.88f); lineTo(12.0f, 18.88f); lineTo(17.693f, 21.88f); lineTo(17.793f, 21.926f); arcTo(1f, 1f, 0f, false, false, 19.145f, 20.826f); lineTo(18.054f, 14.471f); lineTo(22.678f, 9.971f); lineTo(22.756f, 9.886f); arcTo(1f, 1f, 0f, false, false, 22.123f, 8.266f); lineTo(15.743f, 7.34f); lineTo(12.891f, 1.56f); arcTo(1f, 1f, 0f, false, false, 11.097f, 1.56f); lineTo(8.243f, 7.34f); close() }.build()
-
-@Composable
-fun StarRatingBar(rating: Int, onRatingChanged: (Int) -> Unit) {
-    val colors = listOf(RateColor1, RateColor2, RateColor3, RateColor4, RateColor5)
-    val activeColor = if (rating > 0) colors[rating - 1] else RateColorEmpty
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-        for (i in 1..5) {
-            val isSelected = i <= rating
-            val animatedColor by animateColorAsState(targetValue = if (isSelected) activeColor else RateColorEmpty, animationSpec = tween(300), label = "color")
-            val scale by animateFloatAsState(targetValue = if (isSelected) 1.2f else 1f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy), label = "scale")
-            Icon(imageVector = StarIconVector, contentDescription = "Rate $i", tint = animatedColor, modifier = Modifier.size(54.dp).scale(scale).padding(4.dp).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onRatingChanged(i) })
-        }
-    }
-}
-
-@Composable
-fun EpisodeSuggestions(onSelect: (String) -> Unit) {
-    val suggestions = listOf("12", "13", "24", "36", "48", "100")
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        suggestions.forEach { num ->
-            Box(modifier = Modifier.weight(1f).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable { onSelect(num) }.padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
-                Text(text = num, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-            }
-        }
-    }
-}
-
-@Composable
-fun AnimatedSaveFab(isEnabled: Boolean, onClick: () -> Unit) {
-    var isSaved by remember { mutableStateOf(false) }
-    val view = LocalView.current
-    FloatingActionButton(
-        onClick = {
-            if (isEnabled && !isSaved) {
-                isSaved = true
-                performHaptic(view, "success")
-                onClick()
-            }
-        },
-        containerColor = if (isEnabled) MaterialTheme.colorScheme.primary else Color(0xFF424242),
-        contentColor = if (isEnabled) Color.White else Color.Gray,
-        shape = CircleShape,
-        modifier = Modifier.size(64.dp)
-    ) {
-        AnimatedContent(targetState = isSaved, transitionSpec = { (scaleIn() + fadeIn()) togetherWith (scaleOut() + fadeOut()) }, label = "save_animation") { saved ->
-            if (saved) Icon(imageVector = Icons.Default.Check, contentDescription = "Saved", modifier = Modifier.size(28.dp))
-            else Icon(imageVector = Icons.Default.Save, contentDescription = "Save", modifier = Modifier.size(28.dp))
-        }
-    }
-}
-
-@Composable
-fun AnimatedCopyButton(textToCopy: String) {
-    val clipboardManager = LocalClipboardManager.current
-    var isCopied by remember { mutableStateOf(false) }
-    val view = LocalView.current
-    Box(contentAlignment = Alignment.Center) {
-        androidx.compose.animation.AnimatedVisibility(visible = isCopied, enter = slideInVertically(initialOffsetY = { it }) + fadeIn(), exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(), modifier = Modifier.align(Alignment.TopCenter).offset(y = (-40).dp).zIndex(10f)) {
-            Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(Color.White).padding(horizontal = 12.dp, vertical = 6.dp)) { Text("Copied!", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
-        }
-        IconButton(onClick = { if (textToCopy.isNotEmpty()) { performHaptic(view, "light"); clipboardManager.setText(AnnotatedString(textToCopy)); isCopied = true } }) {
-            AnimatedContent(targetState = isCopied, transitionSpec = { (scaleIn() + fadeIn()) togetherWith (scaleOut() + fadeOut()) }, label = "copy_icon") { copied ->
-                if (copied) { LaunchedEffect(Unit) { delay(2000); isCopied = false }; Icon(Icons.Default.Check, null, tint = BrandBlue, modifier = Modifier.size(24.dp)) }
-                else Icon(Icons.Default.ContentCopy, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(24.dp))
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-fun SharedTransitionScope.TextAsIndividualLetters(
-    animatedContentScope: AnimatedContentScope,
-    text: String,
-    modifier: Modifier = Modifier,
-    style: TextStyle = TextStyle(),
-    textColor: Color
-) {
-    Row(modifier) {
-        text.forEachIndexed { index, letter ->
-            Text(
-                text = "$letter",
-                modifier = Modifier.sharedBounds(
-                    sharedContentState = rememberSharedContentState(key = "hint_$index"),
-                    animatedVisibilityScope = animatedContentScope,
-                    boundsTransform = { _, _ ->
-                        spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = 1000f)
-                    }
-                ),
-                style = style,
-                color = textColor
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-fun AnimatedOneUiTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    singleLine: Boolean = true,
-    maxLines: Int = 1
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
-    val showHintAbove = isFocused || value.isNotEmpty()
-    val containerColor = MaterialTheme.colorScheme.surfaceVariant
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val hintColor = MaterialTheme.colorScheme.secondary
-    val textStyle = TextStyle(fontSize = 18.sp, color = textColor)
-    val hintStyleInner = TextStyle(fontSize = 18.sp)
-    val hintStyleOuter = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold)
-
-    BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
-        interactionSource = interactionSource,
-        textStyle = textStyle,
-        singleLine = singleLine,
-        maxLines = maxLines,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        decorationBox = { innerTextField ->
-            SharedTransitionLayout {
-                AnimatedContent(
-                    targetState = showHintAbove,
-                    transitionSpec = { EnterTransition.None togetherWith ExitTransition.None },
-                    label = "hintAnimation"
-                ) { targetShowAbove ->
-                    if (targetShowAbove) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Box(modifier = Modifier.padding(start = 24.dp, bottom = 4.dp).height(16.dp)) {
-                                TextAsIndividualLetters(animatedContentScope = this@AnimatedContent, text = placeholder, style = hintStyleOuter, textColor = MaterialTheme.colorScheme.primary)
-                            }
-                            Box(modifier = Modifier.fillMaxWidth().sharedElement(rememberSharedContentState(key = "container"), animatedVisibilityScope = this@AnimatedContent).clip(RoundedCornerShape(20.dp)).background(containerColor).padding(horizontal = 24.dp, vertical = 16.dp), contentAlignment = Alignment.CenterStart) {
-                                innerTextField()
-                            }
-                        }
-                    } else {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Box(modifier = Modifier.fillMaxWidth().sharedElement(rememberSharedContentState(key = "container"), animatedVisibilityScope = this@AnimatedContent).clip(RoundedCornerShape(20.dp)).background(containerColor).padding(horizontal = 24.dp, vertical = 16.dp), contentAlignment = Alignment.CenterStart) {
-                                TextAsIndividualLetters(animatedContentScope = this@AnimatedContent, text = placeholder, style = hintStyleInner, textColor = hintColor)
-                                innerTextField()
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    )
-}
-
-@Composable
-fun RatingChip(rating: Int) {
-    val starTint = getRatingColor(rating)
-    Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(RatingChipBg).padding(horizontal = 8.dp, vertical = 4.dp), contentAlignment = Alignment.Center) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = starTint, modifier = Modifier.size(14.dp))
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(text = rating.toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-        }
-    }
-}
-
-@Composable
-fun ThemeSwitch(darkTheme: Boolean, onToggle: () -> Unit) {
-    val view = LocalView.current
-    val offsetAnim by animateDpAsState(targetValue = if (darkTheme) 28.dp else 4.dp, animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow), label = "switchOffset")
-    val containerColor by animateColorAsState(targetValue = if (darkTheme) Color(0xFF2C2C2E) else Color(0xFFE5E5EA), label = "switchContainer")
-    Box(modifier = Modifier.width(60.dp).height(34.dp).clip(CircleShape).background(containerColor).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { performHaptic(view, "light"); onToggle() }) {
-        Box(modifier = Modifier.size(26.dp).align(Alignment.CenterStart).offset(x = offsetAnim).shadow(4.dp, CircleShape).clip(CircleShape).background(if (darkTheme) Color(0xFF48484A) else Color.White), contentAlignment = Alignment.Center) {
-            AnimatedContent(targetState = darkTheme, transitionSpec = { (scaleIn() + fadeIn()) togetherWith (scaleOut() + fadeOut()) }, label = "iconAnim") { isDark ->
-                if (isDark) Icon(Icons.Default.DarkMode, null, tint = Color.Yellow, modifier = Modifier.size(16.dp))
-                else Icon(Icons.Default.LightMode, null, tint = Color(0xFFFF9500), modifier = Modifier.size(16.dp))
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-fun OneUiAnimeCard(
-    anime: Anime,
-    viewModel: AnimeViewModel,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-    onClick: () -> Unit
-    // Мы УДАЛИЛИ onLongClick — карточка больше не умеет вызывать меню
-) {
-    val imageFile = remember(anime.imageFileName) { viewModel.getImgPath(anime.imageFileName) }
-    val view = LocalView.current
-    val cardShape = RoundedCornerShape(24.dp)
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
-    val borderColor = MaterialTheme.colorScheme.outline
-
-    with(sharedTransitionScope) {
-        Box(
-            modifier = Modifier.fillMaxWidth().height(100.dp)
-                .sharedBounds(rememberSharedContentState(key = "container_${anime.id}"), animatedVisibilityScope = animatedVisibilityScope, resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds, placeHolderSize = SharedTransitionScope.PlaceHolderSize.animatedSize)
-                .shadow(elevation = 12.dp, shape = cardShape, spotColor = Color.Black.copy(alpha = 0.08f), ambientColor = Color.Black.copy(alpha = 0.04f))
-                .background(brush = Brush.verticalGradient(colors = listOf(surfaceColor, surfaceVariant)), shape = cardShape)
-                .border(width = 1.dp, color = borderColor, shape = cardShape)
-                .clip(cardShape)
-                // ВАЖНО: Тут теперь просто clickable. Мы вырезали механизм долгого нажатия.
-                .clickable { performHaptic(view, "light"); onClick() }
-        ) {
-            Row(modifier = Modifier.fillMaxSize().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.aspectRatio(1f).fillMaxHeight().sharedElement(rememberSharedContentState(key = "image_${anime.id}"), animatedVisibilityScope = animatedVisibilityScope).clip(RoundedCornerShape(18.dp)).background(Color.Black)) {
-                    if (imageFile != null) AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(imageFile).crossfade(true).build(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                    else Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize().background(Color(0xFF2C2C2E))) { Text(text = anime.title.take(1).uppercase(), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Gray) }
-                }
-                Spacer(Modifier.width(16.dp))
-                Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column(modifier = Modifier.weight(1f).padding(end = 8.dp), verticalArrangement = Arrangement.Center) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = anime.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface, lineHeight = 20.sp, modifier = Modifier.weight(1f, false))
-                            if (anime.isFavorite) {
-                                Spacer(Modifier.width(4.dp))
-                                Icon(Icons.Default.Star, contentDescription = "Favorite", tint = RateColor3, modifier = Modifier.size(16.dp))
-                            }
-                        }
-                        Spacer(Modifier.height(4.dp))
-                        Text(text = "${anime.episodes} episodes", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
-                    }
-                    if (anime.rating > 0) RatingChip(rating = anime.rating)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun SimpleAnimePreviewOverlay(anime: Anime, viewModel: AnimeViewModel, onDismiss: () -> Unit, onDelete: () -> Unit) {
-    val imageFile = remember(anime.imageFileName) { viewModel.getImgPath(anime.imageFileName) }
-    var showConfirmDialog by remember { mutableStateOf(false) }
-    val view = LocalView.current
-
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { if (!showConfirmDialog) { performHaptic(view, "light"); onDismiss() } }.zIndex(50f), contentAlignment = Alignment.Center) {
-        AnimatedVisibility(visible = !showConfirmDialog, enter = fadeIn(), exit = fadeOut()) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center, modifier = Modifier.padding(24.dp)) {
-                Box(modifier = Modifier.fillMaxWidth(0.85f).aspectRatio(0.7f).clip(RoundedCornerShape(32.dp)).background(DarkSurface)) {
-                    if (imageFile != null) AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(imageFile).build(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                    else Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(anime.title.take(1), fontSize = 60.sp, color = Color.Gray) }
-                    Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)), startY = 300f)))
-                    Column(modifier = Modifier.align(Alignment.BottomStart).padding(20.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = anime.title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.weight(1f, false))
-                            if (anime.isFavorite) { Icon(Icons.Default.Star, null, tint = RateColor3, modifier = Modifier.padding(start = 8.dp).size(24.dp)) }
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(color = BrandBlue.copy(alpha = 0.8f), shape = CircleShape) { Text(text = "${anime.episodes} EP", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) }
-                            Spacer(Modifier.width(12.dp))
-                            if (anime.rating > 0) RatingChip(rating = anime.rating)
-                        }
-                    }
-                }
-                Spacer(Modifier.height(32.dp))
-                AnimatedTrashButton(onClick = { performHaptic(view, "warning"); showConfirmDialog = true })
-            }
-        }
-
-        if (showConfirmDialog) {
-            SpringBottomDialog(
-                title = "Delete title?",
-                subtitle = "There’s no “undo”, no “Ctrl+Z”...",
-                confirmText = "Delete",
-                icon = Icons.Default.Delete,
-                accentColor = BrandRed,
-                // Передаем картинку
-                imageFile = imageFile, // Тут переменная imageFile уже вычислена выше в этой функции
-                onConfirm = { performHaptic(view, "warning"); onDelete() },
-                onCancel = { performHaptic(view, "light"); showConfirmDialog = false }
-            )
-        }
-    }
-}
-
-@Composable
-fun AnimatedTrashButton(onClick: () -> Unit) {
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(if (isPressed) 0.8f else 1f, label = "scale")
-    Box(modifier = Modifier.size(70.dp).scale(scale).shadow(12.dp, CircleShape, spotColor = BrandRed).clip(CircleShape).background(BrandRed).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { isPressed = true; onClick() }, contentAlignment = Alignment.Center) {
-        Icon(imageVector = Icons.Outlined.Delete, contentDescription = "Delete", tint = Color.White, modifier = Modifier.size(32.dp))
-    }
-}
-
-@Composable
-fun SpringBottomDialog(
-    title: String,
-    subtitle: String,
-    confirmText: String,
-    icon: ImageVector,
-    accentColor: Color,
-    imageFile: File? = null,
-    onConfirm: () -> Unit,
-    onCancel: () -> Unit
-) {
-    var visible by remember { mutableStateOf(false) }
-    val view = LocalView.current
-
-    LaunchedEffect(Unit) { visible = true }
-
-    fun dismiss() {
-        visible = false
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            onCancel()
-        }, 300)
-    }
-
-    BackHandler { dismiss() }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .zIndex(100f),
-        contentAlignment = Alignment.BottomCenter
-    ) {
-        // 1. Полупрозрачный фон
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(animationSpec = tween(300)),
-            exit = fadeOut(animationSpec = tween(300))
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.6f))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { dismiss() }
-            )
-        }
-
-        // 2. Сама карточка
-        AnimatedVisibility(
-            visible = visible,
-            enter = slideInVertically(
-                initialOffsetY = { it },
-                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
-            ) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { it }, animationSpec = tween(200)) + fadeOut()
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .navigationBarsPadding()
-                    .padding(bottom = 16.dp)
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(32.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-
-                // --- ЛОГИКА: КАРТИНКА ИЛИ ИКОНКА ---
-                if (imageFile != null) {
-                    // Если есть файл - показываем ПОСТЕР (Вертикальный и большой)
-                    Box(
-                        modifier = Modifier
-                            .height(280.dp) // Увеличили высоту для вертикального постера
-                            .aspectRatio(0.7f) // Стандартные пропорции аниме-постера
-                            .shadow(elevation = 16.dp, shape = RoundedCornerShape(20.dp), spotColor = accentColor) // Тень с оттенком
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Color.Gray)
-                    ) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(imageFile)
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        // Легкий градиент снизу, чтобы картинка красиво вписывалась
-                        Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.2f)))))
-                    }
-                    Spacer(Modifier.height(24.dp))
+    fun performHaptic(view: View, type: String) {
+        when (type) {
+            "success" -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                 } else {
-                    // Если файла нет - показываем ИКОНКУ (как раньше)
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp) // Чуть увеличил размер иконки для баланса
-                            .clip(CircleShape)
-                            .background(accentColor.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                }
+            }
+            "warning" -> view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            "light" -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                } else {
+                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                }
+            }
+        }
+    }
+
+    fun performHaptic(view: View, isStrong: Boolean) {
+        performHaptic(view, if (isStrong) "warning" else "light")
+    }
+
+    @Composable
+    fun GlassActionDock(
+        hazeState: HazeState,
+        isFloating: Boolean,
+        sortOption: SortOption,
+        viewModel: AnimeViewModel,
+        onSortSelected: (SortOption) -> Unit,
+        modifier: Modifier = Modifier
+    ){
+        val isDark = isSystemInDarkTheme()
+        val view = LocalView.current
+        val context = LocalContext.current
+
+        val topPadding by animateDpAsState(
+            targetValue = if (isFloating) 16.dp else 0.dp,
+            animationSpec = spring(stiffness = Spring.StiffnessLow),
+            label = "dockPadding"
+        )
+
+        // КОРРЕКЦИЯ ЦВЕТА СТЕКЛА
+        val targetTint = if (isDark) Color.Black.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.05f)
+
+        val tintColor by animateColorAsState(
+            targetValue = if (isFloating) targetTint else Color.Transparent,
+            label = "tint"
+        )
+
+        val blurRadius by animateDpAsState(targetValue = if (isFloating) 30.dp else 0.dp, label = "blur")
+
+        val borderStrokeBase = if (isDark) {
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+        } else {
+            Color.Transparent
+        }
+
+        val borderColor by animateColorAsState(targetValue = if (isFloating) borderStrokeBase else Color.Transparent, label = "border")
+        val shineColorBase = if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.6f)
+        val shineAlpha by animateFloatAsState(targetValue = if (isFloating) 1f else 0f, label = "shineAlpha")
+        val buttonBgColor by animateColorAsState(
+            targetValue = if (isFloating) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            label = "btnBg"
+        )
+
+        var expandedSort by remember { mutableStateOf(false) }
+        var expandedNotifs by remember { mutableStateOf(false) } // СОСТОЯНИЕ МЕНЮ УВЕДОМЛЕНИЙ
+
+        Box(
+            modifier = modifier
+                .padding(top = topPadding)
+                .statusBarsPadding()
+                .clip(RoundedCornerShape(32.dp))
+                .hazeChild(
+                    state = hazeState,
+                    shape = RoundedCornerShape(32.dp),
+                    style = HazeStyle(blurRadius = blurRadius, tint = tintColor)
+                )
+                .border(0.5.dp, borderColor, RoundedCornerShape(32.dp))
+        ) {
+            if (shineAlpha > 0f) {
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    val rect = Rect(offset = Offset.Zero, size = size)
+                    val path = Path().apply { addRoundRect(RoundRect(rect, CornerRadius(32.dp.toPx()))) }
+                    drawPath(
+                        path,
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                shineColorBase.copy(alpha = shineColorBase.alpha * shineAlpha),
+                                Color.Transparent,
+                                Color.Transparent,
+                                shineColorBase.copy(alpha = 0.05f * shineAlpha)
+                            )
+                        ),
+                        style = Stroke(width = 1.dp.toPx())
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // КНОПКА СОРТИРОВКИ
+                Box {
+                    IconButton(onClick = { expandedSort = true }, modifier = Modifier.size(44.dp).clip(CircleShape).background(buttonBgColor)) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                    MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(16.dp))) {
+                        DropdownMenu(
+                            expanded = expandedSort,
+                            onDismissRequest = { expandedSort = false },
+                            containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.96f),
+                            offset = DpOffset(x = 0.dp, y = 8.dp)
+                        ) {
+                            SortOption.values().forEach { option ->
+                                val isSelected = sortOption == option
+                                DropdownMenuItem(
+                                    text = { Text(text = option.getLabel(viewModel.strings), color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                                    trailingIcon = {
+                                        val icon = when (option) {
+                                            SortOption.DATE_NEWEST -> Icons.Default.DateRange
+                                            SortOption.RATING_HIGH -> Icons.Default.Star
+                                            SortOption.AZ -> Icons.AutoMirrored.Filled.Sort
+                                            SortOption.FAVORITES -> Icons.Default.Favorite
+                                        }
+                                        Icon(imageVector = icon, contentDescription = null, tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary)
+                                    },
+                                    onClick = { onSortSelected(option); expandedSort = false }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // КНОПКА УВЕДОМЛЕНИЙ С DROPDOWN MENU
+                Box {
+                    IconButton(
+                        onClick = { expandedNotifs = true },
+                        modifier = Modifier.size(44.dp).clip(CircleShape).background(buttonBgColor)
                     ) {
                         Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = accentColor,
-                            modifier = Modifier.size(32.dp)
+                            imageVector = HeroiconsRectangleStack,
+                            contentDescription = "Notifications",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    Spacer(Modifier.height(20.dp))
-                }
-
-                // Заголовок
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(Modifier.height(8.dp))
-
-                // Подзаголовок
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.secondary,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 20.sp
-                )
-
-                Spacer(Modifier.height(32.dp))
-
-                // Кнопка действия
-                Button(
-                    onClick = {
-                        performHaptic(view, "success")
-                        onConfirm()
-                    },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = accentColor, contentColor = Color.White),
-                    shape = RoundedCornerShape(18.dp)
-                ) {
-                    Text(text = confirmText, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                // Кнопка отмены
-                TextButton(
-                    onClick = {
-                        performHaptic(view, "light")
-                        dismiss()
-                    },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = RoundedCornerShape(18.dp)
-                ) {
-                    Text(text = "Cancel", fontSize = 18.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun MalistWorkspaceTopBar(isDarkTheme: Boolean, onToggleTheme: () -> Unit, modifier: Modifier = Modifier) {
-    Row(modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp).statusBarsPadding(), verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) { Text("M", color = Color.White, fontWeight = FontWeight.Bold) }
-        Spacer(Modifier.width(12.dp))
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "MAList", style = MaterialTheme.typography.headlineMedium)
-                Spacer(Modifier.width(16.dp))
-                ThemeSwitch(darkTheme = isDarkTheme, onToggle = onToggleTheme)
-            }
-        }
-    }
-}
-
-@Composable
-fun StatsCard(
-    title: String,
-    icon: ImageVector,
-    isExpanded: Boolean,
-    onClick: () -> Unit,
-    rankColor: Color? = null,
-    content: @Composable () -> Unit
-) {
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
-    val borderColor = MaterialTheme.colorScheme.outline
-    val contentColor = MaterialTheme.colorScheme.onSurface
-    val shape = RoundedCornerShape(20.dp)
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(elevation = 8.dp, shape = shape, spotColor = Color.Black.copy(alpha = 0.08f))
-            .clip(shape)
-            .background(brush = Brush.verticalGradient(colors = listOf(surfaceColor, surfaceVariant)))
-            .border(width = 1.dp, color = borderColor, shape = shape)
-            .clickable { onClick() }
-            .animateContentSize()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f), modifier = Modifier.size(24.dp))
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(text = title, style = MaterialTheme.typography.titleMedium, color = contentColor, fontWeight = FontWeight.SemiBold)
-            }
-            if (isExpanded) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Box(modifier = Modifier.fillMaxWidth()) { content() }
-            }
-        }
-    }
-}
-
-@Composable
-fun WatchStatsContent(animeList: List<Anime>) {
-    val totalEpisodes = remember(animeList) { animeList.sumOf { it.episodes } }
-    val totalMinutes = totalEpisodes * 22L
-    val formatter = DecimalFormat("#,###")
-    val formattedMinutes = formatter.format(totalMinutes).replace(",", " ")
-    val formattedHours = formatter.format(totalMinutes / 60).replace(",", " ")
-    val formattedDays = formatter.format(totalMinutes / (60 * 24)).replace(",", " ")
-    val avgRating = remember(animeList) { if (animeList.isEmpty()) 0.0 else animeList.map { it.rating }.average() }
-    val (rankName, rankColor) = remember(totalEpisodes) { when { totalEpisodes >= 1200 -> "Legend" to RateColor5; totalEpisodes >= 800 -> "Veteran" to RateColor4; totalEpisodes >= 500 -> "Dedicated" to RateColor3; totalEpisodes >= 300 -> "Casual" to RateColor2; else -> "Rookie" to RateColor1 } }
-    var expandedIndex by remember { mutableIntStateOf(-1) }
-    val textColor = MaterialTheme.colorScheme.onBackground
-    val secColor = MaterialTheme.colorScheme.secondary
-
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Your Watch Stats", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = textColor); Spacer(modifier = Modifier.height(4.dp)); Text("Everything you’ve watched so far", style = MaterialTheme.typography.bodyMedium, color = secColor); Spacer(modifier = Modifier.height(24.dp))
-        StatsCard(title = "Watched episodes", icon = Icons.Default.Visibility, isExpanded = expandedIndex == 0, onClick = { expandedIndex = if (expandedIndex == 0) -1 else 0 }) { Text(text = "$totalEpisodes Episodes watched", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = textColor) }
-        Spacer(modifier = Modifier.height(12.dp))
-        StatsCard(title = "Time spent watching", icon = Icons.Default.Schedule, isExpanded = expandedIndex == 1, onClick = { expandedIndex = if (expandedIndex == 1) -1 else 1 }) { Column { Text(text = "$formattedMinutes min", style = MaterialTheme.typography.titleLarge, color = textColor); Text(text = "$formattedHours h", style = MaterialTheme.typography.titleLarge, color = secColor); Text(text = "$formattedDays days", style = MaterialTheme.typography.titleLarge, color = BrandBlue.copy(alpha = 0.6f)) } }
-        Spacer(modifier = Modifier.height(12.dp))
-        StatsCard(title = "Average rating", icon = Icons.Default.Star, isExpanded = expandedIndex == 2, onClick = { expandedIndex = if (expandedIndex == 2) -1 else 2 }) { Text(text = String.format("%.1f / 5⭐", avgRating), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = textColor) }
-        Spacer(modifier = Modifier.height(12.dp))
-        StatsCard(title = "Your rank:", icon = Icons.Default.MilitaryTech, isExpanded = expandedIndex == 3, onClick = { expandedIndex = if (expandedIndex == 3) -1 else 3 }) { Text(text = rankName, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = rankColor) }
-    }
-}
-
-@Composable
-fun NotificationContent(updates: List<AnimeUpdate>, isChecking: Boolean, onAccept: (AnimeUpdate) -> Unit, onDismiss: (AnimeUpdate) -> Unit) {
-    val ctx = LocalContext.current
-    val textColor = MaterialTheme.colorScheme.onBackground
-    val cardBg = MaterialTheme.colorScheme.surfaceVariant
-
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Updates", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = textColor)
-        if (isChecking) {
-            Spacer(Modifier.height(24.dp)); CircularProgressIndicator(color = BrandBlue); Spacer(Modifier.height(8.dp))
-            Text(text = "Checking APIs (Shikimori, Jikan, TMDB)...\nIt will take about 10 minutes.", color = MaterialTheme.colorScheme.secondary, textAlign = TextAlign.Center)
-        } else if (updates.isEmpty()) {
-            Spacer(Modifier.height(24.dp)); Icon(Icons.Default.CheckCircle, null, tint = BrandBlue.copy(alpha = 0.5f), modifier = Modifier.size(64.dp)); Spacer(Modifier.height(8.dp))
-            Text("You are up to date!", color = textColor, fontSize = 18.sp)
-        } else {
-            Spacer(Modifier.height(16.dp))
-            LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
-                items(updates) { update ->
-                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clip(RoundedCornerShape(16.dp)).background(cardBg).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(update.title, color = textColor, fontWeight = FontWeight.Bold); Spacer(Modifier.height(4.dp))
-                            Text("Found ${update.newEpisodes} eps (You: ${update.currentEpisodes})", color = MaterialTheme.colorScheme.primary, fontSize = 14.sp)
-                            Text("Source: ${update.source}", color = Color.Gray, fontSize = 12.sp)
-                        }
-                        IconButton(onClick = { onDismiss(update) }) { Icon(Icons.Default.Close, null, tint = BrandRed) }
-                        IconButton(onClick = { onAccept(update); Toast.makeText(ctx, "Updated ${update.title}!", Toast.LENGTH_SHORT).show() }) { Icon(Icons.Default.Check, null, tint = BrandBlue) }
+                    if (viewModel.updates.isNotEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(4.dp)
+                                .size(8.dp)
+                                .background(BrandRed, CircleShape)
+                        )
                     }
-                }
-            }
-        }
-    }
-}
 
-// ==========================================
-// SWIPE LOGIC & COMPOSABLES (NEW)
-// ==========================================
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SwipeBackground(dismissState: SwipeToDismissBoxState) {
-    // ИСПРАВЛЕНИЕ: Смотрим на dismissDirection (куда тянут), а не на targetValue (результат)
-    // Это позволяет цвету появляться мгновенно при начале движения
-    val direction = dismissState.dismissDirection
-
-    val color by animateColorAsState(
-        when (direction) {
-            SwipeToDismissBoxValue.EndToStart -> BrandRed     // Тянем влево (Удалить)
-            SwipeToDismissBoxValue.StartToEnd -> RateColor3   // Тянем вправо (Избранное)
-            else -> Color.Transparent
-        }, label = "swipeColor"
-    )
-
-    // Выбираем иконку и выравнивание
-    val alignment = when (direction) {
-        SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
-        SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
-        else -> Alignment.Center
-    }
-
-    val icon = when (direction) {
-        SwipeToDismissBoxValue.StartToEnd -> Icons.Outlined.Star
-        SwipeToDismissBoxValue.EndToStart -> Icons.Default.Delete
-        else -> Icons.Default.Delete
-    }
-
-    // Анимация масштаба иконки
-    val scale by animateFloatAsState(
-        if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) 1.2f else 0.8f,
-        label = "iconScale"
-    )
-
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(color, RoundedCornerShape(24.dp))
-            .padding(horizontal = 24.dp),
-        contentAlignment = alignment
-    ) {
-        // Показываем иконку только если есть цвет (избегаем мелькания в покое)
-        if (color != Color.Transparent) {
-            Icon(
-                icon,
-                contentDescription = null,
-                modifier = Modifier.scale(scale),
-                tint = Color.White
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
-@Composable
-fun HomeScreen(
-    nav: NavController,
-    vm: AnimeViewModel,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-    isDarkTheme: Boolean,
-    onToggleTheme: () -> Unit
-) {
-    val kbd = LocalSoftwareKeyboardController.current
-    val focusManager = LocalFocusManager.current
-    val view = LocalView.current
-    val hazeState = remember { HazeState() }
-    var showCSheet by remember { mutableStateOf(false) }
-    var showNotifSheet by remember { mutableStateOf(false) }
-    var isSearchVisible by remember { mutableStateOf(false) }
-    val searchFocusRequester = remember { FocusRequester() }
-
-    // УБРАНО: selectedAnimeForPreview и currentPreviewAnime
-
-    var animeToDelete by remember { mutableStateOf<Anime?>(null) }
-    var animeToFavorite by remember { mutableStateOf<Anime?>(null) }
-
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(Unit) { vm.checkForUpdates() }
-
-    // УБРАНА проверка selectedAnimeForPreview в BackHandler
-    BackHandler(enabled = isSearchVisible || vm.searchQuery.isNotEmpty()) {
-        if (isSearchVisible) { performHaptic(view, "light"); isSearchVisible = false; vm.searchQuery = ""; focusManager.clearFocus(); kbd?.hide() }
-    }
-
-    val listState = rememberLazyListState()
-    val isHeaderFloating by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 10 } }
-    val showScrollToTop by remember { derivedStateOf { listState.firstVisibleItemIndex > 4 } }
-    val bgColor = MaterialTheme.colorScheme.background
-
-    // УБРАНО selectedAnimeForPreview из условий блюра
-    val shouldBlur = (isSearchVisible && vm.searchQuery.isBlank()) || showCSheet || showNotifSheet || animeToDelete != null || animeToFavorite != null
-    val blurAmount by animateDpAsState(targetValue = if (shouldBlur) 10.dp else 0.dp, label = "blur")
-
-    Scaffold(containerColor = Color.Transparent, bottomBar = {}, floatingActionButton = {}) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.fillMaxSize().background(bgColor))
-            Box(modifier = Modifier.zIndex(6f).align(Alignment.TopEnd).padding(end = 16.dp)) {
-                GlassActionDock(
-                    hazeState = hazeState,
-                    isFloating = isHeaderFloating,
-                    sortOption = vm.sortOption,
-                    onSortSelected = { performHaptic(view, "light"); vm.sortOption = it },
-                    onSettingsClick = { performHaptic(view, "light") },
-                    modifier = Modifier.padding(top = 12.dp)
-                )
-            }
-
-            Column(modifier = Modifier.fillMaxSize().blur(blurAmount)) {
-                Box(modifier = Modifier.fillMaxSize().weight(1f).background(bgColor)) {
-                    val list = vm.getDisplayList()
-                    if (list.isEmpty()) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            MalistWorkspaceTopBar(isDarkTheme = isDarkTheme, onToggleTheme = onToggleTheme)
-                            Box(modifier = Modifier.weight(1f)) {
-                                EmptyStateView(
-                                    title = if (vm.searchQuery.isNotEmpty()) "No results found" else if (vm.sortOption == SortOption.FAVORITES) "No Favorites yet" else "Nothing in folder",
-                                    subtitle = if (vm.searchQuery.isNotEmpty()) "Try searching for something else." else if (vm.sortOption == SortOption.FAVORITES) "Swipe right to add to favorites." else "Looks empty over here."
-                                )
-                            }
-                        }
-                    } else {
-                        LazyColumn(
-                            state = listState,
-                            contentPadding = PaddingValues(top = 0.dp, bottom = 120.dp, start = 0.dp, end = 0.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.haze(state = hazeState)
+                    // ВЫПАДАЮЩЕЕ МЕНЮ УВЕДОМЛЕНИЙ
+                    MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(16.dp))) {
+                        DropdownMenu(
+                            expanded = expandedNotifs,
+                            onDismissRequest = { expandedNotifs = false },
+                            containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.96f),
+                            offset = DpOffset(x = 0.dp, y = 8.dp),
+                            modifier = Modifier.widthIn(max = 300.dp) // Ограничиваем ширину
                         ) {
-                            item { MalistWorkspaceTopBar(isDarkTheme = isDarkTheme, onToggleTheme = onToggleTheme) }
-                            items(list, key = { it.id }) { anime ->
+                            // ЗАГОЛОВОК
+                            DropdownMenuItem(
+                                text = { Text(viewModel.strings.updatesTitle, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface) },
+                                onClick = {},
+                                enabled = false
+                            )
 
-                                val dismissState = rememberSwipeToDismissBoxState(
-                                    confirmValueChange = {
-                                        when(it) {
-                                            SwipeToDismissBoxValue.StartToEnd -> {
-                                                performHaptic(view, "success")
-                                                animeToFavorite = anime
-                                                false
-                                            }
-                                            SwipeToDismissBoxValue.EndToStart -> {
-                                                performHaptic(view, "warning")
-                                                animeToDelete = anime
-                                                false
-                                            }
-                                            else -> false
-                                        }
-                                    },
-                                    positionalThreshold = { totalDistance -> totalDistance * 0.5f }
+                            // СОДЕРЖИМОЕ
+                            if (viewModel.isCheckingUpdates) {
+                                DropdownMenuItem(
+                                    text = { Text(viewModel.strings.updatesChecking, fontSize = 14.sp) },
+                                    leadingIcon = { CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = BrandBlue) },
+                                    onClick = {}
                                 )
-
-                                SwipeToDismissBox(
-                                    state = dismissState,
-                                    backgroundContent = { SwipeBackground(dismissState) },
-                                    modifier = Modifier.padding(horizontal = 16.dp).animateItem()
-                                ) {
-                                    OneUiAnimeCard(
-                                        anime = anime,
-                                        viewModel = vm,
-                                        sharedTransitionScope = sharedTransitionScope,
-                                        animatedVisibilityScope = animatedVisibilityScope,
-                                        onClick = { nav.navigate("add_anime?animeId=${anime.id}") }
-                                        // УБРАНО: onLongClick
+                            } else if (viewModel.updates.isEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text(viewModel.strings.updatesUpToDate, fontSize = 14.sp) },
+                                    leadingIcon = { Icon(Icons.Default.CheckCircle, null, tint = BrandBlue, modifier = Modifier.size(20.dp)) },
+                                    onClick = {}
+                                )
+                            } else {
+                                viewModel.updates.forEach { update ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Column {
+                                                Text(update.title, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                Text("${update.newEpisodes} eps (You: ${update.currentEpisodes})", style = MaterialTheme.typography.bodySmall, color = BrandBlue)
+                                            }
+                                        },
+                                        trailingIcon = {
+                                            Row {
+                                                IconButton(onClick = { viewModel.dismissUpdate(update) }, modifier = Modifier.size(24.dp)) { Icon(Icons.Default.Close, null, tint = BrandRed, modifier = Modifier.size(16.dp)) }
+                                                Spacer(Modifier.width(8.dp))
+                                                IconButton(onClick = { viewModel.acceptUpdate(update, context); Toast.makeText(context, "${viewModel.strings.updatedToast}${update.title}!", Toast.LENGTH_SHORT).show() }, modifier = Modifier.size(24.dp)) { Icon(Icons.Default.Check, null, tint = BrandBlue, modifier = Modifier.size(16.dp)) }
+                                            }
+                                        },
+                                        onClick = {}
                                     )
                                 }
                             }
@@ -1461,263 +1233,1312 @@ fun HomeScreen(
                     }
                 }
             }
+        }
+    }
 
-            // УБРАНА проверка selectedAnimeForPreview
-            if (!isSearchVisible && animeToDelete == null && animeToFavorite == null) {
-                GlassBottomNavigation(
-                    hazeState = hazeState,
-                    nav = nav,
-                    viewModel = vm,
-                    sharedTransitionScope = sharedTransitionScope,
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    onShowStats = { showCSheet = true },
-                    onShowNotifs = { showNotifSheet = true },
-                    onSearchClick = {
-                        performHaptic(view, "light")
-                        isSearchVisible = !isSearchVisible
-                        if (!isSearchVisible) {
-                            vm.searchQuery = ""
-                            focusManager.clearFocus()
-                            kbd?.hide()
+    val StarIconVector: ImageVector get() = ImageVector.Builder(name = "Star", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f).path(fill = SolidColor(Color.Black), fillAlpha = 1f, stroke = null, strokeAlpha = 1f, pathFillType = androidx.compose.ui.graphics.PathFillType.NonZero) { moveTo(8.243f, 7.34f); lineTo(1.863f, 8.265f); lineTo(1.75f, 8.288f); arcTo(1f, 1f, 0f, false, false, 1.31f, 9.972f); lineTo(5.932f, 14.471f); lineTo(4.842f, 20.826f); lineTo(4.829f, 20.936f); arcTo(1f, 1f, 0f, false, false, 6.293f, 21.88f); lineTo(12.0f, 18.88f); lineTo(17.693f, 21.88f); lineTo(17.793f, 21.926f); arcTo(1f, 1f, 0f, false, false, 19.145f, 20.826f); lineTo(18.054f, 14.471f); lineTo(22.678f, 9.971f); lineTo(22.756f, 9.886f); arcTo(1f, 1f, 0f, false, false, 22.123f, 8.266f); lineTo(15.743f, 7.34f); lineTo(12.891f, 1.56f); arcTo(1f, 1f, 0f, false, false, 11.097f, 1.56f); lineTo(8.243f, 7.34f); close() }.build()
+
+    @Composable
+    fun StarRatingBar(rating: Int, onRatingChanged: (Int) -> Unit) {
+        val colors = listOf(RateColor1, RateColor2, RateColor3, RateColor4, RateColor5)
+        val activeColor = if (rating > 0) colors[rating - 1] else RateColorEmpty
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            for (i in 1..5) {
+                val isSelected = i <= rating
+                val animatedColor by animateColorAsState(targetValue = if (isSelected) activeColor else RateColorEmpty, animationSpec = tween(300), label = "color")
+                val scale by animateFloatAsState(targetValue = if (isSelected) 1.2f else 1f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy), label = "scale")
+                Icon(imageVector = StarIconVector, contentDescription = "Rate $i", tint = animatedColor, modifier = Modifier.size(54.dp).scale(scale).padding(4.dp).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onRatingChanged(i) })
+            }
+        }
+    }
+
+    @Composable
+    fun EpisodeSuggestions(onSelect: (String) -> Unit) {
+        val suggestions = listOf("12", "13", "24", "36", "48", "100")
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            suggestions.forEach { num ->
+                Box(modifier = Modifier.weight(1f).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable { onSelect(num) }.padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
+                    Text(text = num, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun AnimatedSaveFab(isEnabled: Boolean, onClick: () -> Unit) {
+        var isSaved by remember { mutableStateOf(false) }
+        val view = LocalView.current
+        FloatingActionButton(
+            onClick = {
+                if (isEnabled && !isSaved) {
+                    isSaved = true
+                    performHaptic(view, "success")
+                    onClick()
+                }
+            },
+            containerColor = if (isEnabled) MaterialTheme.colorScheme.primary else Color(0xFF424242),
+            contentColor = if (isEnabled) Color.White else Color.Gray,
+            shape = CircleShape,
+            modifier = Modifier.size(64.dp)
+        ) {
+            AnimatedContent(targetState = isSaved, transitionSpec = { (scaleIn() + fadeIn()) togetherWith (scaleOut() + fadeOut()) }, label = "save_animation") { saved ->
+                if (saved) Icon(imageVector = Icons.Default.Check, contentDescription = "Saved", modifier = Modifier.size(28.dp))
+                else Icon(imageVector = Icons.Default.Save, contentDescription = "Save", modifier = Modifier.size(28.dp))
+            }
+        }
+    }
+
+    @Composable
+    fun AnimatedCopyButton(textToCopy: String) {
+        val clipboardManager = LocalClipboardManager.current
+        var isCopied by remember { mutableStateOf(false) }
+        val view = LocalView.current
+        Box(contentAlignment = Alignment.Center) {
+            androidx.compose.animation.AnimatedVisibility(visible = isCopied, enter = slideInVertically(initialOffsetY = { it }) + fadeIn(), exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(), modifier = Modifier.align(Alignment.TopCenter).offset(y = (-40).dp).zIndex(10f)) {
+                Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(Color.White).padding(horizontal = 12.dp, vertical = 6.dp)) { Text("Copied!", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+            }
+            IconButton(onClick = { if (textToCopy.isNotEmpty()) { performHaptic(view, "light"); clipboardManager.setText(AnnotatedString(textToCopy)); isCopied = true } }) {
+                AnimatedContent(targetState = isCopied, transitionSpec = { (scaleIn() + fadeIn()) togetherWith (scaleOut() + fadeOut()) }, label = "copy_icon") { copied ->
+                    if (copied) { LaunchedEffect(Unit) { delay(2000); isCopied = false }; Icon(Icons.Default.Check, null, tint = BrandBlue, modifier = Modifier.size(24.dp)) }
+                    else Icon(Icons.Default.ContentCopy, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(24.dp))
+                }
+            }
+        }
+    }
+
+    @OptIn(ExperimentalSharedTransitionApi::class)
+    @Composable
+    fun SharedTransitionScope.TextAsIndividualLetters(
+        animatedContentScope: AnimatedContentScope,
+        text: String,
+        modifier: Modifier = Modifier,
+        style: TextStyle = TextStyle(),
+        textColor: Color
+    ) {
+        Row(modifier) {
+            text.forEachIndexed { index, letter ->
+                Text(
+                    text = "$letter",
+                    modifier = Modifier.sharedBounds(
+                        sharedContentState = rememberSharedContentState(key = "hint_$index"),
+                        animatedVisibilityScope = animatedContentScope,
+                        boundsTransform = { _, _ ->
+                            spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = 1000f)
                         }
-                    },
-                    isSearchActive = isSearchVisible,
-                    modifier = Modifier.align(Alignment.BottomCenter).zIndex(3f).navigationBarsPadding()
+                    ),
+                    style = style,
+                    color = textColor
+                )
+            }
+        }
+    }
+
+    @OptIn(ExperimentalSharedTransitionApi::class)
+    @Composable
+    fun AnimatedOneUiTextField(
+        value: String,
+        onValueChange: (String) -> Unit,
+        placeholder: String,
+        keyboardType: KeyboardType = KeyboardType.Text,
+        singleLine: Boolean = true,
+        maxLines: Int = 1
+    ) {
+        val interactionSource = remember { MutableInteractionSource() }
+        val isFocused by interactionSource.collectIsFocusedAsState()
+        val showHintAbove = isFocused || value.isNotEmpty()
+        val containerColor = MaterialTheme.colorScheme.surfaceVariant
+        val textColor = MaterialTheme.colorScheme.onSurface
+        val hintColor = MaterialTheme.colorScheme.secondary
+        val textStyle = TextStyle(fontSize = 18.sp, color = textColor)
+        val hintStyleInner = TextStyle(fontSize = 18.sp)
+        val hintStyleOuter = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold)
+
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            interactionSource = interactionSource,
+            textStyle = textStyle,
+            singleLine = singleLine,
+            maxLines = maxLines,
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            decorationBox = { innerTextField ->
+                SharedTransitionLayout {
+                    AnimatedContent(
+                        targetState = showHintAbove,
+                        transitionSpec = { EnterTransition.None togetherWith ExitTransition.None },
+                        label = "hintAnimation"
+                    ) { targetShowAbove ->
+                        if (targetShowAbove) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Box(modifier = Modifier.padding(start = 24.dp, bottom = 4.dp).height(16.dp)) {
+                                    TextAsIndividualLetters(animatedContentScope = this@AnimatedContent, text = placeholder, style = hintStyleOuter, textColor = MaterialTheme.colorScheme.primary)
+                                }
+                                Box(modifier = Modifier.fillMaxWidth().sharedElement(rememberSharedContentState(key = "container"), animatedVisibilityScope = this@AnimatedContent).clip(RoundedCornerShape(20.dp)).background(containerColor).padding(horizontal = 24.dp, vertical = 16.dp), contentAlignment = Alignment.CenterStart) {
+                                    innerTextField()
+                                }
+                            }
+                        } else {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Box(modifier = Modifier.fillMaxWidth().sharedElement(rememberSharedContentState(key = "container"), animatedVisibilityScope = this@AnimatedContent).clip(RoundedCornerShape(20.dp)).background(containerColor).padding(horizontal = 24.dp, vertical = 16.dp), contentAlignment = Alignment.CenterStart) {
+                                    TextAsIndividualLetters(animatedContentScope = this@AnimatedContent, text = placeholder, style = hintStyleInner, textColor = hintColor)
+                                    innerTextField()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    @Composable
+    fun RatingChip(rating: Int) {
+        val starTint = getRatingColor(rating)
+        Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(RatingChipBg).padding(horizontal = 8.dp, vertical = 4.dp), contentAlignment = Alignment.Center) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = starTint, modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(text = rating.toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            }
+        }
+    }
+
+    @Composable
+    fun ThemeSwitch(darkTheme: Boolean, onToggle: () -> Unit) {
+        val view = LocalView.current
+        val offsetAnim by animateDpAsState(targetValue = if (darkTheme) 28.dp else 4.dp, animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow), label = "switchOffset")
+        val containerColor by animateColorAsState(targetValue = if (darkTheme) Color(0xFF2C2C2E) else Color(0xFFE5E5EA), label = "switchContainer")
+        Box(modifier = Modifier.width(60.dp).height(34.dp).clip(CircleShape).background(containerColor).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { performHaptic(view, "light"); onToggle() }) {
+            Box(modifier = Modifier.size(26.dp).align(Alignment.CenterStart).offset(x = offsetAnim).shadow(4.dp, CircleShape).clip(CircleShape).background(if (darkTheme) Color(0xFF48484A) else Color.White), contentAlignment = Alignment.Center) {
+                AnimatedContent(targetState = darkTheme, transitionSpec = { (scaleIn() + fadeIn()) togetherWith (scaleOut() + fadeOut()) }, label = "iconAnim") { isDark ->
+                    if (isDark) Icon(Icons.Default.DarkMode, null, tint = Color.Yellow, modifier = Modifier.size(16.dp))
+                    else Icon(Icons.Default.LightMode, null, tint = Color(0xFFFF9500), modifier = Modifier.size(16.dp))
+                }
+            }
+        }
+    }
+
+    @OptIn(ExperimentalSharedTransitionApi::class)
+    @Composable
+    fun OneUiAnimeCard(
+        anime: Anime,
+        viewModel: AnimeViewModel,
+        sharedTransitionScope: SharedTransitionScope,
+        animatedVisibilityScope: AnimatedVisibilityScope,
+        onClick: () -> Unit
+    ) {
+        val imageFile = remember(anime.imageFileName) { viewModel.getImgPath(anime.imageFileName) }
+        val view = LocalView.current
+        val cardShape = RoundedCornerShape(24.dp)
+        val surfaceColor = MaterialTheme.colorScheme.surface
+        val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+        val borderColor = MaterialTheme.colorScheme.outline
+
+        with(sharedTransitionScope) {
+            Box(
+                modifier = Modifier.fillMaxWidth().height(100.dp)
+                    .sharedBounds(rememberSharedContentState(key = "container_${anime.id}"), animatedVisibilityScope = animatedVisibilityScope, resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds, placeHolderSize = SharedTransitionScope.PlaceHolderSize.animatedSize)
+                    .shadow(elevation = 12.dp, shape = cardShape, spotColor = Color.Black.copy(alpha = 0.08f), ambientColor = Color.Black.copy(alpha = 0.04f))
+                    .background(brush = Brush.verticalGradient(colors = listOf(surfaceColor, surfaceVariant)), shape = cardShape)
+                    .border(width = 1.dp, color = borderColor, shape = cardShape)
+                    .clip(cardShape)
+                    .clickable { performHaptic(view, "light"); onClick() }
+            ) {
+                Row(modifier = Modifier.fillMaxSize().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.aspectRatio(1f).fillMaxHeight().sharedElement(rememberSharedContentState(key = "image_${anime.id}"), animatedVisibilityScope = animatedVisibilityScope).clip(RoundedCornerShape(18.dp)).background(Color.Black)) {
+                        if (imageFile != null) AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(imageFile).crossfade(true).build(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                        else Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize().background(Color(0xFF2C2C2E))) { Text(text = anime.title.take(1).uppercase(), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Gray) }
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 8.dp), verticalArrangement = Arrangement.Center) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(text = anime.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface, lineHeight = 20.sp, modifier = Modifier.weight(1f, false))
+                                if (anime.isFavorite) {
+                                    Spacer(Modifier.width(4.dp))
+                                    Icon(Icons.Default.Star, contentDescription = "Favorite", tint = RateColor3, modifier = Modifier.size(16.dp))
+                                }
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Text(text = "${anime.episodes} episodes", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
+                        }
+                        if (anime.rating > 0) RatingChip(rating = anime.rating)
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun AnimatedTrashButton(onClick: () -> Unit) {
+        var isPressed by remember { mutableStateOf(false) }
+        val scale by animateFloatAsState(if (isPressed) 0.8f else 1f, label = "scale")
+        Box(modifier = Modifier.size(70.dp).scale(scale).shadow(12.dp, CircleShape, spotColor = BrandRed).clip(CircleShape).background(BrandRed).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { isPressed = true; onClick() }, contentAlignment = Alignment.Center) {
+            Icon(imageVector = Icons.Outlined.Delete, contentDescription = "Delete", tint = Color.White, modifier = Modifier.size(32.dp))
+        }
+    }
+
+    @Composable
+    fun SpringBottomDialog(
+        title: String,
+        subtitle: String,
+        confirmText: String,
+        icon: ImageVector,
+        accentColor: Color,
+        imageFile: File? = null,
+        onConfirm: () -> Unit,
+        onCancel: () -> Unit,
+        cancelText: String = "Cancel"
+    ) {
+        var visible by remember { mutableStateOf(false) }
+        val view = LocalView.current
+
+        LaunchedEffect(Unit) { visible = true }
+
+        fun dismiss() {
+            visible = false
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                onCancel()
+            }, 300)
+        }
+
+        BackHandler { dismiss() }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(100f),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            AnimatedVisibility(
+                visible = visible,
+                enter = fadeIn(animationSpec = tween(300)),
+                exit = fadeOut(animationSpec = tween(300))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.6f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { dismiss() }
                 )
             }
 
             AnimatedVisibility(
-                visible = isSearchVisible,
-                enter = slideInVertically { it } + fadeIn(),
-                exit = slideOutVertically { it } + fadeOut(),
-                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 16.dp).windowInsetsPadding(WindowInsets.ime).padding(bottom = 16.dp).zIndex(10f)
+                visible = visible,
+                enter = slideInVertically(
+                    initialOffsetY = { it },
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
+                ) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }, animationSpec = tween(200)) + fadeOut()
             ) {
-                SimpGlassCard(
-                    hazeState = hazeState,
-                    shape = RoundedCornerShape(28.dp),
-                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .navigationBarsPadding()
+                        .padding(bottom = 16.dp)
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(32.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    BasicTextField(
-                        value = vm.searchQuery,
-                        onValueChange = { vm.searchQuery = it; if (it.isNotEmpty()) performHaptic(view, "light") },
-                        modifier = Modifier.fillMaxSize().focusRequester(searchFocusRequester).padding(horizontal = 20.dp),
-                        singleLine = true,
-                        textStyle = TextStyle(fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface),
-                        cursorBrush = SolidColor(BrandBlue),
-                        decorationBox = { innerTextField ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Search, null, tint = BrandBlue)
-                                Spacer(Modifier.width(12.dp))
-                                Box {
-                                    if (vm.searchQuery.isEmpty()) { Text("Search collection...", color = MaterialTheme.colorScheme.secondary, fontSize = 16.sp) }
-                                    innerTextField()
-                                }
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(onSearch = { kbd?.hide() })
-                    )
-                }
-                LaunchedEffect(Unit) { searchFocusRequester.requestFocus(); kbd?.show() }
-            }
-
-            // УБРАНА проверка selectedAnimeForPreview из Blur Overlay
-            if (shouldBlur && animeToDelete == null && animeToFavorite == null) {
-                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { focusManager.clearFocus(); isSearchVisible = false; kbd?.hide() }.zIndex(2f))
-            }
-
-            // УБРАНО: AnimatedVisibility для SimpleAnimePreviewOverlay
-
-            if (animeToDelete != null) {
-                SpringBottomDialog(
-                    title = "Delete title?",
-                    subtitle = "There’s no “undo”, no “Ctrl+Z”...",
-                    confirmText = "Delete",
-                    icon = Icons.Default.Delete,
-                    accentColor = BrandRed,
-                    imageFile = vm.getImgPath(animeToDelete?.imageFileName),
-                    onConfirm = {
-                        vm.deleteAnime(animeToDelete!!.id)
-                        animeToDelete = null
-                    },
-                    onCancel = { animeToDelete = null }
-                )
-            }
-
-            if (animeToFavorite != null) {
-                SpringBottomDialog(
-                    title = "Add to favorites?",
-                    subtitle = "Future you will thank you)",
-                    confirmText = "Set Favorite",
-                    icon = Icons.Default.Star,
-                    accentColor = RateColor3,
-                    imageFile = vm.getImgPath(animeToFavorite?.imageFileName),
-                    onConfirm = {
-                        vm.toggleFavorite(animeToFavorite!!.id)
-                        animeToFavorite = null
-                    },
-                    onCancel = { animeToFavorite = null }
-                )
-            }
-
-            // УБРАНА проверка selectedAnimeForPreview
-            AnimatedVisibility(visible = showScrollToTop && !isSearchVisible && animeToDelete == null && animeToFavorite == null, enter = fadeIn() + scaleIn(), exit = fadeOut() + scaleOut(), modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 160.dp, end = 24.dp).zIndex(1f)) {
-                Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(Color(0xFF333333).copy(alpha = 0.8f)).clickable { performHaptic(view, "light"); scope.launch { listState.animateScrollToItem(0) } }, contentAlignment = Alignment.Center) { Icon(Icons.Default.KeyboardArrowUp, "Up", tint = Color.White) }
-            }
-        }
-
-        if (showCSheet) {
-            ModalBottomSheet(onDismissRequest = { showCSheet = false }, containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.9f), scrimColor = Color.Transparent) { WatchStatsContent(animeList = vm.animeList) }
-        }
-        if (showNotifSheet) {
-            ModalBottomSheet(onDismissRequest = { showNotifSheet = false }, containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.9f), scrimColor = Color.Transparent) {
-                NotificationContent(updates = vm.updates, isChecking = vm.isCheckingUpdates, onAccept = { vm.acceptUpdate(it, view.context) }, onDismiss = { vm.dismissUpdate(it) })
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-fun AddEditScreen(nav: NavController, vm: AnimeViewModel, id: String?, sharedTransitionScope: SharedTransitionScope, animatedVisibilityScope: AnimatedVisibilityScope) {
-    val anime = remember(id) { id?.let { vm.getAnimeById(it) } }
-    var title by remember { mutableStateOf(anime?.title ?: "") }
-    var ep by remember { mutableStateOf(anime?.episodes?.toString() ?: "") }
-    var rate by remember { mutableIntStateOf(anime?.rating ?: 0) }
-    var uri by remember { mutableStateOf<Uri?>(null) }
-    val scope = rememberCoroutineScope()
-    val hasChanges by remember(title, ep, rate, uri) { derivedStateOf { if (id == null) { title.isNotBlank() } else { (anime != null) && (title != anime.title || ep != anime.episodes.toString() || rate != anime.rating || uri != null) } } }
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri = it }
-    val ctx = LocalContext.current
-    val view = LocalView.current
-    val bg = MaterialTheme.colorScheme.background
-    val textC = MaterialTheme.colorScheme.onBackground
-
-    with(sharedTransitionScope) {
-        val sharedModifier = if (id == null) { Modifier.sharedBounds(rememberSharedContentState(key = "fab_container"), animatedVisibilityScope = animatedVisibilityScope, resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds) } else { Modifier.sharedBounds(rememberSharedContentState(key = "card_${id}"), animatedVisibilityScope = animatedVisibilityScope, resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds) }
-        Scaffold(modifier = Modifier.fillMaxSize().then(sharedModifier), containerColor = Color.Transparent, topBar = { Row(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = textC, modifier = if (id == null) Modifier.sharedElement(rememberSharedContentState(key = "fab_icon"), animatedVisibilityScope = animatedVisibilityScope) else Modifier) }; Spacer(Modifier.width(16.dp)); Text(text = if (id == null) "Add title" else "Edit title", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = textC) } }, floatingActionButton = { AnimatedSaveFab(isEnabled = hasChanges, onClick = { performHaptic(view, "success"); if (title.isNotEmpty()) { scope.launch { delay(600); if (id != null) vm.updateAnime(ctx, id, title, ep.toIntOrNull()?:0, rate, uri) else vm.addAnime(ctx, title, ep.toIntOrNull()?:0, rate, uri); nav.popBackStack() } } else { Toast.makeText(ctx, "Enter title", Toast.LENGTH_SHORT).show() } }) }) { innerPadding ->
-            Box(modifier = Modifier.fillMaxSize()) {
-                Box(modifier = Modifier.fillMaxSize().background(bg))
-                Column(modifier = Modifier
-                    .padding(innerPadding)
-                    .imePadding()
-                    .padding(horizontal = 24.dp)
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Spacer(Modifier.height(16.dp))
-                    Box(modifier = Modifier.width(180.dp).aspectRatio(0.7f).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(32.dp)).clickable { performHaptic(view, "light"); launcher.launch("image/*") }, contentAlignment = Alignment.Center) {
-                        val imageModifier = if (id != null) Modifier.sharedElement(rememberSharedContentState(key = "image_${id}"), animatedVisibilityScope = animatedVisibilityScope) else Modifier
-                        Box(modifier = Modifier.fillMaxSize().then(imageModifier).clip(RoundedCornerShape(32.dp))) {
-                            if (uri != null) AsyncImage(uri, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                            else if (anime?.imageFileName != null) AsyncImage(vm.getImgPath(anime.imageFileName), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                            else Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Default.AddPhotoAlternate, null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.secondary); Text("Add Photo", color = MaterialTheme.colorScheme.secondary) }
+                    if (imageFile != null) {
+                        Box(
+                            modifier = Modifier
+                                .height(280.dp)
+                                .aspectRatio(0.7f)
+                                .shadow(elevation = 16.dp, shape = RoundedCornerShape(20.dp), spotColor = accentColor)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color.Gray)
+                        ) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(imageFile)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                            Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.2f)))))
                         }
-                    }
-                    Spacer(Modifier.height(32.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            AnimatedOneUiTextField(
-                                value = title,
-                                onValueChange = { title = it },
-                                placeholder = "Anime Title",
-                                singleLine = false,
-                                maxLines = 4
+                        Spacer(Modifier.height(24.dp))
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(accentColor.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = accentColor,
+                                modifier = Modifier.size(32.dp)
                             )
                         }
-                        if (title.isNotEmpty()) {
-                            Spacer(Modifier.width(8.dp))
-                            AnimatedCopyButton(textToCopy = title)
-                        }
+                        Spacer(Modifier.height(20.dp))
                     }
 
-                    Spacer(Modifier.height(24.dp))
-
-                    AnimatedOneUiTextField(
-                        value = ep,
-                        onValueChange = { if (it.all { c -> c.isDigit() }) ep = it },
-                        placeholder = "Episodes Watched",
-                        keyboardType = KeyboardType.Number
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center
                     )
 
-                    Spacer(Modifier.height(12.dp))
-                    EpisodeSuggestions { selectedEp -> performHaptic(view, "light"); ep = selectedEp }
-                    Spacer(Modifier.height(24.dp))
-                    StarRatingBar(rating = rate) { newRate -> performHaptic(view, "light"); rate = newRate }
-                    Spacer(Modifier.height(120.dp))
-                }
-            }
-        }
-    }
-}
+                    Spacer(Modifier.height(8.dp))
 
-class MainActivity : ComponentActivity() {
-    @OptIn(ExperimentalSharedTransitionApi::class)
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) { window.attributes.preferredDisplayModeId = 0 }
-        checkPerms()
-        setContent {
-            var isDarkTheme by rememberSaveable { mutableStateOf(true) }
-            OneUiTheme(darkTheme = isDarkTheme) {
-                val navController = rememberNavController()
-                val viewModel: AnimeViewModel = viewModel()
-                LaunchedEffect(Unit) { viewModel.loadAnime() }
-                SharedTransitionLayout {
-                    NavHost(navController = navController, startDestination = "home") {
-                        composable("home") { HomeScreen(nav = navController, vm = viewModel, sharedTransitionScope = this@SharedTransitionLayout, animatedVisibilityScope = this, isDarkTheme = isDarkTheme, onToggleTheme = { isDarkTheme = !isDarkTheme }) }
-                        composable("add_anime?animeId={animeId}", arguments = listOf(navArgument("animeId") { nullable = true })) { AddEditScreen(navController, viewModel, it.arguments?.getString("animeId"), this@SharedTransitionLayout, this) }
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 20.sp
+                    )
+
+                    Spacer(Modifier.height(32.dp))
+
+                    Button(
+                        onClick = {
+                            performHaptic(view, "success")
+                            onConfirm()
+                        },
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = accentColor, contentColor = Color.White),
+                        shape = RoundedCornerShape(18.dp)
+                    ) {
+                        Text(text = confirmText, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    TextButton(
+                        onClick = {
+                            performHaptic(view, "light")
+                            dismiss()
+                        },
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        shape = RoundedCornerShape(18.dp)
+                    ) {
+                        Text(text = cancelText, fontSize = 18.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
         }
     }
-    private fun checkPerms() {
-        if (Build.VERSION.SDK_INT >= 30 && !Environment.isExternalStorageManager()) {
-            val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:$packageName")); startActivity(intent); Toast.makeText(this, "Need file access", Toast.LENGTH_LONG).show()
+
+    @Composable
+    fun MalistWorkspaceTopBar(
+        viewModel: AnimeViewModel,
+        isDarkTheme: Boolean,
+        onToggleTheme: () -> Unit,
+        modifier: Modifier = Modifier
+    ) {
+        val view = LocalView.current
+        Row(modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp).statusBarsPadding(), verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) { Text("M", color = Color.White, fontWeight = FontWeight.Bold) }
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = viewModel.strings.appName, style = MaterialTheme.typography.headlineMedium)
+                    Spacer(Modifier.width(16.dp))
+                    ThemeSwitch(darkTheme = isDarkTheme, onToggle = onToggleTheme)
+                    Spacer(Modifier.width(12.dp))
+
+                    // КНОПКА ЯЗЫКА УДАЛЕНА ИЗ ТОП БАРА - ТЕПЕРЬ ОНА В ЭКРАНЕ НАСТРОЕК
+                }
+            }
         }
     }
-}
 
-@Composable
-fun EmptyStateView(
-    modifier: Modifier = Modifier,
-    title: String = "Nothing in folder",
-    subtitle: String = "Looks empty over here."
-) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    @Composable
+    fun StatsCard(
+        title: String,
+        icon: ImageVector,
+        isExpanded: Boolean,
+        onClick: () -> Unit,
+        rankColor: Color? = null,
+        content: @Composable () -> Unit
     ) {
-        ModernEmptyFolderIcon(modifier = Modifier.size(120.dp))
+        val surfaceColor = MaterialTheme.colorScheme.surface
+        val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+        val borderColor = MaterialTheme.colorScheme.outline
+        val contentColor = MaterialTheme.colorScheme.onSurface
+        val shape = RoundedCornerShape(20.dp)
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(elevation = 8.dp, shape = shape, spotColor = Color.Black.copy(alpha = 0.08f))
+                .clip(shape)
+                .background(brush = Brush.verticalGradient(colors = listOf(surfaceColor, surfaceVariant)))
+                .border(width = 1.dp, color = borderColor, shape = shape)
+                .clickable { onClick() }
+                .animateContentSize()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // ОБНОВЛЕННЫЙ СТИЛЬ ИКОНКИ
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.secondaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
 
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.secondary
-        )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(text = title, style = MaterialTheme.typography.titleMedium, color = contentColor, fontWeight = FontWeight.SemiBold)
+                }
+                if (isExpanded) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Box(modifier = Modifier.fillMaxWidth()) { content() }
+                }
+            }
+        }
     }
-}
 
-@Composable
-fun ModernEmptyFolderIcon(modifier: Modifier = Modifier) {
-    androidx.compose.foundation.Image(
-        painter = androidx.compose.ui.res.painterResource(id = R.drawable.img),
-        contentDescription = null,
-        modifier = modifier,
-        contentScale = androidx.compose.ui.layout.ContentScale.Fit
-    )
-}
+    @Composable
+    fun WatchStatsContent(animeList: List<Anime>, viewModel: AnimeViewModel) {
+        val totalEpisodes = remember(animeList) { animeList.sumOf { it.episodes } }
+        val totalMinutes = totalEpisodes * 22L
+        val formatter = DecimalFormat("#,###")
+        val formattedMinutes = formatter.format(totalMinutes).replace(",", " ")
+        val formattedHours = formatter.format(totalMinutes / 60).replace(",", " ")
+        val formattedDays = formatter.format(totalMinutes / (60 * 24)).replace(",", " ")
+        val avgRating = remember(animeList) { if (animeList.isEmpty()) 0.0 else animeList.map { it.rating }.average() }
+        val (rankName, rankColor) = remember(totalEpisodes) { when { totalEpisodes >= 1200 -> "Legend" to RateColor5; totalEpisodes >= 800 -> "Veteran" to RateColor4; totalEpisodes >= 500 -> "Dedicated" to RateColor3; totalEpisodes >= 300 -> "Casual" to RateColor2; else -> "Rookie" to RateColor1 } }
+        var expandedIndex by remember { mutableIntStateOf(-1) }
+        val textColor = MaterialTheme.colorScheme.onBackground
+        val secColor = MaterialTheme.colorScheme.secondary
+        val s = viewModel.strings
+
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(s.statsTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = textColor); Spacer(modifier = Modifier.height(4.dp)); Text(s.statsSubtitle, style = MaterialTheme.typography.bodyMedium, color = secColor); Spacer(modifier = Modifier.height(24.dp))
+            StatsCard(title = s.episodesWatched, icon = Icons.Default.Visibility, isExpanded = expandedIndex == 0, onClick = { expandedIndex = if (expandedIndex == 0) -1 else 0 }) { Text(text = "$totalEpisodes", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = textColor) }
+            Spacer(modifier = Modifier.height(12.dp))
+            StatsCard(title = s.timeSpent, icon = Icons.Default.Schedule, isExpanded = expandedIndex == 1, onClick = { expandedIndex = if (expandedIndex == 1) -1 else 1 }) { Column { Text(text = "$formattedMinutes min", style = MaterialTheme.typography.titleLarge, color = textColor); Text(text = "$formattedHours h", style = MaterialTheme.typography.titleLarge, color = secColor); Text(text = "$formattedDays days", style = MaterialTheme.typography.titleLarge, color = BrandBlue.copy(alpha = 0.6f)) } }
+            Spacer(modifier = Modifier.height(12.dp))
+            StatsCard(title = s.avgRating, icon = Icons.Default.Star, isExpanded = expandedIndex == 2, onClick = { expandedIndex = if (expandedIndex == 2) -1 else 2 }) { Text(text = String.format("%.1f / 5⭐", avgRating), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = textColor) }
+            Spacer(modifier = Modifier.height(12.dp))
+            StatsCard(title = s.rankTitle, icon = Icons.Default.MilitaryTech, isExpanded = expandedIndex == 3, onClick = { expandedIndex = if (expandedIndex == 3) -1 else 3 }) { Text(text = rankName, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = rankColor) }
+        }
+    }
+
+    @Composable
+    fun NotificationContent(updates: List<AnimeUpdate>, isChecking: Boolean, viewModel: AnimeViewModel, onAccept: (AnimeUpdate) -> Unit, onDismiss: (AnimeUpdate) -> Unit) {
+        // OLD NOTIFICATION CONTENT - NOW MOVED TO DROPDOWN IN GlassActionDock
+        // KEEPING IT FOR REFERENCE OR FALLBACK IF NEEDED (BUT UNUSED IN NEW LOGIC)
+        val ctx = LocalContext.current
+        val textColor = MaterialTheme.colorScheme.onBackground
+        val cardBg = MaterialTheme.colorScheme.surfaceVariant
+        val s = viewModel.strings
+
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(s.updatesTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = textColor)
+            if (isChecking) {
+                Spacer(Modifier.height(24.dp)); CircularProgressIndicator(color = BrandBlue); Spacer(Modifier.height(8.dp))
+                Text(text = s.updatesChecking, color = MaterialTheme.colorScheme.secondary, textAlign = TextAlign.Center)
+            } else if (updates.isEmpty()) {
+                Spacer(Modifier.height(24.dp)); Icon(Icons.Default.CheckCircle, null, tint = BrandBlue.copy(alpha = 0.5f), modifier = Modifier.size(64.dp)); Spacer(Modifier.height(8.dp))
+                Text(s.updatesUpToDate, color = textColor, fontSize = 18.sp)
+            } else {
+                Spacer(Modifier.height(16.dp))
+                LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
+                    items(updates) { update ->
+                        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clip(RoundedCornerShape(16.dp)).background(cardBg).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(update.title, color = textColor, fontWeight = FontWeight.Bold); Spacer(Modifier.height(4.dp))
+                                Text("Found ${update.newEpisodes} eps (You: ${update.currentEpisodes})", color = MaterialTheme.colorScheme.primary, fontSize = 14.sp)
+                                Text("Source: ${update.source}", color = Color.Gray, fontSize = 12.sp)
+                            }
+                            IconButton(onClick = { onDismiss(update) }) { Icon(Icons.Default.Close, null, tint = BrandRed) }
+                            IconButton(onClick = { onAccept(update); Toast.makeText(ctx, "${s.updatedToast}${update.title}!", Toast.LENGTH_SHORT).show() }) { Icon(Icons.Default.Check, null, tint = BrandBlue) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+// ==========================================
+// SWIPE LOGIC & COMPOSABLES
+// ==========================================
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun SwipeBackground(dismissState: SwipeToDismissBoxState) {
+        val direction = dismissState.dismissDirection
+
+        val color by animateColorAsState(
+            when (direction) {
+                SwipeToDismissBoxValue.EndToStart -> BrandRed
+                SwipeToDismissBoxValue.StartToEnd -> RateColor3
+                else -> Color.Transparent
+            }, label = "swipeColor"
+        )
+
+        val alignment = when (direction) {
+            SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+            SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+            else -> Alignment.Center
+        }
+
+        val icon = when (direction) {
+            SwipeToDismissBoxValue.StartToEnd -> Icons.Outlined.Star
+            SwipeToDismissBoxValue.EndToStart -> Icons.Default.Delete
+            else -> Icons.Default.Delete
+        }
+
+        val scale by animateFloatAsState(
+            if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) 1.2f else 0.8f,
+            label = "iconScale"
+        )
+
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(color, RoundedCornerShape(24.dp))
+                .padding(horizontal = 24.dp),
+            contentAlignment = alignment
+        ) {
+            if (color != Color.Transparent) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    modifier = Modifier.scale(scale),
+                    tint = Color.White
+                )
+            }
+        }
+    }
+
+    @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+    @Composable
+    fun HomeScreen(
+        nav: NavController,
+        vm: AnimeViewModel,
+        sharedTransitionScope: SharedTransitionScope,
+        animatedVisibilityScope: AnimatedVisibilityScope,
+        isDarkTheme: Boolean,
+        onToggleTheme: () -> Unit
+    ) {
+        val kbd = LocalSoftwareKeyboardController.current
+        val focusManager = LocalFocusManager.current
+        val view = LocalView.current
+        val hazeState = remember { HazeState() }
+        var showCSheet by remember { mutableStateOf(false) }
+        // showNotifSheet REMOVED - NOW HANDLED IN GlassActionDock
+        var isSearchVisible by remember { mutableStateOf(false) }
+        val searchFocusRequester = remember { FocusRequester() }
+
+        var animeToDelete by remember { mutableStateOf<Anime?>(null) }
+        var animeToFavorite by remember { mutableStateOf<Anime?>(null) }
+
+        val scope = rememberCoroutineScope()
+
+        LaunchedEffect(Unit) { vm.checkForUpdates() }
+
+        BackHandler(enabled = isSearchVisible || vm.searchQuery.isNotEmpty()) {
+            if (isSearchVisible) { performHaptic(view, "light"); isSearchVisible = false; vm.searchQuery = ""; focusManager.clearFocus(); kbd?.hide() }
+        }
+
+        val listState = rememberLazyListState()
+        var overscrollAmount by remember { mutableFloatStateOf(0f) }
+
+        val isHeaderFloating by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 10 } }
+        val showScrollToTop by remember { derivedStateOf { listState.firstVisibleItemIndex > 4 } }
+        val bgColor = MaterialTheme.colorScheme.background
+
+        val shouldBlur = (isSearchVisible && vm.searchQuery.isBlank()) || showCSheet || animeToDelete != null || animeToFavorite != null
+        val blurAmount by animateDpAsState(targetValue = if (shouldBlur) 10.dp else 0.dp, label = "blur")
+
+        Scaffold(containerColor = Color.Transparent, bottomBar = {}, floatingActionButton = {}) { _ ->
+            Box(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.fillMaxSize().background(bgColor))
+                Box(modifier = Modifier.zIndex(6f).align(Alignment.TopEnd).padding(end = 16.dp)) {
+                    GlassActionDock(
+                        hazeState = hazeState,
+                        isFloating = isHeaderFloating,
+                        sortOption = vm.sortOption,
+                        viewModel = vm,
+                        onSortSelected = { performHaptic(view, "light"); vm.sortOption = it },
+                        modifier = Modifier.padding(top = 12.dp)
+                    )
+                }
+
+                Column(modifier = Modifier.fillMaxSize().blur(blurAmount)) {
+                    Box(modifier = Modifier.fillMaxSize().weight(1f).background(bgColor)) {
+                        val list = vm.getDisplayList()
+                        if (list.isEmpty()) {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                MalistWorkspaceTopBar(
+                                    viewModel = vm,
+                                    isDarkTheme = isDarkTheme,
+                                    onToggleTheme = onToggleTheme
+                                )
+                                Box(modifier = Modifier.weight(1f)) {
+                                    EmptyStateView(
+                                        title = if (vm.searchQuery.isNotEmpty()) vm.strings.noResults else if (vm.sortOption == SortOption.FAVORITES) vm.strings.noFavorites else vm.strings.emptyTitle,
+                                        subtitle = if (vm.searchQuery.isNotEmpty()) "" else if (vm.sortOption == SortOption.FAVORITES) "" else vm.strings.emptySubtitle
+                                    )
+                                }
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .customOverscroll(
+                                        listState = listState,
+                                        onNewOverscrollAmount = { overscrollAmount = it }
+                                    )
+                                    .offset { IntOffset(0, overscrollAmount.roundToInt()) }
+                            ) {
+                                LazyColumn(
+                                    state = listState,
+                                    contentPadding = PaddingValues(top = 0.dp, bottom = 120.dp, start = 0.dp, end = 0.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                                    modifier = Modifier.haze(state = hazeState)
+                                ) {
+                                    item {
+                                        MalistWorkspaceTopBar(
+                                            viewModel = vm,
+                                            isDarkTheme = isDarkTheme,
+                                            onToggleTheme = onToggleTheme
+                                        )
+                                    }
+                                    items(list, key = { it.id }) { anime ->
+
+                                        val dismissState = rememberSwipeToDismissBoxState(
+                                            confirmValueChange = {
+                                                when(it) {
+                                                    SwipeToDismissBoxValue.StartToEnd -> {
+                                                        performHaptic(view, "success")
+                                                        animeToFavorite = anime
+                                                        false
+                                                    }
+                                                    SwipeToDismissBoxValue.EndToStart -> {
+                                                        performHaptic(view, "warning")
+                                                        animeToDelete = anime
+                                                        false
+                                                    }
+                                                    else -> false
+                                                }
+                                            },
+                                            positionalThreshold = { totalDistance -> totalDistance * 0.5f }
+                                        )
+
+                                        SwipeToDismissBox(
+                                            state = dismissState,
+                                            backgroundContent = { SwipeBackground(dismissState) },
+                                            modifier = Modifier.padding(horizontal = 16.dp).animateItem()
+                                        ) {
+                                            OneUiAnimeCard(
+                                                anime = anime,
+                                                viewModel = vm,
+                                                sharedTransitionScope = sharedTransitionScope,
+                                                animatedVisibilityScope = animatedVisibilityScope,
+                                                onClick = { nav.navigate("add_anime?animeId=${anime.id}") }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (!isSearchVisible && animeToDelete == null && animeToFavorite == null) {
+                    GlassBottomNavigation(
+                        hazeState = hazeState,
+                        nav = nav,
+                        viewModel = vm,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        onShowStats = { showCSheet = true },
+                        onShowNotifs = { /* NO-OP, handled in GlassActionDock */ },
+                        onSearchClick = {
+                            performHaptic(view, "light")
+                            isSearchVisible = !isSearchVisible
+                            if (!isSearchVisible) {
+                                vm.searchQuery = ""
+                                focusManager.clearFocus()
+                                kbd?.hide()
+                            }
+                        },
+                        isSearchActive = isSearchVisible,
+                        modifier = Modifier.align(Alignment.BottomCenter).zIndex(3f).navigationBarsPadding()
+                    )
+                }
+
+                AnimatedVisibility(
+                    visible = isSearchVisible,
+                    enter = slideInVertically { it } + fadeIn(),
+                    exit = slideOutVertically { it } + fadeOut(),
+                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 16.dp).windowInsetsPadding(WindowInsets.ime).padding(bottom = 16.dp).zIndex(10f)
+                ) {
+                    SimpGlassCard(
+                        hazeState = hazeState,
+                        shape = RoundedCornerShape(28.dp),
+                        modifier = Modifier.fillMaxWidth().height(56.dp)
+                    ) {
+                        BasicTextField(
+                            value = vm.searchQuery,
+                            onValueChange = { vm.searchQuery = it; if (it.isNotEmpty()) performHaptic(view, "light") },
+                            modifier = Modifier.fillMaxSize().focusRequester(searchFocusRequester).padding(horizontal = 20.dp),
+                            singleLine = true,
+                            textStyle = TextStyle(fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface),
+                            cursorBrush = SolidColor(BrandBlue),
+                            decorationBox = { innerTextField ->
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Search, null, tint = BrandBlue)
+                                    Spacer(Modifier.width(12.dp))
+                                    Box {
+                                        if (vm.searchQuery.isEmpty()) { Text(vm.strings.searchPlaceholder, color = MaterialTheme.colorScheme.secondary, fontSize = 16.sp) }
+                                        innerTextField()
+                                    }
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(onSearch = { kbd?.hide() })
+                        )
+                    }
+                    LaunchedEffect(Unit) { searchFocusRequester.requestFocus(); kbd?.show() }
+                }
+
+                if (shouldBlur && animeToDelete == null && animeToFavorite == null) {
+                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { focusManager.clearFocus(); isSearchVisible = false; kbd?.hide() }.zIndex(2f))
+                }
+
+                if (animeToDelete != null) {
+                    SpringBottomDialog(
+                        title = vm.strings.deleteTitle,
+                        subtitle = vm.strings.deleteSubtitle,
+                        confirmText = vm.strings.deleteConfirm,
+                        cancelText = vm.strings.cancel,
+                        icon = Icons.Default.Delete,
+                        accentColor = BrandRed,
+                        imageFile = vm.getImgPath(animeToDelete?.imageFileName),
+                        onConfirm = {
+                            vm.deleteAnime(animeToDelete!!.id)
+                            animeToDelete = null
+                        },
+                        onCancel = { animeToDelete = null }
+                    )
+                }
+
+                if (animeToFavorite != null) {
+                    SpringBottomDialog(
+                        title = vm.strings.favTitle,
+                        subtitle = vm.strings.favSubtitle,
+                        confirmText = vm.strings.favConfirm,
+                        cancelText = vm.strings.cancel,
+                        icon = Icons.Default.Star,
+                        accentColor = RateColor3,
+                        imageFile = vm.getImgPath(animeToFavorite?.imageFileName),
+                        onConfirm = {
+                            vm.toggleFavorite(animeToFavorite!!.id)
+                            animeToFavorite = null
+                        },
+                        onCancel = { animeToFavorite = null }
+                    )
+                }
+
+                AnimatedVisibility(
+                    visible = showScrollToTop && !isSearchVisible && animeToDelete == null && animeToFavorite == null,
+                    enter = fadeIn() + scaleIn(),
+                    exit = fadeOut() + scaleOut(),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = 160.dp, end = 24.dp)
+                        .zIndex(1f)
+                ) {
+                    SimpGlassCard(
+                        hazeState = hazeState,
+                        shape = CircleShape,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clickable {
+                                performHaptic(view, "light")
+                                scope.launch { listState.animateScrollToItem(0) }
+                            }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowUp,
+                            contentDescription = "Up",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+
+            if (showCSheet) {
+                ModalBottomSheet(onDismissRequest = { showCSheet = false }, containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.9f), scrimColor = Color.Transparent) { WatchStatsContent(animeList = vm.animeList, viewModel = vm) }
+            }
+        }
+    }
+
+    @OptIn(ExperimentalSharedTransitionApi::class)
+    @Composable
+    fun AddEditScreen(nav: NavController, vm: AnimeViewModel, id: String?, sharedTransitionScope: SharedTransitionScope, animatedVisibilityScope: AnimatedVisibilityScope) {
+        val anime = remember(id) { id?.let { vm.getAnimeById(it) } }
+        var title by remember { mutableStateOf(anime?.title ?: "") }
+        var ep by remember { mutableStateOf(anime?.episodes?.toString() ?: "") }
+        var rate by remember { mutableIntStateOf(anime?.rating ?: 0) }
+        var uri by remember { mutableStateOf<Uri?>(null) }
+        val scope = rememberCoroutineScope()
+        val hasChanges by remember(title, ep, rate, uri) { derivedStateOf { if (id == null) { title.isNotBlank() } else { (anime != null) && (title != anime.title || ep != anime.episodes.toString() || rate != anime.rating || uri != null) } } }
+        val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri = it }
+        val ctx = LocalContext.current
+        val view = LocalView.current
+        val bg = MaterialTheme.colorScheme.background
+        val textC = MaterialTheme.colorScheme.onBackground
+        val s = vm.strings
+
+        with(sharedTransitionScope) {
+            val sharedModifier = if (id == null) { Modifier.sharedBounds(rememberSharedContentState(key = "fab_container"), animatedVisibilityScope = animatedVisibilityScope, resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds) } else { Modifier.sharedBounds(rememberSharedContentState(key = "card_${id}"), animatedVisibilityScope = animatedVisibilityScope, resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds) }
+            Scaffold(modifier = Modifier.fillMaxSize().then(sharedModifier), containerColor = Color.Transparent, topBar = { Row(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = textC, modifier = if (id == null) Modifier.sharedElement(rememberSharedContentState(key = "fab_icon"), animatedVisibilityScope = animatedVisibilityScope) else Modifier) }; Spacer(Modifier.width(16.dp)); Text(text = if (id == null) s.addTitle else s.editTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = textC) } }, floatingActionButton = { AnimatedSaveFab(isEnabled = hasChanges, onClick = { performHaptic(view, "success"); if (title.isNotEmpty()) { scope.launch { delay(600); if (id != null) vm.updateAnime(ctx, id, title, ep.toIntOrNull()?:0, rate, uri) else vm.addAnime(ctx, title, ep.toIntOrNull()?:0, rate, uri); nav.popBackStack() } } else { Toast.makeText(ctx, s.enterTitleToast, Toast.LENGTH_SHORT).show() } }) }) { innerPadding ->
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.fillMaxSize().background(bg))
+                    Column(modifier = Modifier
+                        .padding(innerPadding)
+                        .imePadding()
+                        .padding(horizontal = 24.dp)
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Spacer(Modifier.height(16.dp))
+                        Box(modifier = Modifier.width(180.dp).aspectRatio(0.7f).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(32.dp)).clickable { performHaptic(view, "light"); launcher.launch("image/*") }, contentAlignment = Alignment.Center) {
+                            val imageModifier = if (id != null) Modifier.sharedElement(rememberSharedContentState(key = "image_${id}"), animatedVisibilityScope = animatedVisibilityScope) else Modifier
+                            Box(modifier = Modifier.fillMaxSize().then(imageModifier).clip(RoundedCornerShape(32.dp))) {
+                                if (uri != null) AsyncImage(uri, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                                else if (anime?.imageFileName != null) AsyncImage(vm.getImgPath(anime.imageFileName), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                                else Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Default.AddPhotoAlternate, null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.secondary); Text(s.addPhoto, color = MaterialTheme.colorScheme.secondary) }
+                            }
+                        }
+                        Spacer(Modifier.height(32.dp))
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                AnimatedOneUiTextField(
+                                    value = title,
+                                    onValueChange = { title = it },
+                                    placeholder = s.animeTitleHint,
+                                    singleLine = false,
+                                    maxLines = 4
+                                )
+                            }
+                            if (title.isNotEmpty()) {
+                                Spacer(Modifier.width(8.dp))
+                                AnimatedCopyButton(textToCopy = title)
+                            }
+                        }
+
+                        Spacer(Modifier.height(24.dp))
+
+                        AnimatedOneUiTextField(
+                            value = ep,
+                            onValueChange = { if (it.all { c -> c.isDigit() }) ep = it },
+                            placeholder = s.episodesHint,
+                            keyboardType = KeyboardType.Number
+                        )
+
+                        Spacer(Modifier.height(12.dp))
+                        EpisodeSuggestions { selectedEp -> performHaptic(view, "light"); ep = selectedEp }
+                        Spacer(Modifier.height(24.dp))
+                        StarRatingBar(rating = rate) { newRate -> performHaptic(view, "light"); rate = newRate }
+                        Spacer(Modifier.height(120.dp))
+                    }
+                }
+            }
+        }
+    }
+
+// ==========================================
+// ЭКРАН НАСТРОЕК (НОВЫЙ)
+// ==========================================
+
+    @OptIn(ExperimentalSharedTransitionApi::class)
+    @Composable
+    fun SettingsScreen(
+        nav: NavController,
+        vm: AnimeViewModel,
+        sharedTransitionScope: SharedTransitionScope,
+        animatedVisibilityScope: AnimatedVisibilityScope
+    ) {
+        val bg = MaterialTheme.colorScheme.background
+        val textC = MaterialTheme.colorScheme.onBackground
+        val s = vm.strings
+        val view = LocalView.current
+        val context = LocalContext.current
+
+        // РАСКРЫТИЕ КАРТОЧЕК
+        var expandedLang by remember { mutableStateOf(false) }
+        var expandedUpdate by remember { mutableStateOf(false) }
+
+        with(sharedTransitionScope) {
+            // АНИМАЦИЯ ОТКРЫТИЯ (SHARED BOUNDS)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .sharedBounds(
+                        rememberSharedContentState(key = "settings_container"),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
+                    )
+                    .background(bg)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding()
+                ) {
+                    // ВЕРХНЯЯ ПАНЕЛЬ
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = { performHaptic(view, "light"); nav.popBackStack() }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = textC,
+                                modifier = Modifier.sharedElement(
+                                    rememberSharedContentState(key = "settings_icon"),
+                                    animatedVisibilityScope = animatedVisibilityScope
+                                )
+                            )
+                        }
+                        Spacer(Modifier.width(16.dp))
+                        Text(
+                            text = s.settingsScreenTitle,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = textC
+                        )
+                    }
+
+                    // СПИСОК НАСТРОЕК
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(bottom = 32.dp)
+                    ) {
+                        // 1. ЯЗЫК
+                        item {
+                            StatsCard(
+                                title = s.languageCardTitle,
+                                icon = Icons.Outlined.Language,
+                                isExpanded = expandedLang,
+                                onClick = {
+                                    performHaptic(view, "light")
+                                    expandedLang = !expandedLang
+                                }
+                            ) {
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    LanguageOption(
+                                        text = s.langEn,
+                                        isSelected = vm.currentLanguage == AppLanguage.EN,
+                                        onClick = { vm.setLanguage(AppLanguage.EN) }
+                                    )
+                                    LanguageOption(
+                                        text = s.langRu,
+                                        isSelected = vm.currentLanguage == AppLanguage.RU,
+                                        onClick = { vm.setLanguage(AppLanguage.RU) }
+                                    )
+                                }
+                            }
+                        }
+
+                        // 2. ПРОВЕРКА ОБНОВЛЕНИЙ
+                        item {
+                            StatsCard(
+                                title = s.checkForUpdateTitle,
+                                icon = Icons.Outlined.SystemUpdate,
+                                isExpanded = expandedUpdate,
+                                onClick = {
+                                    performHaptic(view, "light")
+                                    expandedUpdate = !expandedUpdate
+                                }
+                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    UpdateStateButton(
+                                        status = vm.updateStatus,
+                                        idleText = s.checkButtonText,
+                                        onClick = {
+                                            if (vm.updateStatus == AppUpdateStatus.IDLE || vm.updateStatus == AppUpdateStatus.ERROR) {
+                                                vm.checkAppUpdate(context)
+                                            } else if (vm.updateStatus == AppUpdateStatus.UPDATE_AVAILABLE) {
+                                                vm.latestReleaseUrl?.let { url ->
+                                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                    view.context.startActivity(intent)
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+// ==========================================
+// КОМПОНЕНТЫ НАСТРОЕК
+// ==========================================
+
+    // КНОПКА С СОСТОЯНИЯМИ (STATE BUTTON)
+    @Composable
+    fun UpdateStateButton(
+        status: AppUpdateStatus,
+        idleText: String,
+        onClick: () -> Unit
+    ) {
+        val view = LocalView.current
+
+        // ЦВЕТА И РАЗМЕРЫ В ЗАВИСИМОСТИ ОТ СОСТОЯНИЯ
+        val backgroundColor by animateColorAsState(
+            targetValue = when (status) {
+                // СОСТОЯНИЕ IDLE: ЦВЕТ КНОПКИ СОВПАДАЕТ С ЦВЕТОМ ТЕКСТА "8H" (SECONDARY)
+                AppUpdateStatus.IDLE -> MaterialTheme.colorScheme.secondary
+                AppUpdateStatus.LOADING -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+                AppUpdateStatus.NO_UPDATE -> RateColor4 // ЗЕЛЕНЫЙ
+                AppUpdateStatus.UPDATE_AVAILABLE -> BrandBlue
+                AppUpdateStatus.ERROR -> BrandRed
+            },
+            label = "btnBg"
+        )
+
+        val contentColor by animateColorAsState(
+            targetValue = when (status) {
+                // ДЛЯ КОНТРАСТА С SECONDARY ФОНОМ ИСПОЛЬЗУЕМ ONSECONDARY ИЛИ SURFACE (В ЗАВИСИМОСТИ ОТ ТЕМЫ, НО БЕЛЫЙ ЧАСТО РАБОТАЕТ ЛУЧШЕ ДЛЯ АКЦЕНТА)
+                // НО ТАК КАК В ТЕМЕ SECONDARY ЭТО СЕРЫЙ ТЕКСТ, ИСПОЛЬЗУЕМ WHITE/BLACK ДЛЯ ЧИТАЕМОСТИ
+                AppUpdateStatus.IDLE -> MaterialTheme.colorScheme.onSecondary
+                AppUpdateStatus.LOADING -> MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.5f)
+                else -> Color.White
+            },
+            label = "btnContent"
+        )
+
+        val widthFraction by animateFloatAsState(
+            targetValue = if (status == AppUpdateStatus.IDLE) 1f else 0.5f,
+            label = "btnWidth"
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(widthFraction)
+                .height(50.dp)
+                .clip(CircleShape)
+                .background(backgroundColor)
+                .clickable(
+                    enabled = status != AppUpdateStatus.LOADING,
+                    onClick = {
+                        performHaptic(view, "light")
+                        onClick()
+                    }
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            AnimatedContent(
+                targetState = status,
+                transitionSpec = {
+                    (fadeIn(animationSpec = tween(220, delayMillis = 90)) +
+                            scaleIn(initialScale = 0.92f, animationSpec = tween(220, delayMillis = 90)))
+                        .togetherWith(fadeOut(animationSpec = tween(90)))
+                },
+                label = "btnContentAnim"
+            ) { targetStatus ->
+                when (targetStatus) {
+                    AppUpdateStatus.IDLE -> {
+                        Text(
+                            text = idleText,
+                            fontWeight = FontWeight.Bold,
+                            color = contentColor,
+                            fontSize = 16.sp
+                        )
+                    }
+                    AppUpdateStatus.LOADING -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = contentColor,
+                            strokeWidth = 2.dp
+                        )
+                    }
+                    AppUpdateStatus.NO_UPDATE -> {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Up to date",
+                            tint = contentColor,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                    AppUpdateStatus.UPDATE_AVAILABLE -> {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.SystemUpdateAlt, // ИЛИ DOWNLOAD
+                                contentDescription = "Update available",
+                                tint = contentColor,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("Update", fontWeight = FontWeight.Bold, color = contentColor)
+                        }
+                    }
+                    AppUpdateStatus.ERROR -> {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Error",
+                            tint = contentColor,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // ВСПОМОГАТЕЛЬНЫЙ КОМПОНЕНТ ДЛЯ ВЫБОРА ЯЗЫКА
+    @Composable
+    fun LanguageOption(
+        text: String,
+        isSelected: Boolean,
+        onClick: () -> Unit
+    ) {
+        val bg = if (isSelected) BrandBlue else MaterialTheme.colorScheme.surface
+        val contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+        val border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(CircleShape) // ИЗМЕНЕНО: БЫЛО RoundedCornerShape(12.dp) -> СТАЛО CircleShape (ПИЛЮЛЯ)
+                .background(bg)
+                .then(if (border != null) Modifier.border(border, CircleShape) else Modifier)
+                .clickable { onClick() }
+                .padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                fontWeight = FontWeight.Bold,
+                color = contentColor
+            )
+        }
+    }
+
+    class MainActivity : ComponentActivity() {
+        @OptIn(ExperimentalSharedTransitionApi::class)
+        override fun onCreate(savedInstanceState: Bundle?) {
+            super.onCreate(savedInstanceState)
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) { window.attributes.preferredDisplayModeId = 0 }
+            checkPerms()
+            setContent {
+                var isDarkTheme by rememberSaveable { mutableStateOf(true) }
+                OneUiTheme(darkTheme = isDarkTheme) {
+                    val navController = rememberNavController()
+                    val viewModel: AnimeViewModel = viewModel()
+                    val context = LocalContext.current // ПОЛУЧАЕМ КОНТЕКСТ ДЛЯ ИНИЦИАЛИЗАЦИИ ВЕРСИИ
+
+                    LaunchedEffect(Unit) {
+                        viewModel.loadAnime()
+                        viewModel.loadSettings()
+                        viewModel.initAppVersion(context) // ИНИЦИАЛИЗАЦИЯ ВЕРСИИ ПРИ СТАРТЕ
+                    }
+                    SharedTransitionLayout {
+                        NavHost(navController = navController, startDestination = "home") {
+                            composable("home") { HomeScreen(nav = navController, vm = viewModel, sharedTransitionScope = this@SharedTransitionLayout, animatedVisibilityScope = this, isDarkTheme = isDarkTheme, onToggleTheme = { isDarkTheme = !isDarkTheme }) }
+                            composable("add_anime?animeId={animeId}", arguments = listOf(navArgument("animeId") { nullable = true })) { AddEditScreen(navController, viewModel, it.arguments?.getString("animeId"), this@SharedTransitionLayout, this) }
+                            // НОВЫЙ МАРШРУТ: НАСТРОЙКИ
+                            composable("settings") {
+                                SettingsScreen(
+                                    nav = navController,
+                                    vm = viewModel,
+                                    sharedTransitionScope = this@SharedTransitionLayout,
+                                    animatedVisibilityScope = this
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        private fun checkPerms() {
+            if (Build.VERSION.SDK_INT >= 30 && !Environment.isExternalStorageManager()) {
+                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:$packageName")); startActivity(intent); Toast.makeText(this, "Need file access", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    @Composable
+    fun EmptyStateView(
+        modifier: Modifier = Modifier,
+        title: String = "Nothing in folder",
+        subtitle: String = "Looks empty over here."
+    ) {
+        Column(
+            modifier = modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            ModernEmptyFolderIcon(modifier = Modifier.size(120.dp))
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.secondary
+            )
+        }
+    }
+
+    @Composable
+    fun ModernEmptyFolderIcon(modifier: Modifier = Modifier) {
+        Box(
+            modifier = modifier,
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.FolderOpen,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }

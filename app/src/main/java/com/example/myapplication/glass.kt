@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.HazeStyle
+import androidx.compose.material.icons.outlined.Settings
 
 // ==========================================
 // КОМПОНЕНТ "СИМП-СТЕКЛО"
@@ -116,7 +117,7 @@ fun GlassBottomNavigation(
 
     Row(
         modifier = modifier
-            .padding(bottom = 24.dp, start = 75.dp, end = 75.dp)
+            .padding(bottom = 24.dp, start = 60.dp, end = 60.dp)
             .fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.Bottom
@@ -134,20 +135,14 @@ fun GlassBottomNavigation(
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(
-                        start = 13.dp,
-                        end = 14.dp
-                    ),
+                    .padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // ------------------------------------------------
-                // 1. Кнопка ЛЕВАЯ (Stats) -> ВЕС 1f
-                // ------------------------------------------------
+                // 1. Stats
                 Box(
                     modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Убрали Column, просто иконка в кликабельном боксе
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -160,15 +155,12 @@ fun GlassBottomNavigation(
                             imageVector = HeroiconsSquaresPlus,
                             contentDescription = "Stats",
                             tint = currentThemeColor.copy(alpha = 0.6f),
-                            // УВЕЛИЧИЛИ РАЗМЕР: было 24.dp -> стало 32.dp
                             modifier = Modifier.size(32.dp)
                         )
                     }
                 }
 
-                // ------------------------------------------------
-                // 2. Кнопка ЦЕНТР (New) -> ВЕС 1f
-                // ------------------------------------------------
+                // 2. Add
                 Box(
                     modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.Center
@@ -184,7 +176,6 @@ fun GlassBottomNavigation(
                         with(sharedTransitionScope) {
                             Box(
                                 modifier = Modifier
-                                    // УВЕЛИЧИЛИ КОНТЕЙНЕР: было 28.dp -> стало 48.dp
                                     .size(48.dp)
                                     .sharedBounds(
                                         rememberSharedContentState(key = "fab_container"),
@@ -198,7 +189,6 @@ fun GlassBottomNavigation(
                                     imageVector = HeroiconsPlus,
                                     contentDescription = "Add",
                                     tint = currentThemeColor,
-                                    // УВЕЛИЧИЛИ ИКОНКУ: было 28.dp -> стало 36.dp
                                     modifier = Modifier
                                         .size(36.dp)
                                         .sharedElement(
@@ -211,40 +201,46 @@ fun GlassBottomNavigation(
                     }
                 }
 
-                // ------------------------------------------------
-                // 3. Кнопка ПРАВАЯ (Checklist) -> ВЕС 1f
-                // ------------------------------------------------
+                // 3. Settings (SHARED TRANSITION ENABLED)
                 Box(
                     modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    Box {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) { performHaptic(view, false); onShowNotifs() }
-                        ) {
-                            Icon(
-                                imageVector = HeroiconsRectangleStack,
-                                contentDescription = "Checklist",
-                                tint = currentThemeColor.copy(alpha = 0.6f),
-                                // УВЕЛИЧИЛИ РАЗМЕР: было 24.dp -> стало 32.dp
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
-
-                        // Точка уведомлений
-                        if (viewModel.updates.isNotEmpty()) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                performHaptic(view, false)
+                                nav.navigate("settings") // ИЗМЕНЕНО: НАВИГАЦИЯ ВМЕСТО ТОГГЛА
+                            }
+                    ) {
+                        with(sharedTransitionScope) {
                             Box(
                                 modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(start = 22.dp, bottom = 22.dp) // Чуть сдвинул точку для большой иконки
-                                    .size(8.dp)
-                                    .background(BrandRed, CircleShape)
-                            )
+                                    .size(48.dp)
+                                    .sharedBounds(
+                                        rememberSharedContentState(key = "settings_container"),
+                                        animatedVisibilityScope = animatedVisibilityScope,
+                                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
+                                    )
+                                    .background(Color.Transparent),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Settings,
+                                    contentDescription = "Settings",
+                                    tint = currentThemeColor.copy(alpha = 0.6f),
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .sharedElement(
+                                            rememberSharedContentState(key = "settings_icon"),
+                                            animatedVisibilityScope = animatedVisibilityScope
+                                        )
+                                )
+                            }
                         }
                     }
                 }
@@ -263,18 +259,17 @@ fun GlassBottomNavigation(
                 imageVector = Icons.Default.Search,
                 contentDescription = "Search",
                 tint = if(isSearchActive) BrandBlue else currentThemeColor,
-                // УВЕЛИЧИЛИ РАЗМЕР: было 28.dp -> стало 32.dp
                 modifier = Modifier.size(32.dp)
             )
         }
     }
 }
 
+
 // ==========================================
-// ВСТРОЕННЫЕ ИКОНКИ (ИЗ ТВОИХ ФАЙЛОВ)
+// ВСТРОЕННЫЕ ИКОНКИ
 // ==========================================
 
-// 1. Plus(1).kt (Жирный плюс)
 private var _HeroiconsPlus: ImageVector? = null
 val HeroiconsPlus: ImageVector
     get() {
@@ -306,7 +301,6 @@ val HeroiconsPlus: ImageVector
         return _HeroiconsPlus!!
     }
 
-// 2. Файл (2).kt -> HeroiconsSquaresPlus (Квадратики с плюсом)
 private var _HeroiconsSquaresPlus: ImageVector? = null
 val HeroiconsSquaresPlus: ImageVector
     get() {
@@ -367,7 +361,6 @@ val HeroiconsSquaresPlus: ImageVector
         return _HeroiconsSquaresPlus!!
     }
 
-// 3. Файл (1).kt -> HeroiconsRectangleStack (Стопка)
 private var _HeroiconsRectangleStack: ImageVector? = null
 val HeroiconsRectangleStack: ImageVector
     get() {
