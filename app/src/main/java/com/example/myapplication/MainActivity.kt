@@ -36,6 +36,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.Language
@@ -68,6 +69,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -169,7 +171,10 @@ data class UiStrings(
     val langRu: String,
     val langEn: String,
     val checkForUpdateTitle: String,
-    val checkButtonText: String
+    val checkButtonText: String,
+    // CONTACT ME
+    val contactTitle: String,
+    val contactSubtitle: String
 )
 
 val RussianStrings = UiStrings(
@@ -213,7 +218,9 @@ val RussianStrings = UiStrings(
     langRu = "Русский",
     langEn = "English",
     checkForUpdateTitle = "Проверка обновлений",
-    checkButtonText = "Проверить"
+    checkButtonText = "Проверить",
+    contactTitle = "Связь со мной",
+    contactSubtitle = "Нашли баг или есть идея?"
 )
 
 val EnglishStrings = UiStrings(
@@ -257,7 +264,9 @@ val EnglishStrings = UiStrings(
     langRu = "Russian",
     langEn = "English",
     checkForUpdateTitle = "Check for update",
-    checkButtonText = "Check"
+    checkButtonText = "Check",
+    contactTitle = "Contact me",
+    contactSubtitle = "Found a bug or have an idea?"
 )
 
 fun getStrings(lang: AppLanguage): UiStrings = when(lang) {
@@ -2208,6 +2217,7 @@ fun SettingsScreen(
 
     var expandedLang by remember { mutableStateOf(false) }
     var expandedUpdate by remember { mutableStateOf(false) }
+    var expandedContact by remember { mutableStateOf(false) }
 
     with(sharedTransitionScope) {
         Box(
@@ -2318,6 +2328,76 @@ fun SettingsScreen(
                                         }
                                     }
                                 )
+                            }
+                        }
+                    }
+
+                    // НОВЫЙ ПУНКТ: CONTACT ME
+                    item {
+                        StatsCard(
+                            title = s.contactTitle,
+                            icon = Icons.Outlined.Person,
+                            isExpanded = expandedContact,
+                            iconTint = BrandBlue,
+                            iconBg = BrandBlue.copy(alpha = 0.15f),
+                            onClick = {
+                                performHaptic(view, "light")
+                                expandedContact = !expandedContact
+                            }
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = s.contactSubtitle,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                                Spacer(Modifier.height(16.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // GitHub Button
+                                    Box(
+                                        modifier = Modifier
+                                            .size(64.dp)
+                                            .clip(CircleShape)
+                                            .clickable {
+                                                performHaptic(view, "light")
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Phnem/MAList"))
+                                                view.context.startActivity(intent)
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.gh),
+                                            contentDescription = "GitHub",
+                                            modifier = Modifier.size(56.dp),
+                                            contentScale = ContentScale.Fit
+                                        )
+                                    }
+
+                                    // Telegram Button
+                                    Box(
+                                        modifier = Modifier
+                                            .size(64.dp)
+                                            .clip(CircleShape)
+                                            .clickable {
+                                                performHaptic(view, "light")
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/H415base"))
+                                                view.context.startActivity(intent)
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.tg),
+                                            contentDescription = "Telegram",
+                                            modifier = Modifier.size(56.dp),
+                                            contentScale = ContentScale.Fit
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
