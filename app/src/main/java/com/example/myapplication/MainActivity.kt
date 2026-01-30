@@ -217,8 +217,8 @@ val RussianStrings = UiStrings(
     languageCardTitle = "Язык",
     langRu = "Русский",
     langEn = "English",
-    checkForUpdateTitle = "Проверка обновлений",
-    checkButtonText = "Проверить",
+    checkForUpdateTitle = "Обновление приложения",
+    checkButtonText = "Проверить версию",
     contactTitle = "Связь со мной",
     contactSubtitle = "Нашли баг или есть идея?"
 )
@@ -263,8 +263,8 @@ val EnglishStrings = UiStrings(
     languageCardTitle = "Language",
     langRu = "Russian",
     langEn = "English",
-    checkForUpdateTitle = "Check for update",
-    checkButtonText = "Check",
+    checkForUpdateTitle = "App Update",
+    checkButtonText = "Check Version",
     contactTitle = "Contact me",
     contactSubtitle = "Found a bug or have an idea?"
 )
@@ -429,9 +429,11 @@ data class AnimeUpdate(
     val source: String
 )
 
+// ДАННЫЕ О РЕЛИЗЕ С GITHUB
 data class GithubReleaseInfo(
     val tagName: String,
-    val htmlUrl: String
+    val htmlUrl: String,
+    val downloadUrl: String
 )
 
 object ApiRateLimiter {
@@ -507,28 +509,35 @@ class AnimeRepository {
         } catch (e: Exception) { null }
     }
 
-    // ПРОВЕРКА ОБНОВЛЕНИЙ НА GITHUB
+    // ПОЛУЧЕНИЕ ДАННЫХ О ПОСЛЕДНЕМ РЕЛИЗЕ С GITHUB API
+    // ИСПОЛЬЗУЕТСЯ URL: https://api.github.com/repos/Phnem/MAList/releases/latest
     suspend fun checkGithubUpdate(): GithubReleaseInfo? = withContext(Dispatchers.IO) {
         try {
-            // URL ПОСЛЕДНЕГО РЕЛИЗА
             val url = "https://api.github.com/repos/Phnem/MAList/releases/latest"
             val json = getJson(url).asJsonObject
+
+            // 1. ПОЛУЧАЕМ ТЕГ (НАПРИМЕР "v2.1.6-Alpha")
             val tag = json.get("tag_name").asString
-            // ОБНОВЛЕНИЕ URL ДЛЯ СКАЧИВАНИЯ (ИЩЕМ ПЕРВЫЙ АССЕТ .APK)
-            var downloadUrl = json.get("html_url").asString // FALLBACK НА СТРАНИЦУ РЕЛИЗА
+            val htmlUrl = json.get("html_url").asString
+
+            // 2. ИЩЕМ APK В АССЕТАХ РЕЛИЗА
+            // GITHUB МОЖЕТ НЕ ОТДАТЬ ПРЯМУЮ ССЫЛКУ СРАЗУ, НУЖНО ПАРСИТЬ ASSETS
+            var downloadUrl = htmlUrl // FALLBACK НА СТРАНИЦУ, ЕСЛИ APK НЕ НАЙДЕН
             val assets = json.getAsJsonArray("assets")
+
             if (assets != null && assets.size() > 0) {
-                // ПОПРОБУЕМ НАЙТИ APK
                 for (i in 0 until assets.size()) {
                     val asset = assets[i].asJsonObject
                     val name = asset.get("name").asString
+                    // ИЩЕМ ФАЙЛ С РАСШИРЕНИЕМ .APK
                     if (name.endsWith(".apk", ignoreCase = true)) {
                         downloadUrl = asset.get("browser_download_url").asString
                         break
                     }
                 }
             }
-            GithubReleaseInfo(tag, downloadUrl)
+
+            GithubReleaseInfo(tag, htmlUrl, downloadUrl)
         } catch (e: Exception) {
             e.printStackTrace()
             null
@@ -539,7 +548,8 @@ class AnimeRepository {
         val url = URL(urlString)
         val conn = url.openConnection() as HttpURLConnection
         conn.requestMethod = "GET"
-        conn.setRequestProperty("User-Agent", "MAList-App") // ВАЖНО ДЛЯ GITHUB
+        // ВАЖНО: GITHUB API ТРЕБУЕТ USER-AGENT
+        conn.setRequestProperty("User-Agent", "MAList-App-Updater")
         conn.connectTimeout = 5000
         conn.readTimeout = 5000
         if (conn.responseCode in 200..299) {
@@ -603,8 +613,6 @@ fun getRatingColor(rating: Int): Color {
 }
 
 // НАСТРОЙКА ШРИФТОВ SNPRO
-// НАСТРОЙКА ШРИФТОВ SNPRO
-// Убедитесь, что файлы называются: snpro_bold.ttf, snpro_mediumitalic.ttf, snpro_lightitalic.ttf
 val SnProFamily = FontFamily(
     Font(R.font.snpro_bold, FontWeight.Bold),
     Font(R.font.snpro_mediumitalic, FontWeight.Normal),
@@ -656,11 +664,9 @@ fun OneUiTheme(
         }
     }
 
-    // ПРИМЕНЕНИЕ НОВЫХ ШРИФТОВ КО ВСЕМ СТИЛЯМ
     MaterialTheme(
         colorScheme = colors,
         typography = Typography(
-            // ЗАГОЛОВКИ
             headlineMedium = TextStyle(
                 fontFamily = SnProFamily,
                 fontWeight = FontWeight.Bold,
@@ -674,10 +680,9 @@ fun OneUiTheme(
                 fontSize = 20.sp,
                 color = colors.onBackground
             ),
-            // ПОДЗАГОЛОВКИ / НАЗВАНИЯ В СПИСКАХ
             titleMedium = TextStyle(
                 fontFamily = SnProFamily,
-                fontWeight = FontWeight.Normal, // MediumItalic mapped to Normal
+                fontWeight = FontWeight.Normal,
                 fontSize = 17.sp,
                 letterSpacing = 0.2.sp
             ),
@@ -686,10 +691,9 @@ fun OneUiTheme(
                 fontWeight = FontWeight.Bold,
                 fontSize = 19.sp
             ),
-            // ОСНОВНОЙ ТЕКСТ
             bodyMedium = TextStyle(
                 fontFamily = SnProFamily,
-                fontWeight = FontWeight.Normal, // MediumItalic
+                fontWeight = FontWeight.Normal,
                 fontSize = 14.sp,
                 color = colors.secondary,
                 letterSpacing = 0.1.sp
@@ -699,7 +703,6 @@ fun OneUiTheme(
                 fontWeight = FontWeight.Normal,
                 fontSize = 16.sp
             ),
-            // ВСПОМОГАТЕЛЬНЫЙ ТЕКСТ (ТОНКИЙ)
             bodySmall = TextStyle(
                 fontFamily = SnProFamily,
                 fontWeight = FontWeight.Light,
@@ -750,9 +753,33 @@ enum class SortOption {
     }
 }
 
-// СОСТОЯНИЯ ПРОВЕРКИ ОБНОВЛЕНИЯ
+// СОСТОЯНИЯ ПРОВЕРКИ ОБНОВЛЕНИЯ ПРИЛОЖЕНИЯ
 enum class AppUpdateStatus {
     IDLE, LOADING, NO_UPDATE, UPDATE_AVAILABLE, ERROR
+}
+
+// ВСПОМОГАТЕЛЬНЫЙ КЛАСС ДЛЯ SEMANTIC VERSIONING
+data class SemanticVersion(
+    val major: Int,
+    val minor: Int,
+    val patch: Int,
+    val suffix: String // "Alpha", "Beta", "" (release)
+) : Comparable<SemanticVersion> {
+    override fun compareTo(other: SemanticVersion): Int {
+        if (major != other.major) return major - other.major
+        if (minor != other.minor) return minor - other.minor
+        if (patch != other.patch) return patch - other.patch
+
+        // ЕСЛИ ЦИФРЫ РАВНЫ, СРАВНИВАЕМ СУФФИКСЫ
+        // ПУСТОЙ СУФФИКС (RELEASE) ВСЕГДА БОЛЬШЕ, ЧЕМ ЛЮБОЙ НЕПУСТОЙ (ALPHA/BETA)
+        if (suffix.isEmpty() && other.suffix.isNotEmpty()) return 1
+        if (suffix.isNotEmpty() && other.suffix.isEmpty()) return -1
+        if (suffix.isEmpty() && other.suffix.isEmpty()) return 0
+
+        // СРАВНЕНИЕ ТИПОВ СУФФИКСОВ (ALPHA < BETA < RC)
+        // ПРОСТАЯ ЛЕКСИКОГРАФИЧЕСКАЯ ПРОВЕРКА ДЛЯ УПРОЩЕНИЯ
+        return suffix.compareTo(other.suffix, ignoreCase = true)
+    }
 }
 
 class AnimeViewModel : ViewModel() {
@@ -762,10 +789,10 @@ class AnimeViewModel : ViewModel() {
 
     val strings: UiStrings get() = getStrings(currentLanguage)
 
-    // СОСТОЯНИЕ ОБНОВЛЕНИЯ
+    // СОСТОЯНИЕ ОБНОВЛЕНИЯ ПРИЛОЖЕНИЯ
     var updateStatus by mutableStateOf(AppUpdateStatus.IDLE)
         private set
-    var latestReleaseUrl by mutableStateOf<String?>(null)
+    var latestDownloadUrl by mutableStateOf<String?>(null)
         private set
     var currentVersionName by mutableStateOf("v1.0.0")
         private set
@@ -778,13 +805,13 @@ class AnimeViewModel : ViewModel() {
         saveSettings()
     }
 
-    // НОВАЯ ФУНКЦИЯ ДЛЯ ЯВНОЙ УСТАНОВКИ ЯЗЫКА
     fun setLanguage(lang: AppLanguage) {
         currentLanguage = lang
         saveSettings()
     }
 
-    // ИНИЦИАЛИЗАЦИЯ ВЕРСИИ ПРИЛОЖЕНИЯ
+    // ИНИЦИАЛИЗАЦИЯ ВЕРСИИ ПРИЛОЖЕНИЯ ПРИ СТАРТЕ
+    // ИСПОЛЬЗУЕМ PACKAGEMANAGER ДЛЯ НАДЕЖНОСТИ
     fun initAppVersion(context: Context) {
         try {
             val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
@@ -794,31 +821,38 @@ class AnimeViewModel : ViewModel() {
         }
     }
 
-    // ФУНКЦИЯ ПРОВЕРКИ ОБНОВЛЕНИЙ
+    // ЛОГИКА ПРОВЕРКИ ОБНОВЛЕНИЙ ПРИЛОЖЕНИЯ
     fun checkAppUpdate(context: Context) {
         if (updateStatus == AppUpdateStatus.LOADING) return
         updateStatus = AppUpdateStatus.LOADING
 
-        // Используем уже инициализированную версию
-        val localVersion = currentVersionName
+        // УБЕЖДАЕМСЯ, ЧТО ВЕРСИЯ ИНИЦИАЛИЗИРОВАНА
+        if (currentVersionName == "v1.0.0") initAppVersion(context)
+        val localVer = currentVersionName
 
         viewModelScope.launch {
             try {
+                // ЗАПРОС К GITHUB RELEASES API
                 val release = repository.checkGithubUpdate()
+
                 if (release != null) {
-                    // СРАВНЕНИЕ ВЕРСИЙ (SEMANTIC VERSIONING)
-                    if (isNewerVersion(localVersion, release.tagName)) {
-                        latestReleaseUrl = release.htmlUrl
+                    val remoteTag = release.tagName
+
+                    // СРАВНЕНИЕ ВЕРСИЙ ЧЕРЕЗ SEMANTIC VERSIONING
+                    if (isNewerVersion(localVer, remoteTag)) {
+                        latestDownloadUrl = release.downloadUrl
                         updateStatus = AppUpdateStatus.UPDATE_AVAILABLE
                     } else {
                         updateStatus = AppUpdateStatus.NO_UPDATE
                     }
                 } else {
+                    // ОШИБКА API ИЛИ СЕТИ
                     updateStatus = AppUpdateStatus.ERROR
                     delay(2000)
                     updateStatus = AppUpdateStatus.IDLE
                 }
             } catch (e: Exception) {
+                e.printStackTrace()
                 updateStatus = AppUpdateStatus.ERROR
                 delay(2000)
                 updateStatus = AppUpdateStatus.IDLE
@@ -826,27 +860,38 @@ class AnimeViewModel : ViewModel() {
         }
     }
 
-    // ЛОГИКА СРАВНЕНИЯ ВЕРСИЙ (MAJOR.MINOR.PATCH)
+    // ПАРСИНГ И СРАВНЕНИЕ ВЕРСИЙ
+    // ПРИНИМАЕТ СТРОКИ ВИДА "v2.1.6-Alpha" ИЛИ "2.1.6"
     private fun isNewerVersion(local: String, remote: String): Boolean {
         try {
-            // УДАЛЯЕМ ПРЕФИКС "v" И СУФФИКСЫ
-            val localClean = local.removePrefix("v").split("-")[0]
-            val remoteClean = remote.removePrefix("v").split("-")[0]
+            val localSem = parseVersion(local)
+            val remoteSem = parseVersion(remote)
 
-            val localParts = localClean.split(".").map { it.toIntOrNull() ?: 0 }
-            val remoteParts = remoteClean.split(".").map { it.toIntOrNull() ?: 0 }
-
-            val length = maxOf(localParts.size, remoteParts.size)
-            for (i in 0 until length) {
-                val l = localParts.getOrElse(i) { 0 }
-                val r = remoteParts.getOrElse(i) { 0 }
-                if (r > l) return true
-                if (r < l) return false
-            }
+            // ВОЗВРАЩАЕМ TRUE ТОЛЬКО ЕСЛИ REMOTE > LOCAL
+            return remoteSem > localSem
         } catch (e: Exception) {
             return false
         }
-        return false
+    }
+
+    // РАЗБОР СТРОКИ ВЕРСИИ В ОБЪЕКТ SEMANTICVERSION
+    private fun parseVersion(versionStr: String): SemanticVersion {
+        // УДАЛЯЕМ 'v' В НАЧАЛЕ
+        val clean = versionStr.removePrefix("v").trim()
+
+        // РАЗДЕЛЯЕМ НА ЦИФРЫ И СУФФИКС
+        // ПРИМЕР: "2.1.6-Alpha" -> parts[0]="2.1.6", parts[1]="Alpha"
+        val dashSplit = clean.split("-", limit = 2)
+        val numbersPart = dashSplit[0]
+        val suffix = if (dashSplit.size > 1) dashSplit[1] else ""
+
+        // ПАРСИМ ЦИФРЫ
+        val dots = numbersPart.split(".").map { it.toIntOrNull() ?: 0 }
+        val major = dots.getOrElse(0) { 0 }
+        val minor = dots.getOrElse(1) { 0 }
+        val patch = dots.getOrElse(2) { 0 }
+
+        return SemanticVersion(major, minor, patch, suffix)
     }
 
     private fun saveSettings() {
@@ -1265,16 +1310,13 @@ fun AnimatedOneUiTextField(
 }
 
 // ==========================================
-// NEUMORPHIC RATING CHIP (UPDATED UI)
+// NEUMORPHIC RATING CHIP
 // ==========================================
 @Composable
 fun RatingChip(rating: Int) {
     val starTint = getRatingColor(rating)
     val isDark = isSystemInDarkTheme()
-
-    // ИЗМЕНЕНИЕ: ИСПОЛЬЗУЕМ ФОН ЭКРАНА (background) КАК ОСНОВУ
     val bgColor = MaterialTheme.colorScheme.background.copy(alpha = if (isDark) 0.3f else 0.35f)
-
     val borderColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f)
     val shadowColor = if (isDark) Color.Black.copy(alpha = 0.3f) else Color.Black.copy(alpha = 0.05f)
 
@@ -1292,7 +1334,6 @@ fun RatingChip(rating: Int) {
                 imageVector = Icons.Default.Star,
                 contentDescription = null,
                 tint = starTint,
-                // УВЕЛИЧЕН РАЗМЕР ИКОНКИ ЗВЕЗДЫ
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
@@ -1765,40 +1806,6 @@ fun WatchStatsContent(animeList: List<Anime>, viewModel: AnimeViewModel) {
             onClick = { expandedIndex = if (expandedIndex == 3) -1 else 3 }
         ) {
             Text(text = rankName, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = rankColor)
-        }
-    }
-}
-
-@Composable
-fun NotificationContent(updates: List<AnimeUpdate>, isChecking: Boolean, viewModel: AnimeViewModel, onAccept: (AnimeUpdate) -> Unit, onDismiss: (AnimeUpdate) -> Unit) {
-    val ctx = LocalContext.current
-    val textColor = MaterialTheme.colorScheme.onBackground
-    val cardBg = MaterialTheme.colorScheme.surfaceVariant
-    val s = viewModel.strings
-
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(s.updatesTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = textColor)
-        if (isChecking) {
-            Spacer(Modifier.height(24.dp)); CircularProgressIndicator(color = BrandBlue); Spacer(Modifier.height(8.dp))
-            Text(text = s.updatesChecking, color = MaterialTheme.colorScheme.secondary, textAlign = TextAlign.Center)
-        } else if (updates.isEmpty()) {
-            Spacer(Modifier.height(24.dp)); Icon(Icons.Default.CheckCircle, null, tint = BrandBlue.copy(alpha = 0.5f), modifier = Modifier.size(64.dp)); Spacer(Modifier.height(8.dp))
-            Text(s.updatesUpToDate, color = textColor, fontSize = 18.sp)
-        } else {
-            Spacer(Modifier.height(16.dp))
-            LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
-                items(updates) { update ->
-                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clip(RoundedCornerShape(16.dp)).background(cardBg).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(update.title, color = textColor, fontWeight = FontWeight.Bold); Spacer(Modifier.height(4.dp))
-                            Text("Found ${update.newEpisodes} eps (You: ${update.currentEpisodes})", color = MaterialTheme.colorScheme.primary, fontSize = 14.sp)
-                            Text("Source: ${update.source}", color = Color.Gray, fontSize = 12.sp)
-                        }
-                        IconButton(onClick = { onDismiss(update) }) { Icon(Icons.Default.Close, null, tint = BrandRed) }
-                        IconButton(onClick = { onAccept(update); Toast.makeText(ctx, "${s.updatedToast}${update.title}!", Toast.LENGTH_SHORT).show() }) { Icon(Icons.Default.Check, null, tint = BrandBlue) }
-                    }
-                }
-            }
         }
     }
 }
@@ -2314,25 +2321,32 @@ fun SettingsScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                UpdateStateButton(
-                                    status = vm.updateStatus,
-                                    idleText = s.checkButtonText,
-                                    onClick = {
-                                        if (vm.updateStatus == AppUpdateStatus.IDLE || vm.updateStatus == AppUpdateStatus.ERROR) {
-                                            vm.checkAppUpdate(context)
-                                        } else if (vm.updateStatus == AppUpdateStatus.UPDATE_AVAILABLE) {
-                                            vm.latestReleaseUrl?.let { url ->
-                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                                view.context.startActivity(intent)
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "Current version: ${vm.currentVersionName}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+                                    UpdateStateButton(
+                                        status = vm.updateStatus,
+                                        idleText = s.checkButtonText,
+                                        onClick = {
+                                            if (vm.updateStatus == AppUpdateStatus.IDLE || vm.updateStatus == AppUpdateStatus.ERROR) {
+                                                vm.checkAppUpdate(context)
+                                            } else if (vm.updateStatus == AppUpdateStatus.UPDATE_AVAILABLE) {
+                                                vm.latestDownloadUrl?.let { url ->
+                                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                    view.context.startActivity(intent)
+                                                }
                                             }
                                         }
-                                    }
-                                )
+                                    )
+                                }
                             }
                         }
                     }
 
-                    // НОВЫЙ ПУНКТ: CONTACT ME
                     item {
                         StatsCard(
                             title = s.contactTitle,
@@ -2358,7 +2372,6 @@ fun SettingsScreen(
                                     horizontalArrangement = Arrangement.SpaceEvenly,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // GitHub Button
                                     Box(
                                         modifier = Modifier
                                             .size(64.dp)
@@ -2378,7 +2391,6 @@ fun SettingsScreen(
                                         )
                                     }
 
-                                    // Telegram Button
                                     Box(
                                         modifier = Modifier
                                             .size(64.dp)
@@ -2440,7 +2452,7 @@ fun UpdateStateButton(
     )
 
     val widthFraction by animateFloatAsState(
-        targetValue = if (status == AppUpdateStatus.IDLE) 1f else 0.5f,
+        targetValue = if (status == AppUpdateStatus.IDLE) 1f else 0.6f,
         label = "btnWidth"
     )
 
@@ -2501,7 +2513,7 @@ fun UpdateStateButton(
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Update", fontWeight = FontWeight.Bold, color = contentColor)
+                        Text("Download", fontWeight = FontWeight.Bold, color = contentColor)
                     }
                 }
                 AppUpdateStatus.ERROR -> {
@@ -2562,6 +2574,7 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(Unit) {
                     viewModel.loadAnime()
                     viewModel.loadSettings()
+                    // ВАЖНО: ИНИЦИАЛИЗАЦИЯ ВЕРСИИ ПРИ ЗАПУСКЕ
                     viewModel.initAppVersion(context)
                 }
                 SharedTransitionLayout {
