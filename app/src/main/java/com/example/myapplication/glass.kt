@@ -3,6 +3,11 @@ package com.example.myapplication
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,25 +18,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.Spring
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,8 +36,8 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,12 +46,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.widget.Toast
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.HazeStyle
-import androidx.compose.material.icons.outlined.Settings
+import dev.chrisbanes.haze.hazeChild
 
 // ==========================================
-// КОМПОНЕНТ "СИМП-СТЕКЛО" (ИСПРАВЛЕН SIZE)
+// КОМПОНЕНТ "СИМП-СТЕКЛО"
 // ==========================================
 @Composable
 fun SimpGlassCard(
@@ -93,7 +84,6 @@ fun SimpGlassCard(
             .border(0.5.dp, borderStroke, shape),
         contentAlignment = Alignment.Center
     ) {
-        // 1. ФОН И БЛЕСК (Используем matchParentSize, чтобы фон подстраивался под контент)
         Canvas(modifier = Modifier.matchParentSize()) {
             val rect = Rect(offset = Offset.Zero, size = size)
             val path = Path().apply {
@@ -108,194 +98,13 @@ fun SimpGlassCard(
                 style = Stroke(width = 2.dp.toPx())
             )
         }
-
-        // 2. КОНТЕНТ (Определяет размер карточки, если modifier = wrapContent)
         content()
     }
 }
 
 // ==========================================
-// НОВАЯ ПАНЕЛЬ НАВИГАЦИИ (Compact Style)
+// GLASSACTIONDOCK (МЕНЮ СОРТИРОВКИ И ФИЛЬТРА)
 // ==========================================
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-fun GlassBottomNavigation(
-    hazeState: HazeState,
-    nav: androidx.navigation.NavController,
-    viewModel: AnimeViewModel,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-    onShowStats: () -> Unit,
-    onShowNotifs: () -> Unit,
-    onSearchClick: () -> Unit,
-    isSearchActive: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val view = LocalView.current
-    val currentThemeColor = MaterialTheme.colorScheme.onSurface
-
-    // Контейнер на всю ширину для позиционирования элементов
-    Box(
-        modifier = modifier
-            .padding(bottom = 24.dp)
-            .fillMaxWidth()
-    ) {
-        // 1. ЦЕНТРАЛЬНАЯ КАПСУЛА (Меню)
-        // Строго по центру, ширина по контенту (wrapContentWidth)
-        SimpGlassCard(
-            hazeState = hazeState,
-            shape = CircleShape,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .height(64.dp)
-                .wrapContentWidth() // ВАЖНО: Карточка ужмется до размера иконок
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(horizontal = 8.dp), // Небольшой отступ внутри капсулы
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp) // Компактное расстояние
-            ) {
-                // 1. Stats
-                Box(
-                    modifier = Modifier.size(52.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { performHaptic(view, false); onShowStats() }
-                    ) {
-                        Icon(
-                            imageVector = HeroiconsSquaresPlus,
-                            contentDescription = "Stats",
-                            tint = currentThemeColor.copy(alpha = 0.6f),
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                }
-
-                // 2. Add
-                Box(
-                    modifier = Modifier.size(52.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { performHaptic(view, false); nav.navigate("add_anime") }
-                    ) {
-                        with(sharedTransitionScope) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .sharedBounds(
-                                        rememberSharedContentState(key = "fab_container"),
-                                        animatedVisibilityScope = animatedVisibilityScope,
-                                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
-                                    )
-                                    .background(Color.Transparent),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = HeroiconsPlus,
-                                    contentDescription = "Add",
-                                    tint = currentThemeColor,
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .sharedElement(
-                                            rememberSharedContentState(key = "fab_icon"),
-                                            animatedVisibilityScope = animatedVisibilityScope
-                                        )
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // 3. Settings
-                Box(
-                    modifier = Modifier.size(52.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
-                                performHaptic(view, false)
-                                nav.navigate("settings")
-                            }
-                    ) {
-                        with(sharedTransitionScope) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .sharedBounds(
-                                        rememberSharedContentState(key = "settings_container"),
-                                        animatedVisibilityScope = animatedVisibilityScope,
-                                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
-                                    )
-                                    .background(Color.Transparent),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Settings,
-                                    contentDescription = "Settings",
-                                    tint = currentThemeColor.copy(alpha = 0.6f),
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .sharedElement(
-                                            rememberSharedContentState(key = "settings_icon"),
-                                            animatedVisibilityScope = animatedVisibilityScope
-                                        )
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 2. Кнопка поиска (НЕЗАВИСИМАЯ, справа)
-        SimpGlassCard(
-            hazeState = hazeState,
-            shape = CircleShape,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 24.dp)
-                .size(64.dp)
-                .clickable { performHaptic(view, false); onSearchClick() }
-        ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = if(isSearchActive) BrandBlue else currentThemeColor,
-                modifier = Modifier.size(32.dp)
-            )
-        }
-    }
-}
-
-// ==========================================
-// GLASSACTIONDOCK
-// ==========================================
-
 @Composable
 fun GlassActionDock(
     hazeState: HazeState,
@@ -306,7 +115,6 @@ fun GlassActionDock(
     modifier: Modifier = Modifier
 ){
     val isDark = isSystemInDarkTheme()
-    val view = LocalView.current
     val context = LocalContext.current
 
     val topPadding by animateDpAsState(
@@ -380,6 +188,34 @@ fun GlassActionDock(
                                 onClick = { onSortSelected(option); expandedSort = false }
                             )
                         }
+
+                        // ПУНКТ: ФИЛЬТР ПО ЖАНРАМ
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(viewModel.strings.filterByGenre, fontWeight = FontWeight.Bold)
+                                    if (viewModel.filterSelectedTags.isNotEmpty()) {
+                                        Spacer(Modifier.width(8.dp))
+                                        Box(modifier = Modifier.clip(CircleShape).background(BrandBlue).padding(horizontal = 6.dp, vertical = 2.dp)) {
+                                            Text(
+                                                text = viewModel.filterSelectedTags.size.toString(),
+                                                color = Color.White,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            onClick = {
+                                expandedSort = false
+                                viewModel.isGenreFilterVisible = true
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.FilterList, null, tint = MaterialTheme.colorScheme.primary)
+                            }
+                        )
                     }
                 }
             }
@@ -476,9 +312,91 @@ fun GlassActionDock(
     }
 }
 
+// ==========================================
+// ПАНЕЛЬ НАВИГАЦИИ (Compact Style)
+// ==========================================
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun GlassBottomNavigation(
+    hazeState: HazeState,
+    nav: androidx.navigation.NavController,
+    viewModel: AnimeViewModel,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    onShowStats: () -> Unit,
+    onShowNotifs: () -> Unit,
+    onSearchClick: () -> Unit,
+    isSearchActive: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val view = LocalView.current
+    val currentThemeColor = MaterialTheme.colorScheme.onSurface
+
+    Box(
+        modifier = modifier
+            .padding(bottom = 24.dp)
+            .fillMaxWidth()
+    ) {
+        // 1. ЦЕНТРАЛЬНАЯ КАПСУЛА (Меню)
+        SimpGlassCard(
+            hazeState = hazeState,
+            shape = CircleShape,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .height(64.dp)
+                .wrapContentWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // 1. Stats
+                Box(modifier = Modifier.size(52.dp), contentAlignment = Alignment.Center) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize().clip(CircleShape).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { performHaptic(view, "light"); onShowStats() }) {
+                        Icon(imageVector = HeroiconsSquaresPlus, contentDescription = "Stats", tint = currentThemeColor.copy(alpha = 0.6f), modifier = Modifier.size(32.dp))
+                    }
+                }
+
+                // 2. Add
+                Box(modifier = Modifier.size(52.dp), contentAlignment = Alignment.Center) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize().clip(CircleShape).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { performHaptic(view, "success"); nav.navigate("add_anime") }) {
+                        with(sharedTransitionScope) {
+                            Box(modifier = Modifier.size(48.dp).sharedBounds(rememberSharedContentState(key = "fab_container"), animatedVisibilityScope = animatedVisibilityScope, resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds).background(Color.Transparent), contentAlignment = Alignment.Center) {
+                                Icon(imageVector = HeroiconsPlus, contentDescription = "Add", tint = currentThemeColor, modifier = Modifier.size(36.dp).sharedElement(rememberSharedContentState(key = "fab_icon"), animatedVisibilityScope = animatedVisibilityScope))
+                            }
+                        }
+                    }
+                }
+
+                // 3. Settings
+                Box(modifier = Modifier.size(52.dp), contentAlignment = Alignment.Center) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize().clip(CircleShape).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { performHaptic(view, "light"); nav.navigate("settings") }) {
+                        with(sharedTransitionScope) {
+                            Box(modifier = Modifier.size(48.dp).sharedBounds(rememberSharedContentState(key = "settings_container"), animatedVisibilityScope = animatedVisibilityScope, resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds).background(Color.Transparent), contentAlignment = Alignment.Center) {
+                                Icon(imageVector = Icons.Outlined.Settings, contentDescription = "Settings", tint = currentThemeColor.copy(alpha = 0.6f), modifier = Modifier.size(32.dp).sharedElement(rememberSharedContentState(key = "settings_icon"), animatedVisibilityScope = animatedVisibilityScope))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Кнопка поиска
+        SimpGlassCard(
+            hazeState = hazeState,
+            shape = CircleShape,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 24.dp).size(64.dp).clickable { performHaptic(view, "light"); onSearchClick() }
+        ) {
+            Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = if(isSearchActive) BrandBlue else currentThemeColor, modifier = Modifier.size(32.dp))
+        }
+    }
+}
 
 // ==========================================
-// ВСТРОЕННЫЕ ИКОНКИ
+// ВСТРОЕННЫЕ ИКОНКИ (Heroicons)
 // ==========================================
 
 private var _HeroiconsPlus: ImageVector? = null

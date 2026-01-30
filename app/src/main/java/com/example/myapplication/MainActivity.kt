@@ -14,6 +14,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -41,6 +42,10 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.SystemUpdate
+import androidx.compose.material.icons.outlined.Movie
+import androidx.compose.material.icons.outlined.Tv
+import androidx.compose.material.icons.outlined.Animation
+import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -122,11 +127,15 @@ import kotlin.math.roundToInt
 import kotlin.math.sign
 
 // ==========================================
-// LOCALIZATION
+// LOCALIZATION & THEME ENUMS
 // ==========================================
 
 enum class AppLanguage {
     RU, EN
+}
+
+enum class AppTheme {
+    LIGHT, DARK, SYSTEM
 }
 
 data class UiStrings(
@@ -170,11 +179,23 @@ data class UiStrings(
     val languageCardTitle: String,
     val langRu: String,
     val langEn: String,
+    // THEME STRINGS
+    val themeTitle: String,
+    val themeLight: String,
+    val themeDark: String,
+    val themeSystem: String,
+
     val checkForUpdateTitle: String,
     val checkButtonText: String,
     // CONTACT ME
     val contactTitle: String,
-    val contactSubtitle: String
+    val contactSubtitle: String,
+
+    // GENRES
+    val genreAnime: String,
+    val genreMovies: String,
+    val genreSeries: String,
+    val filterByGenre: String
 )
 
 val RussianStrings = UiStrings(
@@ -217,10 +238,21 @@ val RussianStrings = UiStrings(
     languageCardTitle = "Язык",
     langRu = "Русский",
     langEn = "English",
+    // THEME
+    themeTitle = "Тема оформления",
+    themeLight = "Светлая",
+    themeDark = "Тёмная",
+    themeSystem = "Системная",
+
     checkForUpdateTitle = "Обновление приложения",
     checkButtonText = "Проверить версию",
     contactTitle = "Связь со мной",
-    contactSubtitle = "Нашли баг или есть идея?"
+    contactSubtitle = "Нашли баг или есть идея?",
+
+    genreAnime = "Аниме",
+    genreMovies = "Фильмы",
+    genreSeries = "Сериалы",
+    filterByGenre = "По жанрам"
 )
 
 val EnglishStrings = UiStrings(
@@ -263,10 +295,21 @@ val EnglishStrings = UiStrings(
     languageCardTitle = "Language",
     langRu = "Russian",
     langEn = "English",
+    // THEME
+    themeTitle = "Themes",
+    themeLight = "Light",
+    themeDark = "Dark",
+    themeSystem = "System",
+
     checkForUpdateTitle = "App Update",
     checkButtonText = "Check Version",
     contactTitle = "Contact me",
-    contactSubtitle = "Found a bug or have an idea?"
+    contactSubtitle = "Found a bug or have an idea?",
+
+    genreAnime = "Anime",
+    genreMovies = "Movies",
+    genreSeries = "TV Series",
+    filterByGenre = "By genres"
 )
 
 fun getStrings(lang: AppLanguage): UiStrings = when(lang) {
@@ -509,27 +552,21 @@ class AnimeRepository {
         } catch (e: Exception) { null }
     }
 
-    // ПОЛУЧЕНИЕ ДАННЫХ О ПОСЛЕДНЕМ РЕЛИЗЕ С GITHUB API
-    // ИСПОЛЬЗУЕТСЯ URL: https://api.github.com/repos/Phnem/MAList/releases/latest
     suspend fun checkGithubUpdate(): GithubReleaseInfo? = withContext(Dispatchers.IO) {
         try {
             val url = "https://api.github.com/repos/Phnem/MAList/releases/latest"
             val json = getJson(url).asJsonObject
 
-            // 1. ПОЛУЧАЕМ ТЕГ (НАПРИМЕР "v2.1.6-Alpha")
             val tag = json.get("tag_name").asString
             val htmlUrl = json.get("html_url").asString
 
-            // 2. ИЩЕМ APK В АССЕТАХ РЕЛИЗА
-            // GITHUB МОЖЕТ НЕ ОТДАТЬ ПРЯМУЮ ССЫЛКУ СРАЗУ, НУЖНО ПАРСИТЬ ASSETS
-            var downloadUrl = htmlUrl // FALLBACK НА СТРАНИЦУ, ЕСЛИ APK НЕ НАЙДЕН
+            var downloadUrl = htmlUrl
             val assets = json.getAsJsonArray("assets")
 
             if (assets != null && assets.size() > 0) {
                 for (i in 0 until assets.size()) {
                     val asset = assets[i].asJsonObject
                     val name = asset.get("name").asString
-                    // ИЩЕМ ФАЙЛ С РАСШИРЕНИЕМ .APK
                     if (name.endsWith(".apk", ignoreCase = true)) {
                         downloadUrl = asset.get("browser_download_url").asString
                         break
@@ -548,7 +585,6 @@ class AnimeRepository {
         val url = URL(urlString)
         val conn = url.openConnection() as HttpURLConnection
         conn.requestMethod = "GET"
-        // ВАЖНО: GITHUB API ТРЕБУЕТ USER-AGENT
         conn.setRequestProperty("User-Agent", "MAList-App-Updater")
         conn.connectTimeout = 5000
         conn.readTimeout = 5000
@@ -574,7 +610,6 @@ val RateColor1 = Color(0xFFFF453A)
 val RateColor2 = Color(0xFFFF9F0A)
 val RateColor3 = Color(0xFFFFD60A)
 
-// ИСПРАВЛЕННЫЕ ЦВЕТА РЕЙТИНГА И РАНГА
 val RateColor4 = Color(0xFFAEEA00) // Светлый салатовый (Lime Accent)
 val RateColor5 = Color(0xFF2E7D32) // Насыщенный зеленый
 val RateColorEmpty = Color(0xFF8E8E93)
@@ -612,7 +647,6 @@ fun getRatingColor(rating: Int): Color {
     }
 }
 
-// НАСТРОЙКА ШРИФТОВ SNPRO
 val SnProFamily = FontFamily(
     Font(R.font.snpro_bold, FontWeight.Bold),
     Font(R.font.snpro_mediumitalic, FontWeight.Normal),
@@ -731,7 +765,10 @@ data class Anime(
     val imageFileName: String?,
     val orderIndex: Int,
     val dateAdded: Long = System.currentTimeMillis(),
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    // НОВЫЕ ПОЛЯ ДЛЯ ЖАНРОВ И КАТЕГОРИЙ
+    val tags: List<String> = emptyList(),
+    val categoryType: String = "" // "Anime", "Movies", "Series"
 )
 
 data class RankedAnime(
@@ -777,14 +814,30 @@ data class SemanticVersion(
         if (suffix.isEmpty() && other.suffix.isEmpty()) return 0
 
         // СРАВНЕНИЕ ТИПОВ СУФФИКСОВ (ALPHA < BETA < RC)
-        // ПРОСТАЯ ЛЕКСИКОГРАФИЧЕСКАЯ ПРОВЕРКА ДЛЯ УПРОЩЕНИЯ
         return suffix.compareTo(other.suffix, ignoreCase = true)
     }
 }
 
 class AnimeViewModel : ViewModel() {
 
+    private data class LegacyAnime(
+        val id: String,
+        val title: String,
+        val episodes: Int,
+        val rating: Int,
+        val imageFileName: String?,
+        val orderIndex: Int,
+        val dateAdded: Long,
+        val isFavorite: Boolean,
+        val tags: List<String>?,      // Nullable, чтобы принять отсутствие поля
+        val categoryType: String?     // Nullable
+    )
+
     var currentLanguage by mutableStateOf(AppLanguage.EN)
+        private set
+
+    // ТЕМА ПРИЛОЖЕНИЯ
+    var currentTheme by mutableStateOf(AppTheme.SYSTEM)
         private set
 
     val strings: UiStrings get() = getStrings(currentLanguage)
@@ -797,21 +850,57 @@ class AnimeViewModel : ViewModel() {
     var currentVersionName by mutableStateOf("v1.0.0")
         private set
 
-    private val SETTINGS_FILE = "settings.json"
-    private fun getSettingsFile(): File = File(getRoot(), SETTINGS_FILE)
+    // СОСТОЯНИЕ АВАТАРКИ ПОЛЬЗОВАТЕЛЯ
+    var userAvatarPath by mutableStateOf<String?>(null)
+        private set
 
-    fun toggleLanguage() {
-        currentLanguage = if (currentLanguage == AppLanguage.EN) AppLanguage.RU else AppLanguage.EN
-        saveSettings()
-    }
+    // --- ФИЛЬТРАЦИЯ ПО ЖАНРАМ ---
+    var filterSelectedTags by mutableStateOf<List<String>>(emptyList())
+    var filterCategoryType by mutableStateOf("")
+    var isGenreFilterVisible by mutableStateOf(false)
+
+    private val SETTINGS_FILE = "settings.json"
+    private val USER_AVATAR_FILE = "user_avatar.jpg" // ИМЯ ФАЙЛА АВАТАРА
+
+    private fun getSettingsFile(): File = File(getRoot(), SETTINGS_FILE)
 
     fun setLanguage(lang: AppLanguage) {
         currentLanguage = lang
         saveSettings()
     }
 
+    fun setAppTheme(theme: AppTheme) {
+        currentTheme = theme
+        saveSettings()
+    }
+
+    // ЛОГИКА СОХРАНЕНИЯ АВАТАРА ПОЛЬЗОВАТЕЛЯ
+    fun saveUserAvatar(context: Context, uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val destFile = File(getImgDir(), USER_AVATAR_FILE)
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    FileOutputStream(destFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    userAvatarPath = destFile.absolutePath
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun loadUserAvatar() {
+        val f = File(getImgDir(), USER_AVATAR_FILE)
+        if (f.exists()) {
+            userAvatarPath = f.absolutePath
+        }
+    }
+
     // ИНИЦИАЛИЗАЦИЯ ВЕРСИИ ПРИЛОЖЕНИЯ ПРИ СТАРТЕ
-    // ИСПОЛЬЗУЕМ PACKAGEMANAGER ДЛЯ НАДЕЖНОСТИ
     fun initAppVersion(context: Context) {
         try {
             val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
@@ -826,19 +915,14 @@ class AnimeViewModel : ViewModel() {
         if (updateStatus == AppUpdateStatus.LOADING) return
         updateStatus = AppUpdateStatus.LOADING
 
-        // УБЕЖДАЕМСЯ, ЧТО ВЕРСИЯ ИНИЦИАЛИЗИРОВАНА
         if (currentVersionName == "v1.0.0") initAppVersion(context)
         val localVer = currentVersionName
 
         viewModelScope.launch {
             try {
-                // ЗАПРОС К GITHUB RELEASES API
                 val release = repository.checkGithubUpdate()
-
                 if (release != null) {
                     val remoteTag = release.tagName
-
-                    // СРАВНЕНИЕ ВЕРСИЙ ЧЕРЕЗ SEMANTIC VERSIONING
                     if (isNewerVersion(localVer, remoteTag)) {
                         latestDownloadUrl = release.downloadUrl
                         updateStatus = AppUpdateStatus.UPDATE_AVAILABLE
@@ -846,7 +930,6 @@ class AnimeViewModel : ViewModel() {
                         updateStatus = AppUpdateStatus.NO_UPDATE
                     }
                 } else {
-                    // ОШИБКА API ИЛИ СЕТИ
                     updateStatus = AppUpdateStatus.ERROR
                     delay(2000)
                     updateStatus = AppUpdateStatus.IDLE
@@ -860,43 +943,34 @@ class AnimeViewModel : ViewModel() {
         }
     }
 
-    // ПАРСИНГ И СРАВНЕНИЕ ВЕРСИЙ
-    // ПРИНИМАЕТ СТРОКИ ВИДА "v2.1.6-Alpha" ИЛИ "2.1.6"
     private fun isNewerVersion(local: String, remote: String): Boolean {
         try {
             val localSem = parseVersion(local)
             val remoteSem = parseVersion(remote)
-
-            // ВОЗВРАЩАЕМ TRUE ТОЛЬКО ЕСЛИ REMOTE > LOCAL
             return remoteSem > localSem
         } catch (e: Exception) {
             return false
         }
     }
 
-    // РАЗБОР СТРОКИ ВЕРСИИ В ОБЪЕКТ SEMANTICVERSION
     private fun parseVersion(versionStr: String): SemanticVersion {
-        // УДАЛЯЕМ 'v' В НАЧАЛЕ
         val clean = versionStr.removePrefix("v").trim()
-
-        // РАЗДЕЛЯЕМ НА ЦИФРЫ И СУФФИКС
-        // ПРИМЕР: "2.1.6-Alpha" -> parts[0]="2.1.6", parts[1]="Alpha"
         val dashSplit = clean.split("-", limit = 2)
         val numbersPart = dashSplit[0]
         val suffix = if (dashSplit.size > 1) dashSplit[1] else ""
-
-        // ПАРСИМ ЦИФРЫ
         val dots = numbersPart.split(".").map { it.toIntOrNull() ?: 0 }
         val major = dots.getOrElse(0) { 0 }
         val minor = dots.getOrElse(1) { 0 }
         val patch = dots.getOrElse(2) { 0 }
-
         return SemanticVersion(major, minor, patch, suffix)
     }
 
     private fun saveSettings() {
         try {
-            val settings = mapOf("lang" to currentLanguage.name)
+            val settings = mapOf(
+                "lang" to currentLanguage.name,
+                "theme" to currentTheme.name
+            )
             getSettingsFile().writeText(Gson().toJson(settings))
         } catch(e: Exception) { e.printStackTrace() }
     }
@@ -908,6 +982,13 @@ class AnimeViewModel : ViewModel() {
                 val json = f.readText()
                 val map: Map<String, String> = Gson().fromJson(json, object : TypeToken<Map<String, String>>() {}.type)
                 currentLanguage = AppLanguage.valueOf(map["lang"] ?: "EN")
+
+                // Загрузка темы (по умолчанию SYSTEM)
+                val themeStr = map["theme"] ?: "SYSTEM"
+                currentTheme = try {
+                    AppTheme.valueOf(themeStr)
+                } catch (e: Exception) { AppTheme.SYSTEM }
+
             } catch(e: Exception) { e.printStackTrace() }
         }
     }
@@ -938,21 +1019,101 @@ class AnimeViewModel : ViewModel() {
     private fun getDataFile(): File = File(getRoot(), FILE_NAME)
     private fun getIgnoredFile(): File = File(getRoot(), IGNORED_FILE_NAME)
 
+    // ==========================================
+    // СУПЕР-НАДЕЖНАЯ ЗАГРУЗКА (Ручной парсинг)
+    // ==========================================
     fun loadAnime() {
         val f = getDataFile()
-        if (f.exists()) {
-            try {
-                val json = f.readText()
-                val list: List<Anime> = Gson().fromJson(json, object : TypeToken<List<Anime>>() {}.type) ?: emptyList()
-                _animeList.clear(); _animeList.addAll(list.sortedBy { it.orderIndex })
-            } catch (e: Exception) { e.printStackTrace() }
+        if (!f.exists()) return
+
+        try {
+            val json = f.readText()
+            if (json.isBlank()) return
+
+            // 1. Парсим как сырой элемент, не привязываясь к классу
+            val jsonElement = JsonParser.parseString(json)
+
+            val restoredList = mutableListOf<Anime>()
+
+            if (jsonElement.isJsonArray) {
+                val array = jsonElement.asJsonArray
+
+                // 2. Проходимся по каждому объекту вручную
+                array.forEach { element ->
+                    try {
+                        val obj = element.asJsonObject
+
+                        // 3. Безопасно извлекаем поля. Если поля нет - берем дефолт.
+                        val id = if (obj.has("id")) obj.get("id").asString else UUID.randomUUID().toString()
+                        val title = if (obj.has("title")) obj.get("title").asString else "Unknown Title"
+
+                        // Защита для числовых полей
+                        val episodes = if (obj.has("episodes") && !obj.get("episodes").isJsonNull) obj.get("episodes").asInt else 0
+                        val rating = if (obj.has("rating") && !obj.get("rating").isJsonNull) obj.get("rating").asInt else 0
+                        val orderIndex = if (obj.has("orderIndex") && !obj.get("orderIndex").isJsonNull) obj.get("orderIndex").asInt else 0
+                        val dateAdded = if (obj.has("dateAdded") && !obj.get("dateAdded").isJsonNull) obj.get("dateAdded").asLong else System.currentTimeMillis()
+
+                        val imageFileName = if (obj.has("imageFileName") && !obj.get("imageFileName").isJsonNull) obj.get("imageFileName").asString else null
+                        val isFavorite = if (obj.has("isFavorite") && !obj.get("isFavorite").isJsonNull) obj.get("isFavorite").asBoolean else false
+
+                        // 4. ВОТ ЗДЕСЬ БЫЛА ПРОБЛЕМА РАНЬШЕ:
+                        // Аккуратно читаем теги
+                        val tags = mutableListOf<String>()
+                        if (obj.has("tags") && obj.get("tags").isJsonArray) {
+                            obj.get("tags").asJsonArray.forEach { tagElement ->
+                                tags.add(tagElement.asString)
+                            }
+                        }
+
+                        // Аккуратно читаем категорию
+                        val categoryType = if (obj.has("categoryType") && !obj.get("categoryType").isJsonNull) obj.get("categoryType").asString else ""
+
+                        // 5. Собираем объект
+                        restoredList.add(Anime(
+                            id = id,
+                            title = title,
+                            episodes = episodes,
+                            rating = rating,
+                            imageFileName = imageFileName,
+                            orderIndex = orderIndex,
+                            dateAdded = dateAdded,
+                            isFavorite = isFavorite,
+                            tags = tags,
+                            categoryType = categoryType
+                        ))
+
+                    } catch (e: Exception) {
+                        // Если один конкретный аниме сломан, мы его пропускаем,
+                        // но не роняем весь список.
+                        e.printStackTrace()
+                    }
+                }
+            }
+
+            // 6. Обновляем UI
+            _animeList.clear()
+            _animeList.addAll(restoredList.sortedBy { it.orderIndex })
+
+            // 7. Сразу перезаписываем файл в правильном формате,
+            // чтобы в следующий раз всё работало штатно.
+            if (_animeList.isNotEmpty()) {
+                save()
+            }
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Можно добавить Toast здесь, чтобы увидеть ошибку на экране
         }
 
+        // Остальная логика (аватар, обновления)
+        loadUserAvatar()
+
+        // Загрузка ignored
         val fIgnored = getIgnoredFile()
         if (fIgnored.exists()) {
             try {
-                val json = fIgnored.readText()
-                val map: Map<String, Int> = Gson().fromJson(json, object : TypeToken<Map<String, Int>>() {}.type) ?: emptyMap()
+                val ignoredJson = fIgnored.readText()
+                val map: Map<String, Int> = Gson().fromJson(ignoredJson, object : TypeToken<Map<String, Int>>() {}.type) ?: emptyMap()
                 ignoredUpdatesMap.putAll(map)
             } catch (e: Exception) { e.printStackTrace() }
         }
@@ -1000,7 +1161,8 @@ class AnimeViewModel : ViewModel() {
 
     fun acceptUpdate(update: AnimeUpdate, ctx: Context) {
         val anime = getAnimeById(update.animeId) ?: return
-        updateAnime(ctx, anime.id, anime.title, update.newEpisodes, anime.rating, null)
+        // При обновлении сохраняем существующие теги
+        updateAnime(ctx, anime.id, anime.title, update.newEpisodes, anime.rating, null, anime.tags, anime.categoryType)
         _updates.remove(update)
     }
 
@@ -1013,15 +1175,24 @@ class AnimeViewModel : ViewModel() {
 
     fun getAnimeById(id: String): Anime? = _animeList.find { it.id == id }
 
-    fun addAnime(ctx: Context, title: String, ep: Int, rate: Int, uri: Uri?) {
+    fun addAnime(ctx: Context, title: String, ep: Int, rate: Int, uri: Uri?, tags: List<String>, categoryType: String) {
         val id = UUID.randomUUID().toString()
         val img = if (uri != null) saveImg(ctx, uri, id) else null
-        _animeList.add(0, Anime(id = id, title = title, episodes = ep, rating = rate, imageFileName = img, orderIndex = (_animeList.maxOfOrNull { it.orderIndex }?:0)+1))
+        _animeList.add(0, Anime(
+            id = id,
+            title = title,
+            episodes = ep,
+            rating = rate,
+            imageFileName = img,
+            orderIndex = (_animeList.maxOfOrNull { it.orderIndex }?:0)+1,
+            tags = tags,
+            categoryType = categoryType
+        ))
         save()
         needsUpdateCheck = true
     }
 
-    fun updateAnime(ctx: Context, id: String, title: String, ep: Int, rate: Int, uri: Uri?) {
+    fun updateAnime(ctx: Context, id: String, title: String, ep: Int, rate: Int, uri: Uri?, tags: List<String>, categoryType: String) {
         val idx = _animeList.indexOfFirst { it.id == id }
         if (idx == -1) return
         var img = _animeList[idx].imageFileName
@@ -1032,7 +1203,14 @@ class AnimeViewModel : ViewModel() {
                 img = newImg
             }
         }
-        _animeList[idx] = _animeList[idx].copy(title=title, episodes=ep, rating=rate, imageFileName=img)
+        _animeList[idx] = _animeList[idx].copy(
+            title=title,
+            episodes=ep,
+            rating=rate,
+            imageFileName=img,
+            tags = tags,
+            categoryType = categoryType
+        )
         save()
         needsUpdateCheck = true
         if (ignoredUpdatesMap.containsKey(id)) {
@@ -1064,9 +1242,20 @@ class AnimeViewModel : ViewModel() {
 
     fun getDisplayList(): List<Anime> {
         val rawQuery = searchQuery.trim()
-        if (rawQuery.isBlank()) return sortList(_animeList)
+
+        // --- ЛОГИКА ФИЛЬТРАЦИИ ПО ЖАНРАМ (ШАГ 1) ---
+        // ЕСЛИ 1 ЖАНР -> OR (ПРИСУТСТВУЕТ ХОТЯ БЫ ОДИН) - но containsAll для списка из 1 элемента тоже работает как "contains"
+        // ЕСЛИ 2+ ЖАНРА -> AND (ПРИСУТСТВУЮТ ВСЕ ВЫБРАННЫЕ)
+        val filteredByGenre = if (filterSelectedTags.isEmpty()) _animeList else {
+            _animeList.filter { anime ->
+                anime.tags.containsAll(filterSelectedTags)
+            }
+        }
+
+        if (rawQuery.isBlank()) return sortList(filteredByGenre)
+
         val normalizedQuery = rawQuery.lowercase()
-        val rankedList = _animeList.mapNotNull { anime ->
+        val rankedList = filteredByGenre.mapNotNull { anime ->
             val score = calculateRelevanceScore(normalizedQuery, anime.title.lowercase())
             if (score > 0) RankedAnime(anime, score) else null
         }
@@ -1347,22 +1536,121 @@ fun RatingChip(rating: Int) {
     }
 }
 
+// ==========================================
+// THEME SELECTION UI
+// ==========================================
+
 @Composable
-fun ThemeSwitch(darkTheme: Boolean, onToggle: () -> Unit) {
-    val view = LocalView.current
-    val offsetAnim by animateDpAsState(targetValue = if (darkTheme) 28.dp else 4.dp, animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow), label = "switchOffset")
-    val containerColor by animateColorAsState(targetValue = if (darkTheme) Color(0xFF2C2C2E) else Color(0xFFE5E5EA), label = "switchContainer")
-    Box(modifier = Modifier.width(60.dp).height(34.dp).clip(CircleShape).background(containerColor).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { performHaptic(view, "light"); onToggle() }) {
-        Box(modifier = Modifier.size(26.dp).align(Alignment.CenterStart).offset(x = offsetAnim).shadow(4.dp, CircleShape).clip(CircleShape).background(if (darkTheme) Color(0xFF48484A) else Color.White), contentAlignment = Alignment.Center) {
-            AnimatedContent(targetState = darkTheme, transitionSpec = { (scaleIn() + fadeIn()) togetherWith (scaleOut() + fadeOut()) }, label = "iconAnim") { isDark ->
-                if (isDark) Icon(Icons.Default.DarkMode, null, tint = Color.Yellow, modifier = Modifier.size(16.dp))
-                else Icon(Icons.Default.LightMode, null, tint = Color(0xFFFF9500), modifier = Modifier.size(16.dp))
+fun ThemeOptionItem(
+    label: String,
+    isSelected: Boolean,
+    themeType: AppTheme,
+    onClick: () -> Unit
+) {
+    val borderColor = if (isSelected) BrandBlue else Color.Transparent
+    val borderWidth = if (isSelected) 2.dp else 0.dp
+    val textColor = if (isSelected) BrandBlue else MaterialTheme.colorScheme.onSurface
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(80.dp).clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null
+        ) { onClick() }
+    ) {
+        // Visual Preview Box
+        Box(
+            modifier = Modifier
+                .size(width = 80.dp, height = 56.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .border(borderWidth, borderColor, RoundedCornerShape(12.dp))
+        ) {
+            ThemePreviewCanvas(themeType)
+
+            // Selected Checkmark Overlay
+            if (isSelected) {
+                Box(
+                    modifier = Modifier.fillMaxSize().background(BrandBlue.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = BrandBlue,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
+
+        Spacer(Modifier.height(8.dp))
+
+        // Label
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            color = textColor,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun ThemePreviewCanvas(type: AppTheme) {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        when (type) {
+            AppTheme.LIGHT -> {
+                // Background
+                drawRect(color = LightBackground)
+                // Mock Card
+                drawRoundRect(
+                    color = LightSurface,
+                    topLeft = Offset(0f, size.height * 0.6f),
+                    size = size.copy(height = size.height * 0.4f),
+                    cornerRadius = CornerRadius(8f, 8f)
+                )
+            }
+            AppTheme.DARK -> {
+                // Background
+                drawRect(color = DarkBackground)
+                // Mock Card
+                drawRoundRect(
+                    color = DarkSurfaceVariant,
+                    topLeft = Offset(0f, size.height * 0.6f),
+                    size = size.copy(height = size.height * 0.4f),
+                    cornerRadius = CornerRadius(8f, 8f)
+                )
+            }
+            AppTheme.SYSTEM -> {
+                // Grey Background
+                drawRect(color = Color(0xFFB0B0B0))
+
+                // Diagonal Stripes
+                val stripeWidth = 10f
+                val gap = 10f
+                var x = -size.height // Start off-screen to cover diagonal
+                while (x < size.width + size.height) {
+                    drawLine(
+                        color = Color(0xFFE0E0E0),
+                        start = Offset(x, size.height),
+                        end = Offset(x + size.height, 0f),
+                        strokeWidth = stripeWidth
+                    )
+                    x += (stripeWidth + gap)
+                }
+            }
+        }
+        // Outer border for definition (subtle)
+        drawRoundRect(
+            color = Color.Gray.copy(alpha = 0.3f),
+            style = Stroke(width = 1f),
+            cornerRadius = CornerRadius(30f, 30f) // Matches clip
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun OneUiAnimeCard(
     anime: Anime,
@@ -1377,6 +1665,11 @@ fun OneUiAnimeCard(
     val surfaceColor = MaterialTheme.colorScheme.surface
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
     val borderColor = MaterialTheme.colorScheme.outline
+
+    // --- CONTRAST CHIP COLORS (Логика инверсии) ---
+    val isDark = isSystemInDarkTheme()
+    val chipBgColor = if (isDark) Color(0xFFE0E0E0) else Color(0xFF303030) // Светлый на темном, темный на светлом
+    val chipTextColor = if (isDark) Color.Black else Color.White
 
     with(sharedTransitionScope) {
         Box(
@@ -1405,6 +1698,35 @@ fun OneUiAnimeCard(
                         }
                         Spacer(Modifier.height(4.dp))
                         Text(text = "${anime.episodes} episodes", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
+
+                        // --- ОТОБРАЖЕНИЕ ЖАНРОВ С КОНТРАСТНЫМ ФОНОМ ---
+                        if (anime.tags.isNotEmpty()) {
+                            Spacer(Modifier.height(6.dp))
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                                maxItemsInEachRow = 3
+                            ) {
+                                anime.tags.take(3).forEach { tag ->
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(chipBgColor) // Применяем инвертированный фон
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = tag,
+                                            style = TextStyle(
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                fontFamily = SnProFamily,
+                                                color = chipTextColor // Применяем инвертированный текст
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                     if (anime.rating > 0) RatingChip(rating = anime.rating)
                 }
@@ -1578,6 +1900,103 @@ fun SpringBottomDialog(
 }
 
 // ==========================================
+// GENRE FILTER SHEET
+// ==========================================
+@Composable
+fun GenreFilterSheet(
+    viewModel: AnimeViewModel,
+    onDismiss: () -> Unit
+) {
+    var visible by remember { mutableStateOf(false) }
+    val view = LocalView.current
+
+    LaunchedEffect(Unit) { visible = true }
+
+    fun triggerDismiss() {
+        visible = false
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            onDismiss()
+        }, 300)
+    }
+
+    val onTagToggle: (String, String) -> Unit = { tag, categoryType ->
+        val currentTags = viewModel.filterSelectedTags.toMutableList()
+        if (currentTags.contains(tag)) {
+            currentTags.remove(tag)
+            if (currentTags.isEmpty()) {
+                viewModel.filterCategoryType = ""
+            }
+        } else {
+            if (currentTags.size < 3 && (viewModel.filterCategoryType.isEmpty() || viewModel.filterCategoryType == categoryType)) {
+                currentTags.add(tag)
+                viewModel.filterCategoryType = categoryType
+            }
+        }
+        viewModel.filterSelectedTags = currentTags
+        performHaptic(view, "light")
+    }
+
+    BackHandler { triggerDismiss() }
+
+    Box(
+        modifier = Modifier.fillMaxSize().zIndex(100f),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn(animationSpec = tween(300)),
+            exit = fadeOut(animationSpec = tween(300))
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { triggerDismiss() }
+            )
+        }
+
+        AnimatedVisibility(
+            visible = visible,
+            enter = slideInVertically(initialOffsetY = { it }, animationSpec = spring(dampingRatio = 0.85f, stiffness = 450f)) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }, animationSpec = tween(200)) + fadeOut()
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 12.dp)
+                    .navigationBarsPadding()
+                    .padding(bottom = 12.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(24.dp)
+            ) {
+                Text(
+                    text = viewModel.strings.filterByGenre,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                GenreSelectionSection(
+                    selectedTags = viewModel.filterSelectedTags,
+                    activeCategory = viewModel.filterCategoryType,
+                    onTagToggle = onTagToggle
+                )
+
+                Spacer(Modifier.height(24.dp))
+
+                Button(
+                    onClick = { triggerDismiss() },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandBlue)
+                ) {
+                    Text("Apply", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                }
+            }
+        }
+    }
+}
+
+// ==========================================
 // STATS OVERLAY
 // ==========================================
 @Composable
@@ -1656,20 +2075,50 @@ fun StatsOverlay(
 @Composable
 fun MalistWorkspaceTopBar(
     viewModel: AnimeViewModel,
-    isDarkTheme: Boolean,
-    onToggleTheme: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val view = LocalView.current
+    val context = LocalContext.current
+
+    val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            if (uri != null) {
+                viewModel.saveUserAvatar(context, uri)
+            }
+        }
+    )
+
     Row(modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp).statusBarsPadding(), verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) { Text("M", color = Color.White, fontWeight = FontWeight.Bold) }
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary)
+                .clickable {
+                    singlePhotoPickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            if (viewModel.userAvatarPath != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(File(viewModel.userAvatarPath!!))
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "User Avatar",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Text("M", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        }
         Spacer(Modifier.width(12.dp))
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(text = viewModel.strings.appName, style = MaterialTheme.typography.headlineMedium)
-                Spacer(Modifier.width(16.dp))
-                ThemeSwitch(darkTheme = isDarkTheme, onToggle = onToggleTheme)
-                Spacer(Modifier.width(12.dp))
             }
         }
     }
@@ -1868,9 +2317,7 @@ fun HomeScreen(
     nav: NavController,
     vm: AnimeViewModel,
     sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-    isDarkTheme: Boolean,
-    onToggleTheme: () -> Unit
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val kbd = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -1898,19 +2345,20 @@ fun HomeScreen(
     val showScrollToTop by remember { derivedStateOf { listState.firstVisibleItemIndex > 4 } }
     val bgColor = MaterialTheme.colorScheme.background
 
-    val shouldBlur = (isSearchVisible && vm.searchQuery.isBlank()) || showCSheet || animeToDelete != null || animeToFavorite != null
+    val shouldBlur = (isSearchVisible && vm.searchQuery.isBlank()) || showCSheet || animeToDelete != null || animeToFavorite != null || vm.isGenreFilterVisible
     val blurAmount by animateDpAsState(targetValue = if (shouldBlur) 10.dp else 0.dp, label = "blur")
 
     Scaffold(containerColor = Color.Transparent, bottomBar = {}, floatingActionButton = {}) { _ ->
         Box(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.fillMaxSize().background(bgColor))
+
             Box(modifier = Modifier.zIndex(6f).align(Alignment.TopEnd).padding(end = 16.dp)) {
                 GlassActionDock(
                     hazeState = hazeState,
                     isFloating = isHeaderFloating,
                     sortOption = vm.sortOption,
                     viewModel = vm,
-                    onSortSelected = { performHaptic(view, "light"); vm.sortOption = it },
+                    onSortSelected = { sort -> performHaptic(view, "light"); vm.sortOption = sort },
                     modifier = Modifier.padding(top = 12.dp)
                 )
             }
@@ -1920,11 +2368,7 @@ fun HomeScreen(
                     val list = vm.getDisplayList()
                     if (list.isEmpty()) {
                         Column(modifier = Modifier.fillMaxSize()) {
-                            MalistWorkspaceTopBar(
-                                viewModel = vm,
-                                isDarkTheme = isDarkTheme,
-                                onToggleTheme = onToggleTheme
-                            )
+                            MalistWorkspaceTopBar(viewModel = vm)
                             Box(modifier = Modifier.weight(1f)) {
                                 EmptyStateView(
                                     title = if (vm.searchQuery.isNotEmpty()) vm.strings.noResults else if (vm.sortOption == SortOption.FAVORITES) vm.strings.noFavorites else vm.strings.emptyTitle,
@@ -1949,11 +2393,7 @@ fun HomeScreen(
                                 modifier = Modifier.haze(state = hazeState)
                             ) {
                                 item {
-                                    MalistWorkspaceTopBar(
-                                        viewModel = vm,
-                                        isDarkTheme = isDarkTheme,
-                                        onToggleTheme = onToggleTheme
-                                    )
+                                    MalistWorkspaceTopBar(viewModel = vm)
                                 }
                                 items(list, key = { it.id }) { anime ->
 
@@ -2054,7 +2494,7 @@ fun HomeScreen(
                 LaunchedEffect(Unit) { searchFocusRequester.requestFocus(); kbd?.show() }
             }
 
-            if (shouldBlur && animeToDelete == null && animeToFavorite == null) {
+            if (shouldBlur && animeToDelete == null && animeToFavorite == null && !vm.isGenreFilterVisible) {
                 Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { focusManager.clearFocus(); isSearchVisible = false; kbd?.hide() }.zIndex(2f))
             }
 
@@ -2126,6 +2566,162 @@ fun HomeScreen(
                 onDismiss = { showCSheet = false }
             )
         }
+
+        if (vm.isGenreFilterVisible) {
+            GenreFilterSheet(
+                viewModel = vm,
+                onDismiss = { vm.isGenreFilterVisible = false }
+            )
+        }
+    }
+}
+
+// ==========================================
+// НОВЫЕ КОМПОНЕНТЫ ВЫБОРА ЖАНРОВ
+// ==========================================
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun GenreSelectionSection(
+    selectedTags: List<String>,
+    activeCategory: String, // "Anime", "Movies", "Series" или пустая строка
+    onTagToggle: (String, String) -> Unit // (tag, categoryType)
+) {
+    val animeGenres = listOf("Shonen", "Seinen", "Isekai", "Mecha", "Slice of Life", "Action", "Romance", "Fantasy", "Drama", "Comedy", "Horror", "Sports")
+    val movieGenres = listOf("Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror", "Sci-Fi", "Thriller", "Western", "Animation", "Documentary")
+    val seriesGenres = listOf("Drama", "Sitcom", "Thriller", "Fantasy", "Sci-Fi", "Crime", "Mystery", "Action", "Adventure", "Reality")
+
+    var expandedCategory by remember { mutableStateOf<String?>(null) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // КАРТОЧКА АНИМЕ
+        ExpandableCategoryCard(
+            title = "Anime",
+            icon = Icons.Outlined.Animation,
+            genres = animeGenres,
+            categoryType = "Anime",
+            activeCategory = activeCategory,
+            selectedTags = selectedTags,
+            isExpanded = expandedCategory == "Anime",
+            onExpandToggle = { expandedCategory = if (expandedCategory == "Anime") null else "Anime" },
+            onTagToggle = onTagToggle
+        )
+
+        // КАРТОЧКА ФИЛЬМОВ
+        ExpandableCategoryCard(
+            title = "Movies",
+            icon = Icons.Outlined.Movie,
+            genres = movieGenres,
+            categoryType = "Movies",
+            activeCategory = activeCategory,
+            selectedTags = selectedTags,
+            isExpanded = expandedCategory == "Movies",
+            onExpandToggle = { expandedCategory = if (expandedCategory == "Movies") null else "Movies" },
+            onTagToggle = onTagToggle
+        )
+
+        // КАРТОЧКА СЕРИАЛОВ
+        ExpandableCategoryCard(
+            title = "TV Series",
+            icon = Icons.Outlined.Tv,
+            genres = seriesGenres,
+            categoryType = "Series",
+            activeCategory = activeCategory,
+            selectedTags = selectedTags,
+            isExpanded = expandedCategory == "Series",
+            onExpandToggle = { expandedCategory = if (expandedCategory == "Series") null else "Series" },
+            onTagToggle = onTagToggle
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ExpandableCategoryCard(
+    title: String,
+    icon: ImageVector,
+    genres: List<String>,
+    categoryType: String,
+    activeCategory: String,
+    selectedTags: List<String>,
+    isExpanded: Boolean,
+    onExpandToggle: () -> Unit,
+    onTagToggle: (String, String) -> Unit
+) {
+    // БЛОКИРОВКА: ЕСЛИ ВЫБРАНА ДРУГАЯ КАТЕГОРИЯ, ЭТА СТАНОВИТСЯ НЕДОСТУПНОЙ
+    val isLocked = activeCategory.isNotEmpty() && activeCategory != categoryType
+    val alpha = if (isLocked) 0.5f else 1f
+
+    val surfaceColor = MaterialTheme.colorScheme.surfaceVariant
+    val borderColor = MaterialTheme.colorScheme.outline
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(alpha)
+            .clip(RoundedCornerShape(16.dp))
+            .background(surfaceColor)
+            .border(1.dp, if(isExpanded) BrandBlue else borderColor, RoundedCornerShape(16.dp))
+            .clickable(enabled = !isLocked) { onExpandToggle() }
+            .animateContentSize()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = icon, contentDescription = null, tint = if(isExpanded) BrandBlue else MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.width(12.dp))
+                Text(text = title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.weight(1f))
+                Icon(
+                    imageVector = if(isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary
+                )
+            }
+
+            if (isExpanded) {
+                Spacer(Modifier.height(16.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    genres.forEach { genre ->
+                        val isSelected = selectedTags.contains(genre)
+                        GenreChip(
+                            text = genre,
+                            isSelected = isSelected,
+                            onClick = { onTagToggle(genre, categoryType) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GenreChip(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val bgColor = if (isSelected) BrandBlue else Color.Transparent
+    val contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+    val borderStroke = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(bgColor)
+            .then(if (borderStroke != null) Modifier.border(borderStroke, RoundedCornerShape(50)) else Modifier)
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = text,
+            color = contentColor,
+            fontSize = 14.sp,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+        )
     }
 }
 
@@ -2137,8 +2733,13 @@ fun AddEditScreen(nav: NavController, vm: AnimeViewModel, id: String?, sharedTra
     var ep by remember { mutableStateOf(anime?.episodes?.toString() ?: "") }
     var rate by remember { mutableIntStateOf(anime?.rating ?: 0) }
     var uri by remember { mutableStateOf<Uri?>(null) }
+
+    // СОСТОЯНИЕ ДЛЯ ЖАНРОВ
+    var selectedTags by remember { mutableStateOf(anime?.tags ?: emptyList()) }
+    var activeCategory by remember { mutableStateOf(anime?.categoryType ?: "") }
+
     val scope = rememberCoroutineScope()
-    val hasChanges by remember(title, ep, rate, uri) { derivedStateOf { if (id == null) { title.isNotBlank() } else { (anime != null) && (title != anime.title || ep != anime.episodes.toString() || rate != anime.rating || uri != null) } } }
+    val hasChanges by remember(title, ep, rate, uri, selectedTags) { derivedStateOf { if (id == null) { title.isNotBlank() } else { (anime != null) && (title != anime.title || ep != anime.episodes.toString() || rate != anime.rating || uri != null || selectedTags != anime.tags) } } }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri = it }
     val ctx = LocalContext.current
     val view = LocalView.current
@@ -2146,9 +2747,29 @@ fun AddEditScreen(nav: NavController, vm: AnimeViewModel, id: String?, sharedTra
     val textC = MaterialTheme.colorScheme.onBackground
     val s = vm.strings
 
+    // ЛОГИКА ПЕРЕКЛЮЧЕНИЯ ТЕГОВ
+    val onTagToggle: (String, String) -> Unit = { tag, categoryType ->
+        val currentTags = selectedTags.toMutableList()
+        if (currentTags.contains(tag)) {
+            currentTags.remove(tag)
+            // ЕСЛИ УДАЛИЛИ ПОСЛЕДНИЙ ТЕГ, СБРАСЫВАЕМ КАТЕГОРИЮ
+            if (currentTags.isEmpty()) {
+                activeCategory = ""
+            }
+        } else {
+            // МОЖНО ДОБАВИТЬ ТОЛЬКО ЕСЛИ МЕНЬШЕ 3 И КАТЕГОРИЯ СОВПАДАЕТ (ИЛИ ПУСТАЯ)
+            if (currentTags.size < 3 && (activeCategory.isEmpty() || activeCategory == categoryType)) {
+                currentTags.add(tag)
+                activeCategory = categoryType
+            }
+        }
+        selectedTags = currentTags
+        performHaptic(view, "light")
+    }
+
     with(sharedTransitionScope) {
         val sharedModifier = if (id == null) { Modifier.sharedBounds(rememberSharedContentState(key = "fab_container"), animatedVisibilityScope = animatedVisibilityScope, resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds) } else { Modifier.sharedBounds(rememberSharedContentState(key = "card_${id}"), animatedVisibilityScope = animatedVisibilityScope, resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds) }
-        Scaffold(modifier = Modifier.fillMaxSize().then(sharedModifier), containerColor = Color.Transparent, topBar = { Row(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = textC, modifier = if (id == null) Modifier.sharedElement(rememberSharedContentState(key = "fab_icon"), animatedVisibilityScope = animatedVisibilityScope) else Modifier) }; Spacer(Modifier.width(16.dp)); Text(text = if (id == null) s.addTitle else s.editTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = textC) } }, floatingActionButton = { AnimatedSaveFab(isEnabled = hasChanges, onClick = { performHaptic(view, "success"); if (title.isNotEmpty()) { scope.launch { delay(600); if (id != null) vm.updateAnime(ctx, id, title, ep.toIntOrNull()?:0, rate, uri) else vm.addAnime(ctx, title, ep.toIntOrNull()?:0, rate, uri); nav.popBackStack() } } else { Toast.makeText(ctx, s.enterTitleToast, Toast.LENGTH_SHORT).show() } }) }) { innerPadding ->
+        Scaffold(modifier = Modifier.fillMaxSize().then(sharedModifier), containerColor = Color.Transparent, topBar = { Row(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = textC, modifier = if (id == null) Modifier.sharedElement(rememberSharedContentState(key = "fab_icon"), animatedVisibilityScope = animatedVisibilityScope) else Modifier) }; Spacer(Modifier.width(16.dp)); Text(text = if (id == null) s.addTitle else s.editTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = textC) } }, floatingActionButton = { AnimatedSaveFab(isEnabled = hasChanges, onClick = { performHaptic(view, "success"); if (title.isNotEmpty()) { scope.launch { delay(600); if (id != null) vm.updateAnime(ctx, id, title, ep.toIntOrNull()?:0, rate, uri, selectedTags, activeCategory) else vm.addAnime(ctx, title, ep.toIntOrNull()?:0, rate, uri, selectedTags, activeCategory); nav.popBackStack() } } else { Toast.makeText(ctx, s.enterTitleToast, Toast.LENGTH_SHORT).show() } }) }) { innerPadding ->
             Box(modifier = Modifier.fillMaxSize()) {
                 Box(modifier = Modifier.fillMaxSize().background(bg))
                 Column(modifier = Modifier
@@ -2195,7 +2816,26 @@ fun AddEditScreen(nav: NavController, vm: AnimeViewModel, id: String?, sharedTra
 
                     Spacer(Modifier.height(12.dp))
                     EpisodeSuggestions { selectedEp -> performHaptic(view, "light"); ep = selectedEp }
-                    Spacer(Modifier.height(24.dp))
+
+                    Spacer(Modifier.height(32.dp))
+
+                    // БЛОК ВЫБОРА ЖАНРОВ
+                    Text(
+                        text = "Category & Genres",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        textAlign = TextAlign.Start
+                    )
+
+                    GenreSelectionSection(
+                        selectedTags = selectedTags,
+                        activeCategory = activeCategory,
+                        onTagToggle = onTagToggle
+                    )
+
+                    Spacer(Modifier.height(32.dp))
+
                     StarRatingBar(rating = rate) { newRate -> performHaptic(view, "light"); rate = newRate }
                     Spacer(Modifier.height(120.dp))
                 }
@@ -2223,6 +2863,7 @@ fun SettingsScreen(
     val context = LocalContext.current
 
     var expandedLang by remember { mutableStateOf(false) }
+    var expandedTheme by remember { mutableStateOf(false) } // NEW STATE
     var expandedUpdate by remember { mutableStateOf(false) }
     var expandedContact by remember { mutableStateOf(false) }
 
@@ -2300,6 +2941,47 @@ fun SettingsScreen(
                                     text = s.langRu,
                                     isSelected = vm.currentLanguage == AppLanguage.RU,
                                     onClick = { vm.setLanguage(AppLanguage.RU) }
+                                )
+                            }
+                        }
+                    }
+
+                    // NEW THEME CARD
+                    item {
+                        StatsCard(
+                            title = s.themeTitle,
+                            icon = Icons.Outlined.Settings,
+                            isExpanded = expandedTheme,
+                            iconTint = Color(0xFF9C27B0), // Purple for theme
+                            iconBg = Color(0xFF9C27B0).copy(alpha = 0.15f),
+                            onClick = {
+                                performHaptic(view, "light")
+                                expandedTheme = !expandedTheme
+                            }
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                ThemeOptionItem(
+                                    label = s.themeLight,
+                                    isSelected = vm.currentTheme == AppTheme.LIGHT,
+                                    themeType = AppTheme.LIGHT,
+                                    onClick = { performHaptic(view, "light"); vm.setAppTheme(AppTheme.LIGHT) }
+                                )
+
+                                ThemeOptionItem(
+                                    label = s.themeDark,
+                                    isSelected = vm.currentTheme == AppTheme.DARK,
+                                    themeType = AppTheme.DARK,
+                                    onClick = { performHaptic(view, "light"); vm.setAppTheme(AppTheme.DARK) }
+                                )
+
+                                ThemeOptionItem(
+                                    label = s.themeSystem,
+                                    isSelected = vm.currentTheme == AppTheme.SYSTEM,
+                                    themeType = AppTheme.SYSTEM,
+                                    onClick = { performHaptic(view, "light"); vm.setAppTheme(AppTheme.SYSTEM) }
                                 )
                             }
                         }
@@ -2565,21 +3247,30 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) { window.attributes.preferredDisplayModeId = 0 }
         checkPerms()
         setContent {
-            var isDarkTheme by rememberSaveable { mutableStateOf(true) }
-            OneUiTheme(darkTheme = isDarkTheme) {
-                val navController = rememberNavController()
-                val viewModel: AnimeViewModel = viewModel()
-                val context = LocalContext.current
+            val viewModel: AnimeViewModel = viewModel()
+            val context = LocalContext.current
 
-                LaunchedEffect(Unit) {
-                    viewModel.loadAnime()
-                    viewModel.loadSettings()
-                    // ВАЖНО: ИНИЦИАЛИЗАЦИЯ ВЕРСИИ ПРИ ЗАПУСКЕ
-                    viewModel.initAppVersion(context)
-                }
+            LaunchedEffect(Unit) {
+                viewModel.loadAnime()
+                viewModel.loadSettings()
+                // ВАЖНО: ИНИЦИАЛИЗАЦИЯ ВЕРСИИ ПРИ ЗАПУСКЕ
+                viewModel.initAppVersion(context)
+            }
+
+            // DETERMINE THEME
+            val isSystemDark = isSystemInDarkTheme()
+            val useDarkTheme = when (viewModel.currentTheme) {
+                AppTheme.LIGHT -> false
+                AppTheme.DARK -> true
+                AppTheme.SYSTEM -> isSystemDark
+            }
+
+            OneUiTheme(darkTheme = useDarkTheme) {
+                val navController = rememberNavController()
+
                 SharedTransitionLayout {
                     NavHost(navController = navController, startDestination = "home") {
-                        composable("home") { HomeScreen(nav = navController, vm = viewModel, sharedTransitionScope = this@SharedTransitionLayout, animatedVisibilityScope = this, isDarkTheme = isDarkTheme, onToggleTheme = { isDarkTheme = !isDarkTheme }) }
+                        composable("home") { HomeScreen(nav = navController, vm = viewModel, sharedTransitionScope = this@SharedTransitionLayout, animatedVisibilityScope = this) }
                         composable("add_anime?animeId={animeId}", arguments = listOf(navArgument("animeId") { nullable = true })) { AddEditScreen(navController, viewModel, it.arguments?.getString("animeId"), this@SharedTransitionLayout, this) }
                         composable("settings") {
                             SettingsScreen(
