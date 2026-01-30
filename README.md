@@ -59,7 +59,7 @@ This is my <b>first Kotlin project</b>, created purely for my own personal needs
   <li>Reworked animations</li>
   <li>New visual effects</li>
   <li>Improved haptic feedback (vibration and tactile response)</li>
-  <li>One UI–inspired design with large headers and rounded corners</li>
+  <li>One UI + ios–inspired design with large headers, rounded corners and glass menus</li>
 </ul>
 
 <h3>🔄 Updates & Stability</h3>
