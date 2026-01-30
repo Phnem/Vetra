@@ -11,16 +11,31 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -30,16 +45,21 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.HazeStyle
 import androidx.compose.material.icons.outlined.Settings
 
 // ==========================================
-// КОМПОНЕНТ "СИМП-СТЕКЛО"
+// КОМПОНЕНТ "СИМП-СТЕКЛО" (ИСПРАВЛЕН SIZE)
 // ==========================================
 @Composable
 fun SimpGlassCard(
@@ -70,9 +90,11 @@ fun SimpGlassCard(
                     tint = glassTint
                 )
             )
-            .border(0.5.dp, borderStroke, shape)
+            .border(0.5.dp, borderStroke, shape),
+        contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
+        // 1. ФОН И БЛЕСК (Используем matchParentSize, чтобы фон подстраивался под контент)
+        Canvas(modifier = Modifier.matchParentSize()) {
             val rect = Rect(offset = Offset.Zero, size = size)
             val path = Path().apply {
                 val radius = if (shape == CircleShape) size.height / 2 else 32.dp.toPx()
@@ -86,17 +108,14 @@ fun SimpGlassCard(
                 style = Stroke(width = 2.dp.toPx())
             )
         }
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            content()
-        }
+
+        // 2. КОНТЕНТ (Определяет размер карточки, если modifier = wrapContent)
+        content()
     }
 }
 
 // ==========================================
-// НОВАЯ ПАНЕЛЬ НАВИГАЦИИ (SPLIT STYLE)
+// НОВАЯ ПАНЕЛЬ НАВИГАЦИИ (Compact Style)
 // ==========================================
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -115,37 +134,39 @@ fun GlassBottomNavigation(
     val view = LocalView.current
     val currentThemeColor = MaterialTheme.colorScheme.onSurface
 
-    Row(
+    // Контейнер на всю ширину для позиционирования элементов
+    Box(
         modifier = modifier
-            .padding(bottom = 24.dp, start = 60.dp, end = 60.dp)
-            .fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.Bottom
+            .padding(bottom = 24.dp)
+            .fillMaxWidth()
     ) {
-
-        // 1. БОЛЬШАЯ КАПСУЛА (Меню)
+        // 1. ЦЕНТРАЛЬНАЯ КАПСУЛА (Меню)
+        // Строго по центру, ширина по контенту (wrapContentWidth)
         SimpGlassCard(
             hazeState = hazeState,
             shape = CircleShape,
             modifier = Modifier
+                .align(Alignment.BottomCenter)
                 .height(64.dp)
-                .weight(1f)
-                .padding(end = 8.dp)
+                .wrapContentWidth() // ВАЖНО: Карточка ужмется до размера иконок
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxHeight()
+                    .padding(horizontal = 8.dp), // Небольшой отступ внутри капсулы
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp) // Компактное расстояние
             ) {
                 // 1. Stats
                 Box(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.size(52.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
@@ -162,12 +183,14 @@ fun GlassBottomNavigation(
 
                 // 2. Add
                 Box(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.size(52.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
@@ -201,20 +224,22 @@ fun GlassBottomNavigation(
                     }
                 }
 
-                // 3. Settings (SHARED TRANSITION ENABLED)
+                // 3. Settings
                 Box(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.size(52.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
                             ) {
                                 performHaptic(view, false)
-                                nav.navigate("settings") // ИЗМЕНЕНО: НАВИГАЦИЯ ВМЕСТО ТОГГЛА
+                                nav.navigate("settings")
                             }
                     ) {
                         with(sharedTransitionScope) {
@@ -247,11 +272,13 @@ fun GlassBottomNavigation(
             }
         }
 
-        // 2. Кнопка поиска
+        // 2. Кнопка поиска (НЕЗАВИСИМАЯ, справа)
         SimpGlassCard(
             hazeState = hazeState,
             shape = CircleShape,
             modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 24.dp)
                 .size(64.dp)
                 .clickable { performHaptic(view, false); onSearchClick() }
         ) {
@@ -261,6 +288,190 @@ fun GlassBottomNavigation(
                 tint = if(isSearchActive) BrandBlue else currentThemeColor,
                 modifier = Modifier.size(32.dp)
             )
+        }
+    }
+}
+
+// ==========================================
+// GLASSACTIONDOCK
+// ==========================================
+
+@Composable
+fun GlassActionDock(
+    hazeState: HazeState,
+    isFloating: Boolean,
+    sortOption: SortOption,
+    viewModel: AnimeViewModel,
+    onSortSelected: (SortOption) -> Unit,
+    modifier: Modifier = Modifier
+){
+    val isDark = isSystemInDarkTheme()
+    val view = LocalView.current
+    val context = LocalContext.current
+
+    val topPadding by animateDpAsState(
+        targetValue = if (isFloating) 16.dp else 0.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "dockPadding"
+    )
+
+    val targetTint = if (isDark) Color.Black.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.05f)
+    val tintColor by animateColorAsState(targetValue = if (isFloating) targetTint else Color.Transparent, label = "tint")
+    val blurRadius by animateDpAsState(targetValue = if (isFloating) 30.dp else 0.dp, label = "blur")
+    val borderStrokeBase = if (isDark) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f) else Color.Transparent
+    val borderColor by animateColorAsState(targetValue = if (isFloating) borderStrokeBase else Color.Transparent, label = "border")
+    val shineColorBase = if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.6f)
+    val shineAlpha by animateFloatAsState(targetValue = if (isFloating) 1f else 0f, label = "shineAlpha")
+    val buttonBgColor by animateColorAsState(targetValue = if (isFloating) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), label = "btnBg")
+
+    var expandedSort by remember { mutableStateOf(false) }
+    var expandedNotifs by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = modifier
+            .padding(top = topPadding)
+            .statusBarsPadding()
+            .clip(RoundedCornerShape(32.dp))
+            .hazeChild(
+                state = hazeState,
+                shape = RoundedCornerShape(32.dp),
+                style = HazeStyle(blurRadius = blurRadius, tint = tintColor)
+            )
+            .border(0.5.dp, borderColor, RoundedCornerShape(32.dp))
+    ) {
+        if (shineAlpha > 0f) {
+            Canvas(modifier = Modifier.matchParentSize()) {
+                val rect = Rect(offset = Offset.Zero, size = size)
+                val path = Path().apply { addRoundRect(RoundRect(rect, CornerRadius(32.dp.toPx()))) }
+                drawPath(path, brush = Brush.verticalGradient(colors = listOf(shineColorBase.copy(alpha = shineColorBase.alpha * shineAlpha), Color.Transparent, Color.Transparent, shineColorBase.copy(alpha = 0.05f * shineAlpha))), style = Stroke(width = 1.dp.toPx()))
+            }
+        }
+
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // КНОПКА СОРТИРОВКИ
+            Box {
+                IconButton(onClick = { expandedSort = true }, modifier = Modifier.size(44.dp).clip(CircleShape).background(buttonBgColor)) {
+                    Icon(imageVector = Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort", tint = MaterialTheme.colorScheme.onSurface)
+                }
+                MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(16.dp))) {
+                    DropdownMenu(
+                        expanded = expandedSort,
+                        onDismissRequest = { expandedSort = false },
+                        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.96f),
+                        offset = DpOffset(x = 0.dp, y = 8.dp)
+                    ) {
+                        SortOption.values().forEach { option ->
+                            val isSelected = sortOption == option
+                            DropdownMenuItem(
+                                text = { Text(text = option.getLabel(viewModel.strings), color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                                trailingIcon = {
+                                    val icon = when (option) {
+                                        SortOption.DATE_NEWEST -> Icons.Default.DateRange
+                                        SortOption.RATING_HIGH -> Icons.Default.Star
+                                        SortOption.AZ -> Icons.AutoMirrored.Filled.Sort
+                                        SortOption.FAVORITES -> Icons.Default.Favorite
+                                    }
+                                    Icon(imageVector = icon, contentDescription = null, tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary)
+                                },
+                                onClick = { onSortSelected(option); expandedSort = false }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // КНОПКА УВЕДОМЛЕНИЙ
+            Box {
+                IconButton(
+                    onClick = { expandedNotifs = true },
+                    modifier = Modifier.size(44.dp).clip(CircleShape).background(buttonBgColor)
+                ) {
+                    Icon(
+                        imageVector = HeroiconsRectangleStack,
+                        contentDescription = "Notifications",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                if (viewModel.updates.isNotEmpty()) {
+                    Box(modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(8.dp).background(BrandRed, CircleShape))
+                }
+
+                val isRu = viewModel.currentLanguage == AppLanguage.RU
+                val txtHeader = if (isRu) "Обновление контента" else "Content update"
+                val txtSubHeader = if (isRu) "Проверяю, вышли ли новые серии" else "Checking if new episodes are available"
+                val txtEmptyTitle = if (isRu) "Кажется, ничего нового не вышло" else "Looks like nothing new was released"
+                val txtEmptyBody = if (isRu) "Я проверил несколько разных API, похоже, ты обновлён!" else "I checked multiple APIs — looks like you're up to date!"
+
+                MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(24.dp))) {
+                    DropdownMenu(
+                        expanded = expandedNotifs,
+                        onDismissRequest = { expandedNotifs = false },
+                        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
+                        offset = DpOffset(x = 0.dp, y = 8.dp),
+                        modifier = Modifier.widthIn(min = 320.dp, max = 360.dp)
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                                    Text(txtHeader, fontWeight = FontWeight.Black, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(txtSubHeader, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                                }
+                            },
+                            onClick = {},
+                            enabled = false
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                        if (viewModel.isCheckingUpdates) {
+                            Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(modifier = Modifier.size(32.dp), strokeWidth = 3.dp, color = BrandBlue)
+                            }
+                        } else if (viewModel.updates.isEmpty()) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Box(
+                                    modifier = Modifier.size(72.dp).clip(CircleShape).background(RateColor4.copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Check, null, tint = RateColor4, modifier = Modifier.size(36.dp))
+                                }
+                                Spacer(Modifier.height(16.dp))
+                                Text(txtEmptyTitle, fontWeight = FontWeight.Bold, fontSize = 16.sp, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface)
+                                Spacer(Modifier.height(8.dp))
+                                Text(txtEmptyBody, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.secondary, lineHeight = 20.sp)
+                            }
+                        } else {
+                            viewModel.updates.forEach { update ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(update.title, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 16.sp)
+                                            Text("${update.newEpisodes} eps (You: ${update.currentEpisodes})", style = MaterialTheme.typography.bodyMedium, color = BrandBlue, fontWeight = FontWeight.SemiBold)
+                                        }
+                                    },
+                                    trailingIcon = {
+                                        Row {
+                                            IconButton(onClick = { viewModel.dismissUpdate(update) }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Close, null, tint = BrandRed, modifier = Modifier.size(20.dp)) }
+                                            Spacer(Modifier.width(8.dp))
+                                            IconButton(onClick = { viewModel.acceptUpdate(update, context); Toast.makeText(context, "${viewModel.strings.updatedToast}${update.title}!", Toast.LENGTH_SHORT).show() }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Check, null, tint = BrandBlue, modifier = Modifier.size(20.dp)) }
+                                        }
+                                    },
+                                    onClick = {},
+                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
