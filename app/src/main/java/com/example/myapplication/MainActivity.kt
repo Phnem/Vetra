@@ -127,6 +127,77 @@ import kotlin.math.roundToInt
 import kotlin.math.sign
 
 // ==========================================
+// GENRE SYSTEM (LOCALIZATION & DATA)
+// ==========================================
+
+// Категории, к которым может относиться жанр
+enum class GenreCategory { ANIME, MOVIE, SERIES }
+
+// Модель данных жанра
+data class GenreDefinition(
+    val id: String, // Стабильный ID (сохраняется в JSON)
+    val ru: String, // Русское название
+    val en: String, // Английское название
+    val categories: List<GenreCategory> // В каких категориях отображать
+)
+
+// Репозиторий жанров
+object GenreRepository {
+    val allGenres = listOf(
+        // --- АНИМЕ ЖАНРЫ (Расширенный список) ---
+        GenreDefinition("Isekai", "Исекай", "Isekai", listOf(GenreCategory.ANIME)),
+        GenreDefinition("Games", "Игры", "Games", listOf(GenreCategory.ANIME)),
+        GenreDefinition("Martial Arts", "Боевые искусства", "Martial Arts", listOf(GenreCategory.ANIME)),
+        GenreDefinition("Magic", "Магия", "Magic", listOf(GenreCategory.ANIME)),
+        GenreDefinition("Mecha", "Мехи", "Mecha", listOf(GenreCategory.ANIME)),
+        GenreDefinition("Shounen", "Сёнен", "Shounen", listOf(GenreCategory.ANIME)),
+        GenreDefinition("Shoujo", "Сёдзё", "Shoujo", listOf(GenreCategory.ANIME)),
+        GenreDefinition("Seinen", "Сэйнен", "Seinen", listOf(GenreCategory.ANIME)),
+        GenreDefinition("Slice of Life", "Повседневность", "Slice of Life", listOf(GenreCategory.ANIME)),
+        GenreDefinition("Ecchi", "Этти", "Ecchi", listOf(GenreCategory.ANIME)),
+        GenreDefinition("Hentai", "Хентай", "Hentai", listOf(GenreCategory.ANIME)),
+        GenreDefinition("School", "Школа", "School", listOf(GenreCategory.ANIME)),
+        GenreDefinition("Detective", "Детектив", "Detective", listOf(GenreCategory.ANIME, GenreCategory.SERIES, GenreCategory.MOVIE)),
+        GenreDefinition("Sports", "Спорт", "Sports", listOf(GenreCategory.ANIME, GenreCategory.MOVIE)),
+
+        // --- ОБЩИЕ ЖАНРЫ (Для Аниме, Фильмов, Сериалов) ---
+        GenreDefinition("Action", "Экшен", "Action", listOf(GenreCategory.ANIME, GenreCategory.MOVIE, GenreCategory.SERIES)),
+        GenreDefinition("Adventure", "Приключения", "Adventure", listOf(GenreCategory.ANIME, GenreCategory.MOVIE, GenreCategory.SERIES)),
+        GenreDefinition("Comedy", "Комедия", "Comedy", listOf(GenreCategory.ANIME, GenreCategory.MOVIE, GenreCategory.SERIES)),
+        GenreDefinition("Drama", "Драма", "Drama", listOf(GenreCategory.ANIME, GenreCategory.MOVIE, GenreCategory.SERIES)),
+        GenreDefinition("Fantasy", "Фэнтези", "Fantasy", listOf(GenreCategory.ANIME, GenreCategory.MOVIE, GenreCategory.SERIES)),
+        GenreDefinition("Romance", "Романтика", "Romance", listOf(GenreCategory.ANIME, GenreCategory.MOVIE, GenreCategory.SERIES)),
+        GenreDefinition("Horror", "Ужасы", "Horror", listOf(GenreCategory.ANIME, GenreCategory.MOVIE, GenreCategory.SERIES)),
+        GenreDefinition("Sci-Fi", "Фантастика", "Sci-Fi", listOf(GenreCategory.MOVIE, GenreCategory.SERIES)),
+        GenreDefinition("Thriller", "Триллер", "Thriller", listOf(GenreCategory.MOVIE, GenreCategory.SERIES)),
+        GenreDefinition("Mystery", "Мистика", "Mystery", listOf(GenreCategory.SERIES, GenreCategory.MOVIE)),
+        GenreDefinition("Crime", "Криминал", "Crime", listOf(GenreCategory.SERIES, GenreCategory.MOVIE)),
+
+        // --- СПЕЦИФИЧНЫЕ ДЛЯ ФИЛЬМОВ/СЕРИАЛОВ ---
+        GenreDefinition("Western", "Вестерн", "Western", listOf(GenreCategory.MOVIE)),
+        GenreDefinition("Animation", "Анимация", "Animation", listOf(GenreCategory.MOVIE)), // Западная анимация
+        GenreDefinition("Documentary", "Документальный", "Documentary", listOf(GenreCategory.MOVIE)),
+        GenreDefinition("Sitcom", "Ситком", "Sitcom", listOf(GenreCategory.SERIES)),
+        GenreDefinition("Reality", "Реалити-шоу", "Reality", listOf(GenreCategory.SERIES))
+    )
+
+    // Получить список жанров для конкретной категории
+    fun getGenresForCategory(category: GenreCategory): List<GenreDefinition> {
+        return allGenres.filter { it.categories.contains(category) }.sortedBy { it.id }
+    }
+
+    // Получить локализованное название по ID
+    fun getLabel(id: String, lang: AppLanguage): String {
+        val def = allGenres.find { it.id.equals(id, ignoreCase = true) }
+        return when (lang) {
+            AppLanguage.RU -> def?.ru ?: id // Если не найдено, возвращаем ID
+            AppLanguage.EN -> def?.en ?: id
+        }
+    }
+}
+
+
+// ==========================================
 // LOCALIZATION & THEME ENUMS
 // ==========================================
 
@@ -863,6 +934,11 @@ class AnimeViewModel : ViewModel() {
     private val USER_AVATAR_FILE = "user_avatar.jpg" // ИМЯ ФАЙЛА АВАТАРА
 
     private fun getSettingsFile(): File = File(getRoot(), SETTINGS_FILE)
+
+    // ПОЛУЧЕНИЕ НАЗВАНИЯ ЖАНРА (С УЧЕТОМ ЯЗЫКА)
+    fun getGenreName(genreId: String): String {
+        return GenreRepository.getLabel(genreId, currentLanguage)
+    }
 
     fun setLanguage(lang: AppLanguage) {
         currentLanguage = lang
@@ -1714,8 +1790,9 @@ fun OneUiAnimeCard(
                                             .background(chipBgColor) // Применяем инвертированный фон
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
+                                        // ИСПОЛЬЗУЕМ ЛОКАЛИЗОВАННОЕ ИМЯ ЖАНРА ИЗ VIEWMODEL
                                         Text(
-                                            text = tag,
+                                            text = viewModel.getGenreName(tag),
                                             style = TextStyle(
                                                 fontSize = 10.sp,
                                                 fontWeight = FontWeight.Bold,
@@ -1976,6 +2053,7 @@ fun GenreFilterSheet(
                 )
 
                 GenreSelectionSection(
+                    viewModel = viewModel, // Передаем VM для локализации
                     selectedTags = viewModel.filterSelectedTags,
                     activeCategory = viewModel.filterCategoryType,
                     onTagToggle = onTagToggle
@@ -2583,22 +2661,25 @@ fun HomeScreen(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GenreSelectionSection(
+    viewModel: AnimeViewModel, // Передаем ViewModel для получения локализованных строк
     selectedTags: List<String>,
     activeCategory: String, // "Anime", "Movies", "Series" или пустая строка
     onTagToggle: (String, String) -> Unit // (tag, categoryType)
 ) {
-    val animeGenres = listOf("Shonen", "Seinen", "Isekai", "Mecha", "Slice of Life", "Action", "Romance", "Fantasy", "Drama", "Comedy", "Horror", "Sports")
-    val movieGenres = listOf("Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror", "Sci-Fi", "Thriller", "Western", "Animation", "Documentary")
-    val seriesGenres = listOf("Drama", "Sitcom", "Thriller", "Fantasy", "Sci-Fi", "Crime", "Mystery", "Action", "Adventure", "Reality")
+    // Получаем список жанров из репозитория
+    val animeGenres = remember { GenreRepository.getGenresForCategory(GenreCategory.ANIME) }
+    val movieGenres = remember { GenreRepository.getGenresForCategory(GenreCategory.MOVIE) }
+    val seriesGenres = remember { GenreRepository.getGenresForCategory(GenreCategory.SERIES) }
 
     var expandedCategory by remember { mutableStateOf<String?>(null) }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // КАРТОЧКА АНИМЕ
         ExpandableCategoryCard(
-            title = "Anime",
+            title = viewModel.strings.genreAnime, // Локализуем заголовок
             icon = Icons.Outlined.Animation,
             genres = animeGenres,
+            viewModel = viewModel,
             categoryType = "Anime",
             activeCategory = activeCategory,
             selectedTags = selectedTags,
@@ -2609,9 +2690,10 @@ fun GenreSelectionSection(
 
         // КАРТОЧКА ФИЛЬМОВ
         ExpandableCategoryCard(
-            title = "Movies",
+            title = viewModel.strings.genreMovies,
             icon = Icons.Outlined.Movie,
             genres = movieGenres,
+            viewModel = viewModel,
             categoryType = "Movies",
             activeCategory = activeCategory,
             selectedTags = selectedTags,
@@ -2622,9 +2704,10 @@ fun GenreSelectionSection(
 
         // КАРТОЧКА СЕРИАЛОВ
         ExpandableCategoryCard(
-            title = "TV Series",
+            title = viewModel.strings.genreSeries,
             icon = Icons.Outlined.Tv,
             genres = seriesGenres,
+            viewModel = viewModel,
             categoryType = "Series",
             activeCategory = activeCategory,
             selectedTags = selectedTags,
@@ -2640,7 +2723,8 @@ fun GenreSelectionSection(
 fun ExpandableCategoryCard(
     title: String,
     icon: ImageVector,
-    genres: List<String>,
+    genres: List<GenreDefinition>, // Теперь принимаем объекты определений жанров
+    viewModel: AnimeViewModel,
     categoryType: String,
     activeCategory: String,
     selectedTags: List<String>,
@@ -2684,12 +2768,15 @@ fun ExpandableCategoryCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    genres.forEach { genre ->
-                        val isSelected = selectedTags.contains(genre)
+                    genres.forEach { genreDef ->
+                        val isSelected = selectedTags.contains(genreDef.id)
+                        // Отображаем локализованное имя (RU/EN)
+                        val displayName = if (viewModel.currentLanguage == AppLanguage.RU) genreDef.ru else genreDef.en
+
                         GenreChip(
-                            text = genre,
+                            text = displayName,
                             isSelected = isSelected,
-                            onClick = { onTagToggle(genre, categoryType) }
+                            onClick = { onTagToggle(genreDef.id, categoryType) }
                         )
                     }
                 }
@@ -2829,6 +2916,7 @@ fun AddEditScreen(nav: NavController, vm: AnimeViewModel, id: String?, sharedTra
                     )
 
                     GenreSelectionSection(
+                        viewModel = vm,
                         selectedTags = selectedTags,
                         activeCategory = activeCategory,
                         onTagToggle = onTagToggle
