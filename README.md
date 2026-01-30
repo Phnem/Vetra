@@ -1,44 +1,141 @@
-# MAList
-![MAList preview](/preview.png)
-MAList 🎬
+<h1 align="center">MAList 🎬</h1>
 
-​MAList is a simple and flexible application for creating lists. While I originally developed for anime, but it can be used for anything, including TV shows or even shopping lists. This is my first project written in Kotlin, created purely for my own personal needs and preferences.  
-​
-✨ Features
+<p align="center">
+  <img src="/preview.png" alt="MAList preview">
+</p>
 
-​Versatile Lists: 
+<p align="center">
+  A simple, flexible, and fully offline list manager for anime, shows, and more.
+</p>
 
--Add titles for any type of content or items.
+<hr>
 
--​Rating System: Assign a 1 to 5-star rating to any entry.
+<h2>📱 About</h2>
 
-​-Episode/Item Counter: Keep track of the number of episodes watched or items collected.
+<p>
+MAList is a simple and flexible application for creating lists.  
+Originally developed for anime tracking, it can also be used for TV shows, movies, or even shopping lists.
+</p>
 
--​100% Local Storage: The app creates a dedicated folder named MyAnimeList in your device's Documents directory. All data and images are stored locally; no cloud synchronization is used.
+<p>
+This is my <b>first Kotlin project</b>, created purely for my own personal needs and preferences, with a strong focus on UI/UX, smooth animations, and local-first data storage.
+</p>
 
-​-One UI Inspired Design: The interface features a clean look with large headers and rounded corners inspired by Samsung's One UI.
+<hr>
 
-​🛠 Technical Stack
+<h2>✨ Features</h2>
 
-​Language: Kotlin.  
+<h3>📝 Core Functionality</h3>
+<ul>
+  <li>Create lists for any type of content</li>
+  <li>Add custom titles and descriptions</li>
+  <li>Episode / item counter</li>
+  <li>1–5 star rating system</li>
+  <li>Favorites system</li>
+</ul>
 
-​-UI: Jetpack Compose with Shared Element Transitions for smooth animations between screens.
+<h3>👉 Gestures</h3>
+<ul>
+  <li>Swipe to delete with confirmation</li>
+  <li>Swipe to add items to Favorites</li>
+</ul>
 
--​Data Storage: Data is saved in JSON format using the Gson library.
+<h3>🎨 Interface & Customization</h3>
+<ul>
+  <li>Fully redesigned interface</li>
+  <li>Light / Dark theme switching</li>
+  <li>Language switching:
+    <ul>
+      <li>en English</li>
+      <li>🇷🇺 Russian</li>
+    </ul>
+  </li>
+  <li>Updated typography with new fonts</li>
+  <li>Dozens of new icons</li>
+</ul>
+
+<h3>✨ Visuals & UX</h3>
+<ul>
+  <li>Reworked animations</li>
+  <li>New visual effects</li>
+  <li>Improved haptic feedback (vibration and tactile response)</li>
+  <li>One UI–inspired design with large headers and rounded corners</li>
+</ul>
+
+<h3>🔄 Updates & Stability</h3>
+<ul>
+  <li>In-app update system</li>
+  <li>Improved release tracking</li>
+  <li>Improved statistics menu</li>
+  <li>Fixed search functionality</li>
+  <li>Numerous bug fixes and internal optimizations</li>
+</ul>
+
+<hr>
+
+<h2>💾 Storage & Privacy</h2>
+
+<ul>
+  <li><b>100% local storage</b></li>
+  <li>No accounts, no cloud, no tracking</li>
+  <li>All data and images are stored locally on your device</li>
+</ul>
+
+<p>
+The app creates its own folder:
+</p>
+
+<pre>
+Documents/MyAnimeList
+</pre>
+
+<p>
+All data is stored locally in JSON format.
+</p>
+
+<hr>
+
+<h2>🛠 Technical Stack</h2>
+
+<ul>
+  <li><b>Language:</b> Kotlin</li>
+  <li><b>UI:</b> Jetpack Compose</li>
+  <li><b>Animations:</b> Compose Animations & Shared Element Transitions</li>
+  <li><b>Architecture:</b> ViewModel</li>
+  <li><b>Data Storage:</b> JSON (Gson)</li>
+  <li><b>Image Loading:</b> Coil (local image rendering)</li>
+</ul>
+
 <p align="center">
   <img src="1000008355.jpg" width="350">
 </p>
 
-​-Image Loading: Coil is used for efficient local image rendering.
+<hr>
 
--​Architecture: Uses ViewModel for state management.
+<h2>📂 Permissions</h2>
 
-​📂 Permissions
+<p>
+MAList requires the following permission:
+</p>
 
-​The app requires the "Manage All Files" permission (MANAGE_EXTERNAL_STORAGE) to create its own directory structure and store the database and images directly on your device.
-​License
+<ul>
+  <li>
+    <b>MANAGE_EXTERNAL_STORAGE</b><br>
+    Used to create and manage the app's local database and image storage.
+  </li>
+</ul>
 
-​This project is licensed under the MIT License.
+<hr>
+
+<h2>📜 License</h2>
+
+<p>
+This project is licensed under the <b>MIT License</b>.
+</p>
+
+<hr>
+
+<h2 align="center">📸 Screenshots</h2>
 
 <table align="center">
   <tr>
