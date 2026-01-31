@@ -1,7 +1,7 @@
 <h1 align="center">MAList 🎬</h1>
 
 <p align="center">
-  <img src="/preview.png" alt="MAList preview">
+  <img src="/800.png" alt="MAList preview">
 </p>
 
 <p align="center">
@@ -46,8 +46,8 @@ This is my <b>first Kotlin project</b>, created purely for my own personal needs
   <li>Light / Dark theme switching</li>
   <li>Language switching:
     <ul>
-      <li>en English</li>
-      <li>🇷🇺 Russian</li>
+      <li> English</li>
+      <li> Russian</li>
     </ul>
   </li>
   <li>Updated typography with new fonts</li>
@@ -139,10 +139,10 @@ This project is licensed under the <b>MIT License</b>.
 
 <table align="center">
   <tr>
-    <td><img src="1000008451.jpg" width="220"></td>
-    <td><img src="1000008465.jpg" width="220"></td>
-    <td><img src="1000008466.jpg" width="220"></td>
-    <td><img src="1000008467.jpg" width="220"></td>
-    <td><img src="1000008468.jpg" width="220"></td>
+    <td><img src="815.jpg" width="220"></td>
+    <td><img src="816.jpg" width="220"></td>
+    <td><img src="817.jpg" width="220"></td>
+    <td><img src="818.jpg" width="220"></td>
+    <td><img src="819.jpg" width="220"></td>
   </tr>
 </table>
