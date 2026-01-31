@@ -40,7 +40,7 @@ This is my <b>first Kotlin project</b>, created purely for my own personal needs
   <li>Swipe to add items to Favorites</li>
 </ul>
 <p align="center">
-  <img src="swipe.jpg" width="350">
+  <img src="swipe.png" width="350">
 </p>
 
 <h3>🎨 Interface & Customization</h3>
