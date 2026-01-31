@@ -9,6 +9,18 @@
 </p>
 
 <hr>
+<h2 align="center">📸 Screenshots</h2>
+
+<table align="center">
+  <tr>
+    <td><img src="815.png" width="220"></td>
+    <td><img src="816.png" width="220"></td>
+    <td><img src="817.png" width="220"></td>
+    <td><img src="818.png" width="220"></td>
+    <td><img src="819.png" width="220"></td>
+  </tr>
+</table>
+<hr>
 
 <h2>📱 About</h2>
 
@@ -138,14 +150,4 @@ This project is licensed under the <b>MIT License</b>.
 
 <hr>
 
-<h2 align="center">📸 Screenshots</h2>
 
-<table align="center">
-  <tr>
-    <td><img src="815.png" width="220"></td>
-    <td><img src="816.png" width="220"></td>
-    <td><img src="817.png" width="220"></td>
-    <td><img src="818.png" width="220"></td>
-    <td><img src="819.png" width="220"></td>
-  </tr>
-</table>
