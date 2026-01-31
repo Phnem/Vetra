@@ -139,10 +139,10 @@ This project is licensed under the <b>MIT License</b>.
 
 <table align="center">
   <tr>
-    <td><img src="815.jpg" width="220"></td>
-    <td><img src="816.jpg" width="220"></td>
-    <td><img src="817.jpg" width="220"></td>
-    <td><img src="818.jpg" width="220"></td>
-    <td><img src="819.jpg" width="220"></td>
+    <td><img src="815.png" width="220"></td>
+    <td><img src="816.png" width="220"></td>
+    <td><img src="817.png" width="220"></td>
+    <td><img src="818.png" width="220"></td>
+    <td><img src="819.png" width="220"></td>
   </tr>
 </table>
