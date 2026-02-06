@@ -958,7 +958,13 @@ class AnimeViewModel : ViewModel() {
 
     fun deleteAnime(id: String) { val anime = _animeList.find { it.id == id } ?: return; anime.imageFileName?.let { File(getImgDir(), it).delete() }; _animeList.remove(anime); save(); needsUpdateCheck = true }
 
-    private fun save() { try { getDataFile().writeText(Gson().toJson(_animeList)) } catch(e:Exception){e.printStackTrace()} }
+    private fun save() {
+        try {
+            getDataFile().writeText(Gson().toJson(_animeList))
+            // TRIGGER SYNC
+            DropboxSyncManager.scheduleAutoSync()
+        } catch(e:Exception){e.printStackTrace()}
+    }
     private fun saveIgnored() { try { getIgnoredFile().writeText(Gson().toJson(ignoredUpdatesMap)) } catch(e:Exception){e.printStackTrace()} }
     private fun saveImg(ctx: Context, uri: Uri, id: String): String? { return try { val name = "img_${id}_${System.currentTimeMillis()}.jpg"; ctx.contentResolver.openInputStream(uri)?.use { i -> FileOutputStream(File(getImgDir(), name)).use { o -> i.copyTo(o) } }; name } catch(e: Exception) { null } }
     fun getImgPath(name: String?): File? = if(name!=null) File(getImgDir(), name).let { if(it.exists()) it else null } else null
@@ -1632,7 +1638,15 @@ fun StatsOverlay(viewModel: AnimeViewModel, onDismiss: () -> Unit) {
 fun MalistWorkspaceTopBar(viewModel: AnimeViewModel, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val singlePhotoPickerLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia(), onResult = { uri -> if (uri != null) { viewModel.saveUserAvatar(context, uri) } })
-    Row(modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp).statusBarsPadding(), verticalAlignment = Alignment.CenterVertically) {
+
+    // ИЗМЕНЕНИЕ: Меняем vertical = 12.dp на явные top = 24.dp и bottom = 12.dp
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 12.dp) // <-- Опустили ниже
+            .statusBarsPadding(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Box(modifier = Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary).clickable { singlePhotoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, contentAlignment = Alignment.Center) {
             if (viewModel.userAvatarPath != null) { AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(File(viewModel.userAvatarPath!!)).crossfade(true).build(), contentDescription = "User Avatar", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) } else { Text("M", color = Color.White, fontWeight = FontWeight.Bold) }
         }
@@ -1969,24 +1983,88 @@ fun LanguageOption(text: String, isSelected: Boolean, onClick: () -> Unit) {
     Box(modifier = Modifier.fillMaxWidth().clip(CircleShape).background(bg).then(if (border != null) Modifier.border(border, CircleShape) else Modifier).clickable { onClick() }.padding(vertical = 12.dp), contentAlignment = Alignment.Center) { Text(text = text, fontWeight = FontWeight.Bold, color = contentColor) }
 }
 
+
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalSharedTransitionApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) { window.attributes.preferredDisplayModeId = 0 }
+
+
+
+        // 1. Init Dropbox
+        DropboxSyncManager.init(this)
+
         checkPerms()
         setContent {
             val viewModel: AnimeViewModel = viewModel()
             val context = LocalContext.current
-            LaunchedEffect(Unit) { viewModel.loadAnime(); viewModel.loadSettings(); viewModel.initAppVersion(context) }
+
+            // Auto-sync listener logic could go here or in ViewModel
+
+            LaunchedEffect(Unit) {
+                viewModel.loadAnime()
+                viewModel.loadSettings()
+                viewModel.initAppVersion(context)
+            }
+
             val isSystemDark = isSystemInDarkTheme()
-            val useDarkTheme = when (viewModel.currentTheme) { AppTheme.LIGHT -> false; AppTheme.DARK -> true; AppTheme.SYSTEM -> isSystemDark }
+            val useDarkTheme = when (viewModel.currentTheme) {
+                AppTheme.LIGHT -> false
+                AppTheme.DARK -> true
+                AppTheme.SYSTEM -> isSystemDark
+            }
+
             OneUiTheme(darkTheme = useDarkTheme) {
                 val navController = rememberNavController()
+
+                // Determine start destination
+                val startDest = if (DropboxSyncManager.hasToken()) "home" else "welcome"
+
                 SharedTransitionLayout {
-                    NavHost(navController = navController, startDestination = "home") {
-                        composable("home") { HomeScreen(nav = navController, vm = viewModel, sharedTransitionScope = this@SharedTransitionLayout, animatedVisibilityScope = this) }
+                    NavHost(navController = navController, startDestination = startDest) {
+
+                        // NEW: Welcome Screen Route
+                        composable("welcome") {
+                            // --- НАЧАЛО ИЗМЕНЕНИЙ ---
+
+                            val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+
+                            // Этот блок срабатывает, когда экран становится активным (возврат из браузера)
+                            DisposableEffect(lifecycleOwner) {
+                                val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                                    if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                                        // 1. Забираем токен (если он пришел)
+                                        DropboxSyncManager.onOAuthResult()
+
+                                        // 2. Если токен есть — летим на Home
+                                        if (DropboxSyncManager.hasToken()) {
+                                            navController.navigate("home") {
+                                                popUpTo("welcome") { inclusive = true }
+                                            }
+                                        }
+                                    }
+                                }
+                                lifecycleOwner.lifecycle.addObserver(observer)
+                                onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+                            }
+                            WelcomeScreen(
+                                onLoginClick = {
+                                    DropboxSyncManager.startOAuth(this@MainActivity)
+                                },
+                                onGuestClick = {
+                                    navController.navigate("home") {
+                                        popUpTo("welcome") { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+
+                        composable("home") {
+                            HomeScreen(nav = navController, vm = viewModel, sharedTransitionScope = this@SharedTransitionLayout, animatedVisibilityScope = this)
+                            // Add sync observer here if you want to show a sync icon
+                        }
+                        // ... остальные composable (add_anime, settings) без изменений
                         composable("add_anime?animeId={animeId}", arguments = listOf(navArgument("animeId") { nullable = true })) { AddEditScreen(navController, viewModel, it.arguments?.getString("animeId"), this@SharedTransitionLayout, this) }
                         composable("settings") { SettingsScreen(nav = navController, vm = viewModel, sharedTransitionScope = this@SharedTransitionLayout, animatedVisibilityScope = this) }
                     }
@@ -1995,9 +2073,26 @@ class MainActivity : ComponentActivity() {
         }
     }
     private fun checkPerms() {
-        if (Build.VERSION.SDK_INT >= 30 && !Environment.isExternalStorageManager()) { val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:$packageName")); startActivity(intent); Toast.makeText(this, "Need file access", Toast.LENGTH_LONG).show() }
+        if (android.os.Build.VERSION.SDK_INT >= 30 && !android.os.Environment.isExternalStorageManager()) {
+            val intent = android.content.Intent(
+                android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                android.net.Uri.parse("package:$packageName")
+            )
+            startActivity(intent)
+            android.widget.Toast.makeText(this, "Need file access", android.widget.Toast.LENGTH_LONG).show()
+        }
     }
+
+    override fun onResume() {
+        super.onResume()
+        // Capture OAuth token return
+        DropboxSyncManager.onOAuthResult()
+    }
+
+    // ... checkPerms logic
+
 }
+
 
 @Composable
 fun EmptyStateView(modifier: Modifier = Modifier, title: String = "Nothing in folder", subtitle: String = "Looks empty over here.") {

@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "v2.2.3-stable"
+        versionName = "v2.2.4-Alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -68,12 +68,15 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("com.dropbox.core:dropbox-core-sdk:5.4.5")
 
     androidTestImplementation("tools.fastlane:screengrab:2.1.1")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.6.0")
     androidTestImplementation("androidx.test:runner:1.5.2")
     androidTestImplementation("androidx.test:rules:1.5.0")
+    implementation("com.dropbox.core:dropbox-core-sdk:5.4.5")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
