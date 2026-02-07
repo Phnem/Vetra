@@ -13,7 +13,9 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -73,11 +75,12 @@ object DropboxSyncManager {
 
     private fun buildConfig(): DbxRequestConfig {
         val okHttpClient = OkHttpClient.Builder()
-            .connectTimeout(120, TimeUnit.SECONDS)
-            .readTimeout(120, TimeUnit.SECONDS)
-            .writeTimeout(120, TimeUnit.SECONDS)
+            .connectTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
             .build()
 
+        // Используем наш ГИБРИДНЫЙ загрузчик (память + диск)
         val requestor = DropboxOkHttpRequestor(okHttpClient)
 
         return DbxRequestConfig.newBuilder("MAList/1.0")
@@ -86,23 +89,18 @@ object DropboxSyncManager {
     }
 
     fun startOAuth(context: Context) {
-        // Передаем конфиг с OkHttp, чтобы избежать SSL ошибок при входе
         Auth.startOAuth2PKCE(context, APP_KEY, buildConfig())
     }
 
     fun onOAuthResult() {
         val credential = Auth.getDbxCredential()
-
         if (credential != null) {
             val refreshToken = credential.refreshToken
             if (refreshToken != null) {
                 Log.d(TAG, "OAuth success: Refresh Token received")
                 prefs.edit().putString(REFRESH_TOKEN_KEY, refreshToken).apply()
-
-                // Передаем access token сразу, если он есть, чтобы не делать лишний рефреш
                 val accessToken = credential.accessToken ?: ""
                 setupClient(refreshToken, initialAccessToken = accessToken)
-
                 scope.launch { syncNow() }
             } else {
                 Log.e(TAG, "OAuth Error: No Refresh Token found")
@@ -123,12 +121,7 @@ object DropboxSyncManager {
 
     private fun setupClient(refreshToken: String, initialAccessToken: String = "") {
         val config = buildConfig()
-
-        // --- ИСПРАВЛЕНИЕ КРЭША ---
-        // Нельзя передавать null в accessToken. Передаем пустую строку "" или реальный токен.
-        // SDK поймет, что токен пустой/протухший, и использует refreshToken для обновления.
         val credential = DbxCredential(initialAccessToken, -1L, refreshToken, APP_KEY)
-
         client = DbxClientV2(config, credential)
     }
 
@@ -137,6 +130,9 @@ object DropboxSyncManager {
             _syncState.value = SyncState.AUTH_REQUIRED
             return@withContext SyncResult.Error("No client")
         }
+
+        // ШАГ 0: Чистим мусор перед стартом, чтобы не качать сломанные файлы
+        cleanupGarbage()
 
         Log.d(TAG, "--- SYNC STARTED ---")
         _syncState.value = SyncState.SYNCING
@@ -167,7 +163,6 @@ object DropboxSyncManager {
                 }
             }
         } catch (e: Exception) {
-            // Если рефреш токен отозван или протух
             if (e is com.dropbox.core.InvalidAccessTokenException ||
                 e.message?.contains("expired_access_token") == true) {
                 Log.e(TAG, "Refresh Token Expired or Revoked", e)
@@ -184,6 +179,27 @@ object DropboxSyncManager {
             }
             Log.d(TAG, "--- SYNC FINISHED ---")
             prefs.edit().putLong(LAST_SYNC_KEY, System.currentTimeMillis()).apply()
+        }
+    }
+
+    // Удаляет временные файлы и файлы 0 байт, чтобы разорвать цикл ошибок
+    private fun cleanupGarbage() {
+        try {
+            val imgDir = File(rootDir, COLLECTION_DIR)
+            if (imgDir.exists()) {
+                imgDir.listFiles()?.forEach { file ->
+                    if (file.name.endsWith(".tmp") || file.length() == 0L) {
+                        // Log.d(TAG, "Removing garbage file: ${file.name}")
+                        file.delete()
+                    }
+                }
+            }
+            JSON_FILES.forEach { name ->
+                val f = File(rootDir, name)
+                if (f.exists() && f.length() == 0L) f.delete()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Cleanup warning: ${e.message}")
         }
     }
 
@@ -212,37 +228,84 @@ object DropboxSyncManager {
         return result
     }
 
-    private fun performTwoWaySync(remoteFiles: Map<String, com.dropbox.core.v2.files.FileMetadata>): SyncResult {
+    // --- БЭКАП (Вызывается отдельно, чтобы не падать из-за памяти) ---
+    private suspend fun createAndUploadBackupZip() = withContext(Dispatchers.IO) {
+        val zipFile = File(rootDir, "backup.zip")
+        try {
+            // Log.d(TAG, "Creating Auto-Backup ZIP...")
+            val filesToZip = mutableListOf<File>()
+            JSON_FILES.forEach { name ->
+                val f = File(rootDir, name)
+                if (f.exists()) filesToZip.add(f)
+            }
+            val imgDir = File(rootDir, COLLECTION_DIR)
+            imgDir.listFiles()?.forEach { filesToZip.add(it) }
+
+            if (filesToZip.isEmpty()) return@withContext
+
+            // ZipUtils.zipFiles теперь должен использовать стриминг (маленький буфер)
+            ZipUtils.zipFiles(filesToZip, zipFile)
+
+            Log.d(TAG, "Uploading backup.zip (${zipFile.length() / 1024} KB)...")
+
+            // Здесь теперь работает Hybrid Uploader, который переключится на файл
+            // и не уронит приложение OOM
+            FileInputStream(zipFile).use { inputStream ->
+                client!!.files().uploadBuilder("/backup.zip")
+                    .withMode(WriteMode.OVERWRITE)
+                    .withMute(true)
+                    .uploadAndFinish(inputStream)
+            }
+
+            Log.d(TAG, "Auto-Backup completed successfully!")
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create/upload auto-backup: ${e.message}")
+        } finally {
+            if (zipFile.exists()) zipFile.delete()
+        }
+    }
+
+    private suspend fun performTwoWaySync(remoteFiles: Map<String, com.dropbox.core.v2.files.FileMetadata>): SyncResult {
+        // 1. JSON
         JSON_FILES.forEach { fileName ->
             val localFile = File(rootDir, fileName)
-            val remoteMeta = remoteFiles[fileName]
+            val remoteMeta = remoteFiles.values.find { it.name.equals(fileName, ignoreCase = true) }
             try {
-                if (!localFile.exists() && remoteMeta != null) {
-                    downloadFile(remoteMeta.pathLower, localFile)
-                } else if (localFile.exists() && remoteMeta == null) {
-                    uploadFile(localFile, "/$fileName")
-                } else if (localFile.exists() && remoteMeta != null) {
-                    if (remoteMeta.serverModified.time > localFile.lastModified() + 5000) {
+                if (remoteMeta != null) {
+                    val needDownload = !localFile.exists() ||
+                            localFile.length() == 0L ||
+                            remoteMeta.serverModified.time > localFile.lastModified() + 5000
+
+                    if (needDownload) {
                         downloadFile(remoteMeta.pathLower, localFile)
-                    } else if (localFile.lastModified() > remoteMeta.serverModified.time + 5000) {
+                    } else if (localFile.exists() && localFile.lastModified() > remoteMeta.serverModified.time + 5000) {
                         uploadFile(localFile, "/$fileName")
                     }
+                } else if (localFile.exists() && localFile.length() > 0L) {
+                    uploadFile(localFile, "/$fileName")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error syncing $fileName", e)
             }
         }
+
+        // 2. Картинки
         syncCollectionFolder(remoteFiles)
+
+        // 3. Бэкап в фоне
+        scope.launch { createAndUploadBackupZip() }
+
         return SyncResult.Success
     }
 
-    private fun syncCollectionFolder(remoteFiles: Map<String, com.dropbox.core.v2.files.FileMetadata>) {
+    private suspend fun syncCollectionFolder(remoteFiles: Map<String, com.dropbox.core.v2.files.FileMetadata>) {
         val imgDir = File(rootDir, COLLECTION_DIR)
         if (!imgDir.exists()) imgDir.mkdirs()
 
         val localImages = imgDir.listFiles() ?: emptyArray()
-        Log.d(TAG, "Syncing collection. Local: ${localImages.size} items")
 
+        // Сортировка для красоты логов и порядка
         val sortedImages = localImages.sortedWith(Comparator { f1, f2 ->
             val n1 = f1.nameWithoutExtension.toIntOrNull()
             val n2 = f2.nameWithoutExtension.toIntOrNull()
@@ -254,11 +317,10 @@ object DropboxSyncManager {
             }
         })
 
-        var uploadCount = 0
         for (file in sortedImages) {
             if (!remoteFiles.containsKey(file.name)) {
                 try {
-                    Log.d(TAG, ">>> Uploading: ${file.name} (${file.length() / 1024} KB)")
+                    Log.d(TAG, ">>> Uploading: ${file.name}")
                     FileInputStream(file).use { inputStream ->
                         client!!.files().uploadBuilder("/$COLLECTION_DIR/${file.name}")
                             .withMode(WriteMode.OVERWRITE)
@@ -266,20 +328,17 @@ object DropboxSyncManager {
                             .withMute(true)
                             .uploadAndFinish(inputStream)
                     }
-                    Log.d(TAG, "✅ Success: ${file.name}")
-                    uploadCount++
-                    Thread.sleep(500)
                 } catch (e: Exception) {
-                    Log.e(TAG, "❌ FAILURE on ${file.name}: ${e.message}")
+                    Log.e(TAG, "Upload failed: ${file.name}", e)
                 }
             }
         }
-        Log.d(TAG, "Upload session finished. Uploaded: $uploadCount files")
 
         remoteFiles.values.forEach { metadata ->
             if (metadata.pathDisplay.contains("/$COLLECTION_DIR/")) {
                 val localFile = File(imgDir, metadata.name)
-                if (!localFile.exists()) {
+                // Качаем только если нет или битый
+                if (!localFile.exists() || localFile.length() == 0L) {
                     try {
                         downloadFile(metadata.pathLower, localFile)
                     } catch (e: Exception) {
@@ -291,40 +350,90 @@ object DropboxSyncManager {
     }
 
     private fun uploadAll() {
+        // Сначала пробуем создать бэкап в фоне
+        scope.launch { createAndUploadBackupZip() }
+
         JSON_FILES.forEach { fileName ->
             val file = File(rootDir, fileName)
             if (file.exists()) try { uploadFile(file, "/$fileName") } catch(e:Exception){}
         }
         val imgDir = File(rootDir, COLLECTION_DIR)
-        val sortedImages = imgDir.listFiles()?.sortedBy {
-            it.nameWithoutExtension.toIntOrNull() ?: Int.MAX_VALUE
-        } ?: emptyList()
-
-        sortedImages.forEach { file ->
+        imgDir.listFiles()?.forEach { file ->
             try {
                 uploadFile(file, "/$COLLECTION_DIR/${file.name}")
-                Thread.sleep(100)
             } catch (e: Exception) {
                 Log.e(TAG, "First upload failed for ${file.name}", e)
             }
         }
     }
 
-    private fun downloadAll() {
+    private suspend fun downloadAll() {
+        Log.d(TAG, "Starting Restore process...")
+
+        // 1. Проверяем ZIP
+        var hasBackupZip = false
+        try {
+            client!!.files().getMetadata("/backup.zip")
+            hasBackupZip = true
+        } catch (e: Exception) {
+            Log.d(TAG, "No backup.zip found.")
+        }
+
+        // 2. Если есть ZIP - качаем
+        if (hasBackupZip) {
+            try {
+                Log.d(TAG, "Found backup.zip! Downloading...")
+                val localZip = File(rootDir, "backup.zip")
+                downloadFile("/backup.zip", localZip)
+
+                if (localZip.exists() && localZip.length() > 0) {
+                    Log.d(TAG, "Unzipping...")
+                    val tempUnzipDir = File(rootDir, "temp_unzip")
+                    ZipUtils.unzip(localZip, tempUnzipDir)
+
+                    tempUnzipDir.listFiles()?.forEach { file ->
+                        if (file.name.endsWith(".json") || file.name.endsWith(".txt")) {
+                            val dest = File(rootDir, file.name)
+                            if (dest.exists()) dest.delete()
+                            file.renameTo(dest)
+                        } else {
+                            val imgDir = File(rootDir, COLLECTION_DIR)
+                            if (!imgDir.exists()) imgDir.mkdirs()
+                            val dest = File(imgDir, file.name)
+                            if (dest.exists()) dest.delete()
+                            file.renameTo(dest)
+                        }
+                    }
+                    tempUnzipDir.deleteRecursively()
+                    localZip.delete()
+                    Log.d(TAG, "Restore from ZIP finished!")
+
+                    // Синхронизация поверх (на случай старого бэкапа)
+                    val remoteFiles = getAllRemoteFiles()
+                    performTwoWaySync(remoteFiles)
+                    return
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Zip restore failed, falling back", e)
+            }
+        }
+
+        // 3. Fallback (Пофайлово)
+        val allRemoteFiles = mutableListOf<com.dropbox.core.v2.files.FileMetadata>()
         try {
             var result = client!!.files().listFolderBuilder("").withRecursive(true).start()
             while (true) {
-                result.entries.forEach { metadata ->
-                    if (metadata is com.dropbox.core.v2.files.FileMetadata) {
-                        val localPath = File(rootDir, metadata.pathDisplay.removePrefix("/"))
-                        try { downloadFile(metadata.pathLower, localPath) } catch(e:Exception){}
-                    }
-                }
+                result.entries.forEach { if (it is com.dropbox.core.v2.files.FileMetadata) allRemoteFiles.add(it) }
                 if (!result.hasMore) break
                 result = client!!.files().listFolderContinue(result.cursor)
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (e: Exception) { return }
+
+        allRemoteFiles.filter { it.name.endsWith(".json") }.forEach {
+            try { downloadFile(it.pathLower, File(rootDir, it.name)) } catch(e:Exception){}
+        }
+        allRemoteFiles.filter { !it.name.endsWith(".json") && !it.name.endsWith(".zip") }.forEach {
+            try { downloadFile(it.pathLower, File(rootDir, COLLECTION_DIR + "/" + it.name)) } catch(e:Exception){}
         }
     }
 
@@ -337,13 +446,69 @@ object DropboxSyncManager {
         }
     }
 
-    private fun downloadFile(remotePath: String, localFile: File) {
+    private suspend fun downloadFile(remotePath: String, localFile: File) = withContext(Dispatchers.IO) {
         localFile.parentFile?.mkdirs()
-        FileOutputStream(localFile).use { outputStream ->
-            client!!.files().download(remotePath).download(outputStream)
+
+        // Убираем битые файлы
+        if (localFile.exists() && localFile.length() == 0L) localFile.delete()
+
+        var attempt = 0
+        val maxAttempts = 3
+        var success = false
+
+        while (attempt < maxAttempts && !success) {
+            try {
+                attempt++
+
+                if (remotePath.endsWith(".json", ignoreCase = true) ||
+                    remotePath.endsWith(".txt", ignoreCase = true)) {
+
+                    // Мелкие конфиги - в память
+                    val downloader = client!!.files().download(remotePath)
+                    val bytes = downloader.inputStream.use { it.readBytes() }
+                    downloader.close()
+
+                    if (bytes.isNotEmpty()) {
+                        if (localFile.exists()) localFile.delete()
+                        localFile.writeBytes(bytes)
+                        success = true
+                    } else {
+                        throw java.io.IOException("Content empty")
+                    }
+
+                } else {
+                    // Картинки и ZIP - в файл
+                    val tempFile = File(localFile.parent, "${localFile.name}.tmp")
+                    if (tempFile.exists()) tempFile.delete()
+
+                    FileOutputStream(tempFile).use { output ->
+                        client!!.files().download(remotePath).download(output)
+                    }
+
+                    if (tempFile.length() > 0L) {
+                        if (localFile.exists()) localFile.delete()
+                        tempFile.renameTo(localFile)
+                        success = true
+                    } else {
+                        tempFile.delete()
+                        throw java.io.IOException("Temp file 0 bytes")
+                    }
+                }
+
+                if (success) {
+                    val metadata = client!!.files().getMetadata(remotePath) as? com.dropbox.core.v2.files.FileMetadata
+                    metadata?.let { localFile.setLastModified(it.serverModified.time) }
+                }
+
+            } catch (e: Exception) {
+                Log.w(TAG, "Attempt $attempt failed for $remotePath: ${e.message}")
+                if (attempt == maxAttempts) {
+                    Log.e(TAG, "Final failure for $remotePath")
+                } else {
+                    delay(1000)
+                }
+            }
         }
-        val metadata = client!!.files().getMetadata(remotePath) as? com.dropbox.core.v2.files.FileMetadata
-        metadata?.let { localFile.setLastModified(it.serverModified.time) }
     }
 
     private fun isLocalEmpty(): Boolean {
@@ -354,7 +519,7 @@ object DropboxSyncManager {
     }
 }
 
-// --- OKHTTP WRAPPER ---
+// --- ГИБРИДНЫЙ ЗАГРУЗЧИК (Memory < 5MB < File) ---
 class DropboxOkHttpRequestor(private val client: OkHttpClient) : HttpRequestor() {
 
     override fun doGet(url: String, headers: Iterable<HttpRequestor.Header>): DbxResponse {
@@ -364,14 +529,14 @@ class DropboxOkHttpRequestor(private val client: OkHttpClient) : HttpRequestor()
         return toDropboxResponse(response)
     }
 
-    override fun startPut(url: String, headers: Iterable<HttpRequestor.Header>): HttpRequestor.Uploader {
-        return startPost(url, headers)
-    }
-
     override fun startPost(url: String, headers: Iterable<HttpRequestor.Header>): HttpRequestor.Uploader {
         return object : HttpRequestor.Uploader() {
-            private var currentResponse: OkHttpResponse? = null
-            private val buffer = java.io.ByteArrayOutputStream()
+            private val MEMORY_LIMIT = 5 * 1024 * 1024 // 5 MB
+
+            private var memoryBuffer: java.io.ByteArrayOutputStream? = java.io.ByteArrayOutputStream()
+            private var tempFile: File? = null
+            private var fileStream: FileOutputStream? = null
+
             private val requestBuilder = OkHttpRequest.Builder().url(url)
 
             init {
@@ -379,27 +544,68 @@ class DropboxOkHttpRequestor(private val client: OkHttpClient) : HttpRequestor()
             }
 
             override fun getBody(): OutputStream {
-                return buffer
+                return object : OutputStream() {
+                    override fun write(b: Int) { write(byteArrayOf(b.toByte()), 0, 1) }
+
+                    override fun write(b: ByteArray, off: Int, len: Int) {
+                        if (memoryBuffer != null) {
+                            if (memoryBuffer!!.size() + len > MEMORY_LIMIT) {
+                                switchToDisk()
+                                fileStream!!.write(b, off, len)
+                            } else {
+                                memoryBuffer!!.write(b, off, len)
+                            }
+                        } else {
+                            fileStream!!.write(b, off, len)
+                        }
+                    }
+
+                    private fun switchToDisk() {
+                        try {
+                            tempFile = File.createTempFile("dbx_stream_", ".tmp")
+                            fileStream = FileOutputStream(tempFile)
+                            memoryBuffer!!.writeTo(fileStream)
+                            memoryBuffer = null
+                        } catch (e: Exception) {
+                            Log.e("DropboxReq", "Switch to disk failed", e)
+                        }
+                    }
+
+                    override fun close() { fileStream?.close() }
+                }
             }
 
             override fun finish(): DbxResponse {
-                val bodyBytes = buffer.toByteArray()
-                val requestBody = OkHttpRequestBody.create(null, bodyBytes)
+                val requestBody = if (tempFile != null) {
+                    fileStream?.close()
+                    tempFile!!.asRequestBody("application/octet-stream".toMediaType())
+                } else {
+                    OkHttpRequestBody.create(null, memoryBuffer!!.toByteArray())
+                }
+
                 requestBuilder.post(requestBody)
-                val response = client.newCall(requestBuilder.build()).execute()
-                currentResponse = response
-                return toDropboxResponse(response)
+
+                try {
+                    val response = client.newCall(requestBuilder.build()).execute()
+                    return toDropboxResponse(response)
+                } finally {
+                    if (tempFile != null && tempFile!!.exists()) {
+                        tempFile!!.delete()
+                    }
+                }
             }
 
             override fun close() {
-                try { buffer.close() } catch(e: Exception) {}
-                currentResponse?.close()
+                try { fileStream?.close() } catch (e: Exception) {}
+                if (tempFile != null && tempFile!!.exists()) tempFile!!.delete()
             }
 
-            override fun abort() {
-                close()
-            }
+            override fun abort() { close() }
         }
+    }
+
+    override fun startPut(url: String, headers: Iterable<HttpRequestor.Header>): HttpRequestor.Uploader {
+        return startPost(url, headers)
     }
 
     private fun toDropboxResponse(response: OkHttpResponse): DbxResponse {
@@ -409,9 +615,16 @@ class DropboxOkHttpRequestor(private val client: OkHttpClient) : HttpRequestor()
             val value = response.headers.value(i)
             headersMap.getOrPut(name) { mutableListOf() }.add(value)
         }
-        val bodyBytes = response.body?.bytes() ?: ByteArray(0)
-        val bodyStream = java.io.ByteArrayInputStream(bodyBytes)
-        response.close()
+
+        val bodyStream = response.body?.byteStream()?.let { raw ->
+            object : java.io.FilterInputStream(raw) {
+                override fun close() {
+                    super.close()
+                    response.close()
+                }
+            }
+        } ?: java.io.ByteArrayInputStream(ByteArray(0))
+
         return DbxResponse(
             response.code,
             bodyStream,
