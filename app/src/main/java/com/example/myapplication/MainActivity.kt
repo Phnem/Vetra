@@ -236,16 +236,32 @@ data class UiStrings(
     val genreAnime: String,
     val genreMovies: String,
     val genreSeries: String,
-    val filterByGenre: String
+    val filterByGenre: String,
+    val nottifHeader: String,
+    val nottifLastSyncTitle: String,
+    val nottifLastSyncSub: String,
+    val nottifStatusTitle: String,
+    val nottifStatusSub: String,
+    val nottifAccountTitle: String,
+    val nottifLogoutConfirmTitle: String,
+    val nottifLogoutConfirmBody: String
 )
 
 val RussianStrings = UiStrings(
-    appName = "MAList", searchPlaceholder = "Поиск в коллекции...", newestFirst = "Сначала новые", highestRated = "Высокий рейтинг", nameAZ = "По названию (А-Я)", favorites = "Избранное", settings = "Настройки", emptyTitle = "В папке пусто", emptySubtitle = "Кажется, здесь еще ничего нет.", noResults = "Ничего не найдено", noFavorites = "Нет избранного", statsTitle = "Ваша статистика", statsSubtitle = "Все, что вы посмотрели", episodesWatched = "Эпизодов просмотрено", timeSpent = "Затраченное время", avgRating = "Средний рейтинг", rankTitle = "Ваш ранг:", updatesTitle = "Обновления", updatesChecking = "Проверка API (Shikimori, Jikan, TMDB)...\nЭто может занять некоторое время.", updatesUpToDate = "У вас все актуально!", deleteTitle = "Удалить тайтл?", deleteSubtitle = "Это действие нельзя будет отменить.", deleteConfirm = "Удалить", favTitle = "Добавить в избранное?", favSubtitle = "Будущий вы скажет вам «спасибо» :)", favConfirm = "В избранное", cancel = "Отмена", addTitle = "Добавить тайтл", editTitle = "Изменить", animeTitleHint = "Название аниме", episodesHint = "Просмотрено серий", addPhoto = "Добавить фото", enterTitleToast = "Введите название", updatedToast = "Обновлено: ", languageName = "RU", settingsScreenTitle = "Настройки", languageCardTitle = "Язык", langRu = "Русский", langEn = "English", themeTitle = "Тема оформления", themeLight = "Светлая", themeDark = "Тёмная", themeSystem = "Системная", checkForUpdateTitle = "Обновление приложения", checkButtonText = "Проверить версию", contactTitle = "Связь со мной", contactSubtitle = "Нашли баг или есть идея?", genreAnime = "Аниме", genreMovies = "Фильмы", genreSeries = "Сериалы", filterByGenre = "По жанрам"
+    appName = "MAList", searchPlaceholder = "Поиск в коллекции...", newestFirst = "Сначала новые", highestRated = "Высокий рейтинг", nameAZ = "По названию (А-Я)", favorites = "Избранное", settings = "Настройки", emptyTitle = "В папке пусто", emptySubtitle = "Кажется, здесь еще ничего нет.", noResults = "Ничего не найдено", noFavorites = "Нет избранного", statsTitle = "Ваша статистика", statsSubtitle = "Все, что вы посмотрели", episodesWatched = "Эпизодов просмотрено", timeSpent = "Затраченное время", avgRating = "Средний рейтинг", rankTitle = "Ваш ранг:", updatesTitle = "Обновления", updatesChecking = "Проверка API (Shikimori, Jikan, TMDB)...\nЭто может занять некоторое время.", updatesUpToDate = "У вас все актуально!", deleteTitle = "Удалить тайтл?", deleteSubtitle = "Это действие нельзя будет отменить.", deleteConfirm = "Удалить", favTitle = "Добавить в избранное?", favSubtitle = "Будущий вы скажет вам «спасибо» :)", favConfirm = "В избранное", cancel = "Отмена", addTitle = "Добавить тайтл", editTitle = "Изменить", animeTitleHint = "Название аниме", episodesHint = "Просмотрено серий", addPhoto = "Добавить фото", enterTitleToast = "Введите название", updatedToast = "Обновлено: ", languageName = "RU", settingsScreenTitle = "Настройки", languageCardTitle = "Язык", langRu = "Русский", langEn = "English", themeTitle = "Тема оформления", themeLight = "Светлая", themeDark = "Тёмная", themeSystem = "Системная", checkForUpdateTitle = "Обновление приложения", checkButtonText = "Проверить версию", contactTitle = "Связь со мной", contactSubtitle = "Нашли баг или есть идея?", genreAnime = "Аниме", genreMovies = "Фильмы", genreSeries = "Сериалы", filterByGenre = "По жанрам",
+    nottifHeader = "Уведомления & Синхронизация",
+    nottifLastSyncTitle = "last sync",
+    nottifLastSyncSub = "Время обновления",
+    nottifStatusTitle = "Статус",
+    nottifStatusSub = "Состояние синхронизации",
+    nottifAccountTitle = "Мой MAList",
+    nottifLogoutConfirmTitle = "Выйти из аккаунта?",
+    nottifLogoutConfirmBody = "Локальные данные будут удалены. Вы будете перенаправлены на экран приветствия."
 )
 
 val EnglishStrings = UiStrings(
-    appName = "MAList", searchPlaceholder = "Search collection...", newestFirst = "Newest First", highestRated = "Highest Rated", nameAZ = "Name (A-Z)", favorites = "Favorites", settings = "Settings", emptyTitle = "Nothing in folder", emptySubtitle = "Looks empty over here.", noResults = "No results found", noFavorites = "No favorites yet", statsTitle = "Your Watch Stats", statsSubtitle = "Everything you’ve watched so far", episodesWatched = "Episodes watched", timeSpent = "Time spent watching", avgRating = "Average rating", rankTitle = "Your rank:", updatesTitle = "Updates", updatesChecking = "Checking APIs (Shikimori, Jikan, TMDB)...\nThis will take a moment.", updatesUpToDate = "You are up to date!", deleteTitle = "Delete title?", deleteSubtitle = "There’s no “undo”, no “Ctrl+Z”...", deleteConfirm = "Delete", favTitle = "Add to favorites?", favSubtitle = "Future you will thank you)", favConfirm = "Set Favorite", cancel = "Cancel", addTitle = "Add title", editTitle = "Edit title", animeTitleHint = "Anime Title", episodesHint = "Episodes Watched", addPhoto = "Add Photo", enterTitleToast = "Enter title", updatedToast = "Updated: ", languageName = "EN", settingsScreenTitle = "Settings", languageCardTitle = "Language", langRu = "Russian", langEn = "English", themeTitle = "Themes", themeLight = "Light", themeDark = "Dark", themeSystem = "System", checkForUpdateTitle = "App Update", checkButtonText = "Check Version", contactTitle = "Contact me", contactSubtitle = "Found a bug or have an idea?", genreAnime = "Anime", genreMovies = "Movies", genreSeries = "TV Series", filterByGenre = "By genres"
-)
+    appName = "MAList", searchPlaceholder = "Search collection...", newestFirst = "Newest First", highestRated = "Highest Rated", nameAZ = "Name (A-Z)", favorites = "Favorites", settings = "Settings", emptyTitle = "Nothing in folder", emptySubtitle = "Looks empty over here.", noResults = "No results found", noFavorites = "No favorites yet", statsTitle = "Your Watch Stats", statsSubtitle = "Everything you’ve watched so far", episodesWatched = "Episodes watched", timeSpent = "Time spent watching", avgRating = "Average rating", rankTitle = "Your rank:", updatesTitle = "Updates", updatesChecking = "Checking APIs (Shikimori, Jikan, TMDB)...\nThis will take a moment.", updatesUpToDate = "You are up to date!", deleteTitle = "Delete title?", deleteSubtitle = "There’s no “undo”, no “Ctrl+Z”...", deleteConfirm = "Delete", favTitle = "Add to favorites?", favSubtitle = "Future you will thank you)", favConfirm = "Set Favorite", cancel = "Cancel", addTitle = "Add title", editTitle = "Edit title", animeTitleHint = "Anime Title", episodesHint = "Episodes Watched", addPhoto = "Add Photo", enterTitleToast = "Enter title", updatedToast = "Updated: ", languageName = "EN", settingsScreenTitle = "Settings", languageCardTitle = "Language", langRu = "Russian", langEn = "English", themeTitle = "Themes", themeLight = "Light", themeDark = "Dark", themeSystem = "System", checkForUpdateTitle = "App Update", checkButtonText = "Check Version", contactTitle = "Contact me", contactSubtitle = "Found a bug or have an idea?", genreAnime = "Anime", genreMovies = "Movies", genreSeries = "TV Series", filterByGenre = "By genres",
+    nottifHeader = "Notifications & Sync", nottifLastSyncTitle = "Last Sync", nottifLastSyncSub = "Last updated time", nottifStatusTitle = "Status", nottifStatusSub = "Sync condition", nottifAccountTitle = "My MAList", nottifLogoutConfirmTitle = "Log out?", nottifLogoutConfirmBody = "Local data will be cleared. You will be redirected to the welcome screen." )
 
 fun getStrings(lang: AppLanguage): UiStrings = when(lang) {
     AppLanguage.RU -> RussianStrings
@@ -1730,26 +1746,68 @@ fun HomeScreen(
     val focusManager = LocalFocusManager.current
     val view = LocalView.current
     val hazeState = remember { HazeState() }
+
     var showCSheet by remember { mutableStateOf(false) }
     var isSearchVisible by remember { mutableStateOf(false) }
+
+    // 1. NOTIFICATION OVERLAY ANIMATION
+    var showNotificationsOverlay by remember { mutableStateOf(false) }
+    val notifVisibleState = remember { MutableTransitionState(false) }
+    notifVisibleState.targetState = showNotificationsOverlay
+
+    // 2. SORT OVERLAY ANIMATION
+    var showSortOverlay by remember { mutableStateOf(false) }
+    val sortVisibleState = remember { MutableTransitionState(false) }
+    sortVisibleState.targetState = showSortOverlay
+
+    // 3. GENRE FILTER OVERLAY ANIMATION
+    // We bind this directly to the ViewModel's state to coordinate with the Sort menu
+    val genreFilterVisibleState = remember { MutableTransitionState(false) }
+    genreFilterVisibleState.targetState = vm.isGenreFilterVisible
+
     val searchFocusRequester = remember { FocusRequester() }
     var animeToDelete by remember { mutableStateOf<Anime?>(null) }
     var animeToFavorite by remember { mutableStateOf<Anime?>(null) }
     val scope = rememberCoroutineScope()
+
     LaunchedEffect(Unit) { vm.checkForUpdates() }
+
     var isDockVisible by remember { mutableStateOf(true) }
     val finalDockVisible = isDockVisible || isSearchVisible
-    val nestedScrollConnection = remember { object : NestedScrollConnection { override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset { val threshold = 10f; if (available.y < -threshold) { if (isDockVisible) isDockVisible = false } else if (available.y > threshold) { if (!isDockVisible) isDockVisible = true }; return Offset.Zero } } }
-    BackHandler(enabled = isSearchVisible || vm.searchQuery.isNotEmpty()) { if (isSearchVisible) { performHaptic(view, "light"); isSearchVisible = false; vm.searchQuery = ""; focusManager.clearFocus(); kbd?.hide() } }
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val threshold = 10f;
+                if (available.y < -threshold) { if (isDockVisible) isDockVisible = false }
+                else if (available.y > threshold) { if (!isDockVisible) isDockVisible = true }
+                return Offset.Zero
+            }
+        }
+    }
+
+    BackHandler(enabled = isSearchVisible || vm.searchQuery.isNotEmpty()) {
+        if (isSearchVisible) {
+            performHaptic(view, "light")
+            isSearchVisible = false
+            vm.searchQuery = ""
+            focusManager.clearFocus()
+            kbd?.hide()
+        }
+    }
+
     val listState = rememberLazyListState()
     var overscrollAmount by remember { mutableFloatStateOf(0f) }
     val isHeaderFloating by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 10 } }
     val showScrollToTop by remember { derivedStateOf { listState.firstVisibleItemIndex > 4 } }
     val bgColor = MaterialTheme.colorScheme.background
-    val shouldBlur = (isSearchVisible && vm.searchQuery.isBlank()) || showCSheet || animeToDelete != null || animeToFavorite != null || vm.isGenreFilterVisible
+
+    // Logic for blurring the list (all overlays included)
+    val shouldBlur = (isSearchVisible && vm.searchQuery.isBlank()) ||
+            showCSheet || animeToDelete != null || animeToFavorite != null ||
+            vm.isGenreFilterVisible || showNotificationsOverlay || showSortOverlay
     val blurAmount by animateDpAsState(targetValue = if (shouldBlur) 10.dp else 0.dp, label = "blur")
 
-    // --- DETAILS LOGIC ---
+    // --- DETAILS SHEET ---
     if (vm.selectedAnimeForDetails != null) {
         AnimeDetailsSheet(
             viewModel = vm,
@@ -1760,18 +1818,115 @@ fun HomeScreen(
     Scaffold(containerColor = Color.Transparent, bottomBar = {}, floatingActionButton = {}) { _ ->
         Box(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.fillMaxSize().background(bgColor))
-            Box(modifier = Modifier.zIndex(6f).align(Alignment.TopEnd).padding(end = 16.dp)) { GlassActionDock(hazeState = hazeState, isFloating = isHeaderFloating, sortOption = vm.sortOption, viewModel = vm, onSortSelected = { sort -> performHaptic(view, "light"); vm.sortOption = sort }, modifier = Modifier.padding(top = 12.dp)) }
+
+            // Z-INDEX 6: DOCK (ALWAYS ON TOP)
+            Box(modifier = Modifier.zIndex(6f).align(Alignment.TopEnd).padding(end = 16.dp)) {
+                GlassActionDock(
+                    hazeState = hazeState,
+                    isFloating = isHeaderFloating,
+                    sortOption = vm.sortOption,
+                    viewModel = vm,
+                    // Open Sort Overlay
+                    onOpenSort = {
+                        performHaptic(view, "light")
+                        showSortOverlay = !showSortOverlay
+                        if (showSortOverlay) {
+                            showNotificationsOverlay = false
+                            vm.isGenreFilterVisible = false
+                        }
+                    },
+                    // Open Notifications Overlay
+                    onOpenNotifications = {
+                        performHaptic(view, "light")
+                        showNotificationsOverlay = !showNotificationsOverlay
+                        if (showNotificationsOverlay) {
+                            showSortOverlay = false
+                            vm.isGenreFilterVisible = false
+                        }
+                    },
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+            }
+
+            // Z-INDEX 5: OVERLAYS
+
+            // A) Notifications Overlay
+            if (notifVisibleState.currentState || notifVisibleState.targetState) {
+                Box(modifier = Modifier.zIndex(5f).fillMaxSize()) {
+                    NotificationSyncOverlay(
+                        visibleState = notifVisibleState,
+                        viewModel = vm,
+                        onDismiss = { showNotificationsOverlay = false },
+                        onLogout = {
+                            DropboxSyncManager.logout()
+                            nav.navigate("welcome") {
+                                popUpTo("home") { inclusive = true }
+                            }
+                        }
+                    )
+                }
+            }
+
+            // B) Sort Overlay
+            if (sortVisibleState.currentState || sortVisibleState.targetState) {
+                Box(modifier = Modifier.zIndex(5f).fillMaxSize()) {
+                    SortFilterOverlay(
+                        visibleState = sortVisibleState,
+                        viewModel = vm,
+                        onDismiss = { showSortOverlay = false },
+                        onSortSelected = { option ->
+                            performHaptic(view, "light")
+                            vm.sortOption = option
+                        },
+                        onOpenGenreFilter = {
+                            performHaptic(view, "light")
+                            // Toggle VM state, animation triggers via genreFilterVisibleState
+                            vm.isGenreFilterVisible = true
+                        }
+                    )
+                }
+            }
+
+            // C) Genre Filter Overlay (NEW)
+            if (genreFilterVisibleState.currentState || genreFilterVisibleState.targetState) {
+                Box(modifier = Modifier.zIndex(5f).fillMaxSize()) {
+                    GenreFilterOverlay(
+                        visibleState = genreFilterVisibleState,
+                        viewModel = vm,
+                        onDismiss = { vm.isGenreFilterVisible = false }
+                    )
+                }
+            }
+
+            // Z-INDEX 1: MAIN LIST
             Column(modifier = Modifier.fillMaxSize().blur(blurAmount)) {
                 Box(modifier = Modifier.fillMaxSize().weight(1f).background(bgColor)) {
                     val list = vm.getDisplayList()
                     if (list.isEmpty()) {
-                        Column(modifier = Modifier.fillMaxSize()) { MalistWorkspaceTopBar(viewModel = vm); Box(modifier = Modifier.weight(1f)) { EmptyStateView(title = if (vm.searchQuery.isNotEmpty()) vm.strings.noResults else if (vm.sortOption == SortOption.FAVORITES) vm.strings.noFavorites else vm.strings.emptyTitle, subtitle = if (vm.searchQuery.isNotEmpty()) "" else if (vm.sortOption == SortOption.FAVORITES) "" else vm.strings.emptySubtitle) } }
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            MalistWorkspaceTopBar(viewModel = vm)
+                            Box(modifier = Modifier.weight(1f)) {
+                                EmptyStateView(
+                                    title = if (vm.searchQuery.isNotEmpty()) vm.strings.noResults else if (vm.sortOption == SortOption.FAVORITES) vm.strings.noFavorites else vm.strings.emptyTitle,
+                                    subtitle = if (vm.searchQuery.isNotEmpty()) "" else if (vm.sortOption == SortOption.FAVORITES) "" else vm.strings.emptySubtitle
+                                )
+                            }
+                        }
                     } else {
                         Box(modifier = Modifier.fillMaxSize().nestedScroll(nestedScrollConnection).customOverscroll(listState = listState, onNewOverscrollAmount = { overscrollAmount = it }).offset { IntOffset(0, overscrollAmount.roundToInt()) }) {
                             LazyColumn(state = listState, contentPadding = PaddingValues(top = 0.dp, bottom = 120.dp, start = 0.dp, end = 0.dp), verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.haze(state = hazeState)) {
                                 item { MalistWorkspaceTopBar(viewModel = vm) }
                                 items(list, key = { it.id }) { anime ->
-                                    val dismissState = rememberSwipeToDismissBoxState(confirmValueChange = { when(it) { SwipeToDismissBoxValue.StartToEnd -> { performHaptic(view, "success"); animeToFavorite = anime; false }; SwipeToDismissBoxValue.EndToStart -> { performHaptic(view, "warning"); animeToDelete = anime; false }; else -> false } }, positionalThreshold = { totalDistance -> totalDistance * 0.5f })
+                                    val dismissState = rememberSwipeToDismissBoxState(
+                                        confirmValueChange = {
+                                            when(it) {
+                                                SwipeToDismissBoxValue.StartToEnd -> { performHaptic(view, "success"); animeToFavorite = anime; false }
+                                                SwipeToDismissBoxValue.EndToStart -> { performHaptic(view, "warning"); animeToDelete = anime; false }
+                                                else -> false
+                                            }
+                                        },
+                                        positionalThreshold = { totalDistance -> totalDistance * 0.5f }
+                                    )
                                     SwipeToDismissBox(state = dismissState, backgroundContent = { SwipeBackground(dismissState) }, modifier = Modifier.padding(horizontal = 16.dp).animateItem()) {
                                         OneUiAnimeCard(
                                             anime = anime,
@@ -1779,7 +1934,7 @@ fun HomeScreen(
                                             sharedTransitionScope = sharedTransitionScope,
                                             animatedVisibilityScope = animatedVisibilityScope,
                                             onClick = { nav.navigate("add_anime?animeId=${anime.id}") },
-                                            onDetailsClick = { performHaptic(view, "light"); vm.loadAnimeDetails(anime) } // Trigger Details
+                                            onDetailsClick = { performHaptic(view, "light"); vm.loadAnimeDetails(anime) }
                                         )
                                     }
                                 }
@@ -1788,6 +1943,8 @@ fun HomeScreen(
                     }
                 }
             }
+
+            // BOTTOM BAR & SEARCH
             if (!isSearchVisible && animeToDelete == null && animeToFavorite == null) {
                 Box(modifier = Modifier.align(Alignment.BottomCenter).zIndex(3f).navigationBarsPadding()) {
                     AnimatedVisibility(visible = finalDockVisible, enter = slideInVertically(initialOffsetY = { it }, animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)) + fadeIn(animationSpec = tween(300)), exit = slideOutVertically(targetOffsetY = { it }, animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)) + fadeOut(animationSpec = tween(300))) {
@@ -1795,19 +1952,29 @@ fun HomeScreen(
                     }
                 }
             }
+
             AnimatedVisibility(visible = isSearchVisible, enter = slideInVertically { it } + fadeIn(), exit = slideOutVertically { it } + fadeOut(), modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 16.dp).windowInsetsPadding(WindowInsets.ime).padding(bottom = 16.dp).zIndex(10f)) {
                 SimpGlassCard(hazeState = hazeState, shape = RoundedCornerShape(28.dp), modifier = Modifier.fillMaxWidth().height(56.dp)) {
                     BasicTextField(value = vm.searchQuery, onValueChange = { vm.searchQuery = it; if (it.isNotEmpty()) performHaptic(view, "light") }, modifier = Modifier.fillMaxSize().focusRequester(searchFocusRequester).padding(horizontal = 20.dp), singleLine = true, textStyle = TextStyle(fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface, fontFamily = SnProFamily), cursorBrush = SolidColor(BrandBlue), decorationBox = { innerTextField -> Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Search, null, tint = BrandBlue); Spacer(Modifier.width(12.dp)); Box { if (vm.searchQuery.isEmpty()) { Text(vm.strings.searchPlaceholder, color = MaterialTheme.colorScheme.secondary, fontSize = 16.sp, fontFamily = SnProFamily) }; innerTextField() } } }, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), keyboardActions = KeyboardActions(onSearch = { kbd?.hide() }))
                 }
                 LaunchedEffect(Unit) { searchFocusRequester.requestFocus(); kbd?.show() }
             }
-            if (shouldBlur && animeToDelete == null && animeToFavorite == null && !vm.isGenreFilterVisible && vm.selectedAnimeForDetails == null) { Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { focusManager.clearFocus(); isSearchVisible = false; kbd?.hide() }.zIndex(2f)) }
+
+            // PLAIN SCRIM (Z-INDEX 2)
+            if (shouldBlur && animeToDelete == null && animeToFavorite == null && vm.selectedAnimeForDetails == null && !showNotificationsOverlay && !showSortOverlay && !vm.isGenreFilterVisible) {
+                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { focusManager.clearFocus(); isSearchVisible = false; kbd?.hide() }.zIndex(2f))
+            }
+
+            // DIALOGS
             if (animeToDelete != null) { SpringBottomDialog(title = vm.strings.deleteTitle, subtitle = vm.strings.deleteSubtitle, confirmText = vm.strings.deleteConfirm, cancelText = vm.strings.cancel, icon = Icons.Default.Delete, accentColor = BrandRed, imageFile = vm.getImgPath(animeToDelete?.imageFileName), onConfirm = { vm.deleteAnime(animeToDelete!!.id); animeToDelete = null }, onCancel = { animeToDelete = null }) }
             if (animeToFavorite != null) { SpringBottomDialog(title = vm.strings.favTitle, subtitle = vm.strings.favSubtitle, confirmText = vm.strings.favConfirm, cancelText = vm.strings.cancel, icon = Icons.Default.Star, accentColor = RateColor3, imageFile = vm.getImgPath(animeToFavorite?.imageFileName), onConfirm = { vm.toggleFavorite(animeToFavorite!!.id); animeToFavorite = null }, onCancel = { animeToFavorite = null }) }
+
+            // SCROLL TO TOP
             AnimatedVisibility(visible = showScrollToTop && !isSearchVisible && animeToDelete == null && animeToFavorite == null, enter = fadeIn() + scaleIn(), exit = fadeOut() + scaleOut(), modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 160.dp, end = 24.dp).zIndex(1f)) { SimpGlassCard(hazeState = hazeState, shape = CircleShape, modifier = Modifier.size(44.dp).clickable { performHaptic(view, "light"); scope.launch { listState.animateScrollToItem(0) } }) { Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "Up", tint = MaterialTheme.colorScheme.onSurface) } }
         }
+
+        // BOTTOM SHEETS
         if (showCSheet) { StatsOverlay(viewModel = vm, onDismiss = { showCSheet = false }) }
-        if (vm.isGenreFilterVisible) { GenreFilterSheet(viewModel = vm, onDismiss = { vm.isGenreFilterVisible = false }) }
     }
 }
 

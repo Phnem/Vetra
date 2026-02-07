@@ -104,24 +104,28 @@ fun SimpGlassCard(
 // ==========================================
 // GLASSACTIONDOCK (МЕНЮ СОРТИРОВКИ И ФИЛЬТРА)
 // ==========================================
+// ==========================================
+// GLASSACTIONDOCK (МЕНЮ СОРТИРОВКИ И ФИЛЬТРА + НОВЫЕ УВЕДОМЛЕНИЯ)
+// ==========================================
+// ... imports (оставь как были)
+
+// ==========================================
+// GLASSACTIONDOCK (Обновленный)
+// ==========================================
 @Composable
 fun GlassActionDock(
     hazeState: HazeState,
     isFloating: Boolean,
     sortOption: SortOption,
     viewModel: AnimeViewModel,
-    onSortSelected: (SortOption) -> Unit,
+    onOpenSort: () -> Unit, // <--- ИЗМЕНЕНО: Просто открывает оверлей
+    onOpenNotifications: () -> Unit,
     modifier: Modifier = Modifier
 ){
     val isDark = isSystemInDarkTheme()
-    val context = LocalContext.current
 
-    val topPadding by animateDpAsState(
-        targetValue = if (isFloating) 16.dp else 0.dp,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "dockPadding"
-    )
-
+    // Анимации остаются прежними
+    val topPadding by animateDpAsState(targetValue = if (isFloating) 16.dp else 0.dp, animationSpec = spring(stiffness = Spring.StiffnessLow), label = "dockPadding")
     val targetTint = if (isDark) Color.Black.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.05f)
     val tintColor by animateColorAsState(targetValue = if (isFloating) targetTint else Color.Transparent, label = "tint")
     val blurRadius by animateDpAsState(targetValue = if (isFloating) 30.dp else 0.dp, label = "blur")
@@ -131,8 +135,7 @@ fun GlassActionDock(
     val shineAlpha by animateFloatAsState(targetValue = if (isFloating) 1f else 0f, label = "shineAlpha")
     val buttonBgColor by animateColorAsState(targetValue = if (isFloating) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), label = "btnBg")
 
-    var expandedSort by remember { mutableStateOf(false) }
-    var expandedNotifs by remember { mutableStateOf(false) }
+    // Удалено: var expandedSort by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -146,6 +149,7 @@ fun GlassActionDock(
             )
             .border(0.5.dp, borderColor, RoundedCornerShape(32.dp))
     ) {
+        // Shine эффект (оставлен)
         if (shineAlpha > 0f) {
             Canvas(modifier = Modifier.matchParentSize()) {
                 val rect = Rect(offset = Offset.Zero, size = size)
@@ -159,70 +163,24 @@ fun GlassActionDock(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // КНОПКА СОРТИРОВКИ
-            Box {
-                IconButton(onClick = { expandedSort = true }, modifier = Modifier.size(44.dp).clip(CircleShape).background(buttonBgColor)) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort", tint = MaterialTheme.colorScheme.onSurface)
-                }
-                MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(16.dp))) {
-                    DropdownMenu(
-                        expanded = expandedSort,
-                        onDismissRequest = { expandedSort = false },
-                        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.96f),
-                        offset = DpOffset(x = 0.dp, y = 8.dp)
-                    ) {
-                        SortOption.values().forEach { option ->
-                            val isSelected = sortOption == option
-                            DropdownMenuItem(
-                                text = { Text(text = option.getLabel(viewModel.strings), color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                                trailingIcon = {
-                                    val icon = when (option) {
-                                        SortOption.DATE_NEWEST -> Icons.Default.DateRange
-                                        SortOption.RATING_HIGH -> Icons.Default.Star
-                                        SortOption.AZ -> Icons.AutoMirrored.Filled.Sort
-                                        SortOption.FAVORITES -> Icons.Default.Favorite
-                                    }
-                                    Icon(imageVector = icon, contentDescription = null, tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary)
-                                },
-                                onClick = { onSortSelected(option); expandedSort = false }
-                            )
-                        }
+            // КНОПКА СОРТИРОВКИ (ТЕПЕРЬ ПРОСТО КНОПКА)
+            IconButton(
+                onClick = { onOpenSort() },
+                modifier = Modifier.size(44.dp).clip(CircleShape).background(buttonBgColor)
+            ) {
+                // Иконка меняется если включен фильтр, как индикация
+                val icon = if (viewModel.filterSelectedTags.isNotEmpty()) Icons.Outlined.FilterList else Icons.AutoMirrored.Filled.Sort
+                val tint = if (viewModel.filterSelectedTags.isNotEmpty()) BrandBlue else MaterialTheme.colorScheme.onSurface
 
-                        // ПУНКТ: ФИЛЬТР ПО ЖАНРАМ
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                        DropdownMenuItem(
-                            text = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(viewModel.strings.filterByGenre, fontWeight = FontWeight.Bold)
-                                    if (viewModel.filterSelectedTags.isNotEmpty()) {
-                                        Spacer(Modifier.width(8.dp))
-                                        Box(modifier = Modifier.clip(CircleShape).background(BrandBlue).padding(horizontal = 6.dp, vertical = 2.dp)) {
-                                            Text(
-                                                text = viewModel.filterSelectedTags.size.toString(),
-                                                color = Color.White,
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    }
-                                }
-                            },
-                            onClick = {
-                                expandedSort = false
-                                viewModel.isGenreFilterVisible = true
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Outlined.FilterList, null, tint = MaterialTheme.colorScheme.primary)
-                            }
-                        )
-                    }
-                }
+                Icon(imageVector = icon, contentDescription = "Sort", tint = tint)
             }
+
+            // ВЕСЬ DropdownMenu УДАЛЕН ОТСЮДА
 
             // КНОПКА УВЕДОМЛЕНИЙ
             Box {
                 IconButton(
-                    onClick = { expandedNotifs = true },
+                    onClick = { onOpenNotifications() },
                     modifier = Modifier.size(44.dp).clip(CircleShape).background(buttonBgColor)
                 ) {
                     Icon(
@@ -231,80 +189,9 @@ fun GlassActionDock(
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
+
                 if (viewModel.updates.isNotEmpty()) {
                     Box(modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(8.dp).background(BrandRed, CircleShape))
-                }
-
-                val isRu = viewModel.currentLanguage == AppLanguage.RU
-                val txtHeader = if (isRu) "Обновление контента" else "Content update"
-                val txtSubHeader = if (isRu) "Проверяю, вышли ли новые серии" else "Checking if new episodes are available"
-                val txtEmptyTitle = if (isRu) "Кажется, ничего нового не вышло" else "Looks like nothing new was released"
-                val txtEmptyBody = if (isRu) "Я проверил несколько разных API, похоже, ты обновлён!" else "I checked multiple APIs — looks like you're up to date!"
-
-                MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(24.dp))) {
-                    DropdownMenu(
-                        expanded = expandedNotifs,
-                        onDismissRequest = { expandedNotifs = false },
-                        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.98f),
-                        offset = DpOffset(x = 0.dp, y = 8.dp),
-                        modifier = Modifier.widthIn(min = 320.dp, max = 360.dp)
-                    ) {
-                        DropdownMenuItem(
-                            text = {
-                                Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                                    Text(txtHeader, fontWeight = FontWeight.Black, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
-                                    Spacer(Modifier.height(4.dp))
-                                    Text(txtSubHeader, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
-                                }
-                            },
-                            onClick = {},
-                            enabled = false
-                        )
-
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                        if (viewModel.isCheckingUpdates) {
-                            Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(modifier = Modifier.size(32.dp), strokeWidth = 3.dp, color = BrandBlue)
-                            }
-                        } else if (viewModel.updates.isEmpty()) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth().padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Box(
-                                    modifier = Modifier.size(72.dp).clip(CircleShape).background(RateColor4.copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.Check, null, tint = RateColor4, modifier = Modifier.size(36.dp))
-                                }
-                                Spacer(Modifier.height(16.dp))
-                                Text(txtEmptyTitle, fontWeight = FontWeight.Bold, fontSize = 16.sp, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface)
-                                Spacer(Modifier.height(8.dp))
-                                Text(txtEmptyBody, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.secondary, lineHeight = 20.sp)
-                            }
-                        } else {
-                            viewModel.updates.forEach { update ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Column {
-                                            Text(update.title, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 16.sp)
-                                            Text("${update.newEpisodes} eps (You: ${update.currentEpisodes})", style = MaterialTheme.typography.bodyMedium, color = BrandBlue, fontWeight = FontWeight.SemiBold)
-                                        }
-                                    },
-                                    trailingIcon = {
-                                        Row {
-                                            IconButton(onClick = { viewModel.dismissUpdate(update) }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Close, null, tint = BrandRed, modifier = Modifier.size(20.dp)) }
-                                            Spacer(Modifier.width(8.dp))
-                                            IconButton(onClick = { viewModel.acceptUpdate(update, context); Toast.makeText(context, "${viewModel.strings.updatedToast}${update.title}!", Toast.LENGTH_SHORT).show() }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Check, null, tint = BrandBlue, modifier = Modifier.size(20.dp)) }
-                                        }
-                                    },
-                                    onClick = {},
-                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                                )
-                            }
-                        }
-                    }
                 }
             }
         }

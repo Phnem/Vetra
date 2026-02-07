@@ -4,29 +4,24 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import com.dropbox.core.DbxRequestConfig
+import com.dropbox.core.android.Auth
 import com.dropbox.core.http.HttpRequestor
+import com.dropbox.core.oauth.DbxCredential
 import com.dropbox.core.v2.DbxClientV2
 import com.dropbox.core.v2.files.WriteMode
-import com.dropbox.core.android.Auth
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import okhttp3.MediaType
 import okhttp3.OkHttpClient
-import okio.BufferedSink
-import okio.Okio
-import okio.source
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.OutputStream
-import java.io.PipedInputStream
-import java.io.PipedOutputStream
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
-// --- ЯВНЫЕ АЛИАСЫ ---
+// Алиасы
 import okhttp3.Response as OkHttpResponse
 import okhttp3.Request as OkHttpRequest
 import okhttp3.RequestBody as OkHttpRequestBody
@@ -38,14 +33,14 @@ sealed class SyncResult {
     data class Error(val msg: String) : SyncResult()
 }
 
-enum class SyncState { IDLE, SYNCING, DONE, CONFLICT, ERROR }
+enum class SyncState { IDLE, SYNCING, DONE, CONFLICT, ERROR, AUTH_REQUIRED }
 
 object DropboxSyncManager {
 
     private const val TAG = "DropboxSync"
-    private const val APP_KEY = "0isabzy5qvb6owr" // ВАШ КЛЮЧ
+    private const val APP_KEY = "0isabzy5qvb6owr" // Твой ключ
     private const val PREFS_NAME = "dropbox_prefs"
-    private const val ACCESS_TOKEN_KEY = "access_token"
+    private const val REFRESH_TOKEN_KEY = "refresh_token"
     private const val LAST_SYNC_KEY = "last_sync_time"
 
     private val JSON_FILES = listOf("settings.json", "list.json", "ignored.json")
@@ -65,32 +60,57 @@ object DropboxSyncManager {
         prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val documentsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOCUMENTS)
         rootDir = File(documentsDir, "MyAnimeList")
-        if (!rootDir.exists()) {
-            rootDir.mkdirs()
-        }
+        if (!rootDir.exists()) rootDir.mkdirs()
 
-        val token = prefs.getString(ACCESS_TOKEN_KEY, null)
-        if (token != null) {
-            setupClient(token)
-            Log.d(TAG, "Client initialized")
+        val refreshToken = prefs.getString(REFRESH_TOKEN_KEY, null)
+        if (refreshToken != null) {
+            setupClient(refreshToken)
+            Log.d(TAG, "Client initialized with Refresh Token")
+        } else {
+            _syncState.value = SyncState.AUTH_REQUIRED
         }
+    }
+
+    private fun buildConfig(): DbxRequestConfig {
+        val okHttpClient = OkHttpClient.Builder()
+            .connectTimeout(120, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)
+            .writeTimeout(120, TimeUnit.SECONDS)
+            .build()
+
+        val requestor = DropboxOkHttpRequestor(okHttpClient)
+
+        return DbxRequestConfig.newBuilder("MAList/1.0")
+            .withHttpRequestor(requestor)
+            .build()
     }
 
     fun startOAuth(context: Context) {
-        Auth.startOAuth2Authentication(context, APP_KEY)
+        // Передаем конфиг с OkHttp, чтобы избежать SSL ошибок при входе
+        Auth.startOAuth2PKCE(context, APP_KEY, buildConfig())
     }
 
     fun onOAuthResult() {
-        val token = Auth.getOAuth2Token()
-        if (token != null) {
-            Log.d(TAG, "OAuth success")
-            prefs.edit().putString(ACCESS_TOKEN_KEY, token).apply()
-            setupClient(token)
-            scope.launch { syncNow() }
+        val credential = Auth.getDbxCredential()
+
+        if (credential != null) {
+            val refreshToken = credential.refreshToken
+            if (refreshToken != null) {
+                Log.d(TAG, "OAuth success: Refresh Token received")
+                prefs.edit().putString(REFRESH_TOKEN_KEY, refreshToken).apply()
+
+                // Передаем access token сразу, если он есть, чтобы не делать лишний рефреш
+                val accessToken = credential.accessToken ?: ""
+                setupClient(refreshToken, initialAccessToken = accessToken)
+
+                scope.launch { syncNow() }
+            } else {
+                Log.e(TAG, "OAuth Error: No Refresh Token found")
+            }
         }
     }
 
-    fun hasToken(): Boolean = prefs.contains(ACCESS_TOKEN_KEY)
+    fun hasToken(): Boolean = prefs.contains(REFRESH_TOKEN_KEY)
 
     fun scheduleAutoSync() {
         if (client == null) return
@@ -101,25 +121,22 @@ object DropboxSyncManager {
         }
     }
 
-    private fun setupClient(token: String) {
-        val okHttpClient = OkHttpClient.Builder()
-            // Увеличиваем таймауты до 2 минут для тяжелых файлов и медленного интернета
-            .connectTimeout(120, TimeUnit.SECONDS)
-            .readTimeout(120, TimeUnit.SECONDS)
-            .writeTimeout(120, TimeUnit.SECONDS)
-            .build()
+    private fun setupClient(refreshToken: String, initialAccessToken: String = "") {
+        val config = buildConfig()
 
-        val requestor = DropboxOkHttpRequestor(okHttpClient)
+        // --- ИСПРАВЛЕНИЕ КРЭША ---
+        // Нельзя передавать null в accessToken. Передаем пустую строку "" или реальный токен.
+        // SDK поймет, что токен пустой/протухший, и использует refreshToken для обновления.
+        val credential = DbxCredential(initialAccessToken, -1L, refreshToken, APP_KEY)
 
-        val config = DbxRequestConfig.newBuilder("MAList/1.0")
-            .withHttpRequestor(requestor)
-            .build()
-
-        client = DbxClientV2(config, token)
+        client = DbxClientV2(config, credential)
     }
 
     suspend fun syncNow(): SyncResult = withContext(Dispatchers.IO) {
-        if (client == null) return@withContext SyncResult.Error("No client")
+        if (client == null) {
+            _syncState.value = SyncState.AUTH_REQUIRED
+            return@withContext SyncResult.Error("No client")
+        }
 
         Log.d(TAG, "--- SYNC STARTED ---")
         _syncState.value = SyncState.SYNCING
@@ -150,9 +167,17 @@ object DropboxSyncManager {
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Sync Fatal Error", e)
-            _syncState.value = SyncState.ERROR
-            SyncResult.Error(e.message ?: "Unknown error")
+            // Если рефреш токен отозван или протух
+            if (e is com.dropbox.core.InvalidAccessTokenException ||
+                e.message?.contains("expired_access_token") == true) {
+                Log.e(TAG, "Refresh Token Expired or Revoked", e)
+                logout()
+                SyncResult.Error("Auth required")
+            } else {
+                Log.e(TAG, "Sync Fatal Error", e)
+                _syncState.value = SyncState.ERROR
+                SyncResult.Error(e.message ?: "Unknown error")
+            }
         } finally {
             if (_syncState.value == SyncState.SYNCING) {
                 _syncState.value = SyncState.DONE
@@ -160,6 +185,12 @@ object DropboxSyncManager {
             Log.d(TAG, "--- SYNC FINISHED ---")
             prefs.edit().putLong(LAST_SYNC_KEY, System.currentTimeMillis()).apply()
         }
+    }
+
+    fun logout() {
+        prefs.edit().remove(REFRESH_TOKEN_KEY).apply()
+        client = null
+        _syncState.value = SyncState.AUTH_REQUIRED
     }
 
     private fun getAllRemoteFiles(): Map<String, com.dropbox.core.v2.files.FileMetadata> {
@@ -182,7 +213,6 @@ object DropboxSyncManager {
     }
 
     private fun performTwoWaySync(remoteFiles: Map<String, com.dropbox.core.v2.files.FileMetadata>): SyncResult {
-        // 1. JSON Files
         JSON_FILES.forEach { fileName ->
             val localFile = File(rootDir, fileName)
             val remoteMeta = remoteFiles[fileName]
@@ -202,8 +232,6 @@ object DropboxSyncManager {
                 Log.e(TAG, "Error syncing $fileName", e)
             }
         }
-
-        // 2. Collection Images
         syncCollectionFolder(remoteFiles)
         return SyncResult.Success
     }
@@ -215,51 +243,39 @@ object DropboxSyncManager {
         val localImages = imgDir.listFiles() ?: emptyArray()
         Log.d(TAG, "Syncing collection. Local: ${localImages.size} items")
 
-        // 1. УМНАЯ СОРТИРОВКА (1, 2... 10, 11... 100)
         val sortedImages = localImages.sortedWith(Comparator { f1, f2 ->
             val n1 = f1.nameWithoutExtension.toIntOrNull()
             val n2 = f2.nameWithoutExtension.toIntOrNull()
             when {
-                n1 != null && n2 != null -> n1.compareTo(n2) // Оба числа
-                n1 != null -> -1 // Числа идут перед текстом
+                n1 != null && n2 != null -> n1.compareTo(n2)
+                n1 != null -> -1
                 n2 != null -> 1
-                else -> f1.name.compareTo(f2.name) // Обычная сортировка для текста
+                else -> f1.name.compareTo(f2.name)
             }
         })
 
         var uploadCount = 0
         for (file in sortedImages) {
-            // Если файла НЕТ в облаке
             if (!remoteFiles.containsKey(file.name)) {
                 try {
-                    Log.d(TAG, ">>> Uploading: ${file.name} (${file.length() / 1024} KB)") // Логируем размер
-
+                    Log.d(TAG, ">>> Uploading: ${file.name} (${file.length() / 1024} KB)")
                     FileInputStream(file).use { inputStream ->
                         client!!.files().uploadBuilder("/$COLLECTION_DIR/${file.name}")
                             .withMode(WriteMode.OVERWRITE)
                             .withClientModified(Date(file.lastModified()))
-                            .withMute(true) // Не спамить уведомлениями в Dropbox
+                            .withMute(true)
                             .uploadAndFinish(inputStream)
                     }
-
                     Log.d(TAG, "✅ Success: ${file.name}")
                     uploadCount++
-
-                    // Пауза 0.5 сек, чтобы не перегреть канал и не убить процесс
                     Thread.sleep(500)
-
                 } catch (e: Exception) {
-                    // Важно: ловим ВСЕ ошибки, чтобы не крашнулось на файле №20
                     Log.e(TAG, "❌ FAILURE on ${file.name}: ${e.message}")
                 }
-            } else {
-                // ТЕПЕРЬ МЫ ВИДИМ, ЧТО ОН ПРОПУСКАЕТ
-                // Log.d(TAG, "Skipping ${file.name} (exists in cloud)")
             }
         }
         Log.d(TAG, "Upload session finished. Uploaded: $uploadCount files")
 
-        // 2. Скачивание (без изменений, тут все ок)
         remoteFiles.values.forEach { metadata ->
             if (metadata.pathDisplay.contains("/$COLLECTION_DIR/")) {
                 val localFile = File(imgDir, metadata.name)
@@ -280,8 +296,6 @@ object DropboxSyncManager {
             if (file.exists()) try { uploadFile(file, "/$fileName") } catch(e:Exception){}
         }
         val imgDir = File(rootDir, COLLECTION_DIR)
-
-        // Тут тоже добавляем сортировку, на случай первого запуска
         val sortedImages = imgDir.listFiles()?.sortedBy {
             it.nameWithoutExtension.toIntOrNull() ?: Int.MAX_VALUE
         } ?: emptyList()
@@ -289,7 +303,7 @@ object DropboxSyncManager {
         sortedImages.forEach { file ->
             try {
                 uploadFile(file, "/$COLLECTION_DIR/${file.name}")
-                Thread.sleep(100) // Пауза для стабильности
+                Thread.sleep(100)
             } catch (e: Exception) {
                 Log.e(TAG, "First upload failed for ${file.name}", e)
             }
@@ -315,7 +329,6 @@ object DropboxSyncManager {
     }
 
     private fun uploadFile(localFile: File, remotePath: String) {
-        Log.d(TAG, "Uploading: ${localFile.name} -> $remotePath")
         FileInputStream(localFile).use { inputStream ->
             client!!.files().uploadBuilder(remotePath)
                 .withMode(WriteMode.OVERWRITE)
@@ -325,7 +338,6 @@ object DropboxSyncManager {
     }
 
     private fun downloadFile(remotePath: String, localFile: File) {
-        Log.d(TAG, "Downloading: $remotePath")
         localFile.parentFile?.mkdirs()
         FileOutputStream(localFile).use { outputStream ->
             client!!.files().download(remotePath).download(outputStream)
@@ -342,8 +354,7 @@ object DropboxSyncManager {
     }
 }
 
-// --- OKHTTP WRAPPER (ВЕРСИЯ 3 - BUFFERED / ANTI-DEADLOCK) ---
-// Исправляет зависание на файлах > 1КБ
+// --- OKHTTP WRAPPER ---
 class DropboxOkHttpRequestor(private val client: OkHttpClient) : HttpRequestor() {
 
     override fun doGet(url: String, headers: Iterable<HttpRequestor.Header>): DbxResponse {
@@ -360,12 +371,7 @@ class DropboxOkHttpRequestor(private val client: OkHttpClient) : HttpRequestor()
     override fun startPost(url: String, headers: Iterable<HttpRequestor.Header>): HttpRequestor.Uploader {
         return object : HttpRequestor.Uploader() {
             private var currentResponse: OkHttpResponse? = null
-
-            // Вместо Pipe используем ByteArrayOutputStream.
-            // Мы накапливаем данные в памяти, а потом отправляем одним куском.
-            // Это предотвращает взаимную блокировку потоков.
             private val buffer = java.io.ByteArrayOutputStream()
-
             private val requestBuilder = OkHttpRequest.Builder().url(url)
 
             init {
@@ -377,14 +383,10 @@ class DropboxOkHttpRequestor(private val client: OkHttpClient) : HttpRequestor()
             }
 
             override fun finish(): DbxResponse {
-                // Превращаем накопленные байты в тело запроса
                 val bodyBytes = buffer.toByteArray()
                 val requestBody = OkHttpRequestBody.create(null, bodyBytes)
-
-                // Собираем и отправляем запрос
                 requestBuilder.post(requestBody)
                 val response = client.newCall(requestBuilder.build()).execute()
-
                 currentResponse = response
                 return toDropboxResponse(response)
             }
@@ -407,14 +409,9 @@ class DropboxOkHttpRequestor(private val client: OkHttpClient) : HttpRequestor()
             val value = response.headers.value(i)
             headersMap.getOrPut(name) { mutableListOf() }.add(value)
         }
-
-        // Читаем ответ сразу, чтобы освободить соединение
         val bodyBytes = response.body?.bytes() ?: ByteArray(0)
         val bodyStream = java.io.ByteArrayInputStream(bodyBytes)
-
-        // Важно закрыть ответ OkHttp
         response.close()
-
         return DbxResponse(
             response.code,
             bodyStream,
