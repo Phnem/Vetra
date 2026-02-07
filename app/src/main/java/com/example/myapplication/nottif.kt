@@ -279,6 +279,9 @@ fun NotificationSyncOverlay(
 // ==========================================
 // КОМПОНЕНТ "ПИЛЮЛЯ"
 // ==========================================
+// ==========================================
+// КОМПОНЕНТ "ПИЛЮЛЯ"
+// ==========================================
 @Composable
 private fun PillCard(
     icon: ImageVector,
@@ -319,12 +322,16 @@ private fun PillCard(
             )
         }
         Spacer(Modifier.width(16.dp))
+
+        // --- ИЗМЕНЕНИЯ ЗДЕСЬ ---
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
-                color = if (isSystemInDarkTheme()) Color.White else Color.Black
+                color = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                maxLines = 1,                            // <--- Ограничиваем 1 строкой
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis // <--- Добавляем троеточие
             )
             if (subtitle != null) {
                 Spacer(Modifier.height(2.dp))
@@ -336,6 +343,8 @@ private fun PillCard(
                 )
             }
         }
+        // -----------------------
+
         Spacer(Modifier.width(8.dp))
         contentEnd()
     }
