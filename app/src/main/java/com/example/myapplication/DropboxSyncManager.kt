@@ -367,58 +367,55 @@ object DropboxSyncManager {
         }
     }
 
+    // ... (внутри DropboxSyncManager)
+
     private suspend fun downloadAll() {
         Log.d(TAG, "Starting Restore process...")
 
-        // 1. Проверяем ZIP
-        var hasBackupZip = false
+        var restoredFromZip = false
+        val localZip = File(rootDir, "backup.zip")
+
+        // 1. Пытаемся скачать и распаковать ZIP
         try {
-            client!!.files().getMetadata("/backup.zip")
-            hasBackupZip = true
-        } catch (e: Exception) {
-            Log.d(TAG, "No backup.zip found.")
-        }
+            // Проверяем наличие файла в облаке (бросит исключение, если нет)
+            val metadata = client!!.files().getMetadata("/backup.zip")
 
-        // 2. Если есть ZIP - качаем
-        if (hasBackupZip) {
-            try {
-                Log.d(TAG, "Found backup.zip! Downloading...")
-                val localZip = File(rootDir, "backup.zip")
-                downloadFile("/backup.zip", localZip)
+            Log.d(TAG, "Found backup.zip (${metadata.name})! Downloading...")
 
-                if (localZip.exists() && localZip.length() > 0) {
-                    Log.d(TAG, "Unzipping...")
-                    val tempUnzipDir = File(rootDir, "temp_unzip")
-                    ZipUtils.unzip(localZip, tempUnzipDir)
-
-                    tempUnzipDir.listFiles()?.forEach { file ->
-                        if (file.name.endsWith(".json") || file.name.endsWith(".txt")) {
-                            val dest = File(rootDir, file.name)
-                            if (dest.exists()) dest.delete()
-                            file.renameTo(dest)
-                        } else {
-                            val imgDir = File(rootDir, COLLECTION_DIR)
-                            if (!imgDir.exists()) imgDir.mkdirs()
-                            val dest = File(imgDir, file.name)
-                            if (dest.exists()) dest.delete()
-                            file.renameTo(dest)
-                        }
-                    }
-                    tempUnzipDir.deleteRecursively()
-                    localZip.delete()
-                    Log.d(TAG, "Restore from ZIP finished!")
-
-                    // Синхронизация поверх (на случай старого бэкапа)
-                    val remoteFiles = getAllRemoteFiles()
-                    performTwoWaySync(remoteFiles)
-                    return
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Zip restore failed, falling back", e)
+            // Скачиваем
+            FileOutputStream(localZip).use { output ->
+                client!!.files().download("/backup.zip").download(output)
             }
+
+            if (localZip.exists() && localZip.length() > 0) {
+                Log.d(TAG, "Unzipping directly to rootDir...")
+
+                // ВАЖНО: Распаковываем прямо в корень.
+                // ZipUtils сам создаст папку collection, так как пути в архиве сохранены как "collection/img.jpg"
+                ZipUtils.unzip(localZip, rootDir)
+
+                Log.d(TAG, "Restore from ZIP finished successfully!")
+                restoredFromZip = true
+            }
+
+        } catch (e: Exception) {
+            Log.w(TAG, "Zip restore skipped or failed: ${e.message}")
+            // Если ошибка (например, zip не найден или битый) - идем к пофайловому методу
+        } finally {
+            // Удаляем скачанный архив, чтобы не занимал место
+            if (localZip.exists()) localZip.delete()
         }
 
-        // 3. Fallback (Пофайлово)
+        // 2. Если ZIP сработал — завершаем (можно дернуть sync для проверки свежести)
+        if (restoredFromZip) {
+            // На всякий случай проверяем, не изменилось ли что-то в облаке, пока мы качали архив
+            // Но для сценария "восстановление" это обычно не требуется
+            return
+        }
+
+        // 3. Fallback (Пофайлово - старый метод, если ZIP нет)
+        Log.d(TAG, "Falling back to file-by-file download...")
+
         val allRemoteFiles = mutableListOf<com.dropbox.core.v2.files.FileMetadata>()
         try {
             var result = client!!.files().listFolderBuilder("").withRecursive(true).start()

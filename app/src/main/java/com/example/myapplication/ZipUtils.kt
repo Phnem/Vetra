@@ -42,9 +42,10 @@ object ZipUtils {
     }
 
     // Распаковать ZIP в папку
+    // Распаковать ZIP в папку
     fun unzip(zipFile: File, targetDir: File) {
         if (!targetDir.exists()) targetDir.mkdirs()
-        val buffer = ByteArray(1024 * 8) // Буфер 8 КБ
+        val buffer = ByteArray(1024 * 8)
 
         FileInputStream(zipFile).use { fis ->
             ZipInputStream(fis).use { zis ->
@@ -62,8 +63,11 @@ object ZipUtils {
                     if (entry!!.isDirectory) {
                         newFile.mkdirs()
                     } else {
-                        // Создаем родительские директории, если их нет
                         newFile.parentFile?.mkdirs()
+
+                        // --- ДОБАВЛЕНО: Удаляем старый файл перед записью для надежности ---
+                        if (newFile.exists()) newFile.delete()
+                        // -----------------------------------------------------------------
 
                         FileOutputStream(newFile).use { fos ->
                             var len: Int
