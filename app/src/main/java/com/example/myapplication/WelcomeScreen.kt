@@ -30,20 +30,14 @@ fun WelcomeScreen(
 ) {
     val isDark = isSystemInDarkTheme()
 
-    // Цвета из MainActivity (фон карточки подстраивается под тему)
-    // DarkBackground (0xFF111318) для темной
-    // LightBackground (0xFFF0F2F5) для светлой
     val cardBackgroundColor = if (isDark) Color(0xFF1F222B) else Color(0xFFF0F2F5)
 
-    // Цвет текста:
     val titleColor = if (isDark) Color(0xFFF2F2F7) else Color(0xFF1C1C1E)
     val bodyColor = if (isDark) Color(0xFF9898A0) else Color(0xFF636366)
 
-    // Тонкая обводка только для темной темы, чтобы выделить карточку на темном фоне
     val cardBorder = if (isDark) BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)) else null
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // 1. Фон
         Image(
             painter = painterResource(id = R.drawable.bg_waves),
             contentDescription = null,
@@ -51,16 +45,14 @@ fun WelcomeScreen(
             contentScale = ContentScale.Crop
         )
 
-        // 2. Контейнер по центру
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
                 .padding(horizontal = 24.dp)
         ) {
-            // --- Карточка ---
             Card(
                 modifier = Modifier
-                    .padding(top = 40.dp) // Место под иконку
+                    .padding(top = 40.dp)
                     .fillMaxWidth()
                     .shadow(
                         elevation = 30.dp,
@@ -77,7 +69,6 @@ fun WelcomeScreen(
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Заголовок (берется из ресурсов + эмодзи)
                     Text(
                         text = stringResource(id = R.string.welcome_title) + " ✨",
                         style = MaterialTheme.typography.headlineMedium,
@@ -91,9 +82,6 @@ fun WelcomeScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Основной текст (разбит на две части для красоты, берется из ресурсов)
-                    // Поскольку в XML текст одной строкой, мы выводим его здесь целиком,
-                    // но Compose сам перенесет слова. Эмодзи добавляем в конце.
                     Text(
                         text = stringResource(id = R.string.welcome_body) + " 😎",
                         style = MaterialTheme.typography.bodyLarge,
@@ -106,7 +94,6 @@ fun WelcomeScreen(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // Кнопка
                     Button(
                         onClick = onLoginClick,
                         modifier = Modifier
@@ -132,7 +119,6 @@ fun WelcomeScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Гость
                     Text(
                         text = stringResource(id = R.string.btn_guest),
                         style = MaterialTheme.typography.bodyMedium,
@@ -147,7 +133,6 @@ fun WelcomeScreen(
                 }
             }
 
-            // --- Иконка сверху ---
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)

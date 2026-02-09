@@ -1,7 +1,7 @@
-<h1 align="center">MAList 🎬</h1>
+<h1 align="center">Vetra 🎬</h1>
 
 <p align="center">
-  <img src="/800.png" alt="MAList preview">
+  <img src="/800.png" alt="Vetra preview">
 </p>
 
 <p align="center">
@@ -25,7 +25,7 @@
 <h2>📱 About</h2>
 
 <p>
-MAList is a simple and flexible application for creating lists.  
+Vetra is a simple and flexible application for creating lists.  
 Originally developed for anime tracking, it can also be used for TV shows, movies, or even shopping lists.
 </p>
 
@@ -101,7 +101,7 @@ The app creates its own folder:
 </p>
 
 <pre>
-Documents/MyAnimeList
+Documents/Vetra
 </pre>
 
 <p>
@@ -130,7 +130,7 @@ All data is stored locally in JSON format.
 <h2>📂 Permissions</h2>
 
 <p>
-MAList requires the following permission:
+Vetra requires the following permission:
 </p>
 
 <ul>
@@ -149,5 +149,3 @@ This project is licensed under the <b>MIT License</b>.
 </p>
 
 <hr>
-
-

@@ -92,7 +92,12 @@ fun SimpGlassCard(
             drawPath(
                 path,
                 brush = Brush.verticalGradient(
-                    colors = listOf(shineColor, Color.Transparent, Color.Transparent, shineColor.copy(alpha = 0.1f))
+                    colors = listOf(
+                        shineColor,
+                        Color.Transparent,
+                        Color.Transparent,
+                        shineColor.copy(alpha = 0.1f)
+                    )
                 ),
                 style = Stroke(width = 2.dp.toPx())
             )
@@ -107,7 +112,6 @@ fun SimpGlassCard(
 // ==========================================
 // GLASSACTIONDOCK (МЕНЮ СОРТИРОВКИ И ФИЛЬТРА + НОВЫЕ УВЕДОМЛЕНИЯ)
 // ==========================================
-// ... imports (оставь как были)
 
 // ==========================================
 // GLASSACTIONDOCK (Обновленный)
@@ -118,24 +122,40 @@ fun GlassActionDock(
     isFloating: Boolean,
     sortOption: SortOption,
     viewModel: AnimeViewModel,
-    onOpenSort: () -> Unit, // <--- ИЗМЕНЕНО: Просто открывает оверлей
+    onOpenSort: () -> Unit,
     onOpenNotifications: () -> Unit,
     modifier: Modifier = Modifier
-){
+) {
     val isDark = isSystemInDarkTheme()
 
-    // Анимации остаются прежними
-    val topPadding by animateDpAsState(targetValue = if (isFloating) 16.dp else 0.dp, animationSpec = spring(stiffness = Spring.StiffnessLow), label = "dockPadding")
+    val topPadding by animateDpAsState(
+        targetValue = if (isFloating) 16.dp else 0.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "dockPadding"
+    )
     val targetTint = if (isDark) Color.Black.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.05f)
-    val tintColor by animateColorAsState(targetValue = if (isFloating) targetTint else Color.Transparent, label = "tint")
-    val blurRadius by animateDpAsState(targetValue = if (isFloating) 30.dp else 0.dp, label = "blur")
+    val tintColor by animateColorAsState(
+        targetValue = if (isFloating) targetTint else Color.Transparent,
+        label = "tint"
+    )
+    val blurRadius by animateDpAsState(
+        targetValue = if (isFloating) 30.dp else 0.dp,
+        label = "blur"
+    )
     val borderStrokeBase = if (isDark) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f) else Color.Transparent
-    val borderColor by animateColorAsState(targetValue = if (isFloating) borderStrokeBase else Color.Transparent, label = "border")
+    val borderColor by animateColorAsState(
+        targetValue = if (isFloating) borderStrokeBase else Color.Transparent,
+        label = "border"
+    )
     val shineColorBase = if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.6f)
-    val shineAlpha by animateFloatAsState(targetValue = if (isFloating) 1f else 0f, label = "shineAlpha")
-    val buttonBgColor by animateColorAsState(targetValue = if (isFloating) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), label = "btnBg")
-
-    // Удалено: var expandedSort by remember { mutableStateOf(false) }
+    val shineAlpha by animateFloatAsState(
+        targetValue = if (isFloating) 1f else 0f,
+        label = "shineAlpha"
+    )
+    val buttonBgColor by animateColorAsState(
+        targetValue = if (isFloating) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        label = "btnBg"
+    )
 
     Box(
         modifier = modifier
@@ -149,12 +169,22 @@ fun GlassActionDock(
             )
             .border(0.5.dp, borderColor, RoundedCornerShape(32.dp))
     ) {
-        // Shine эффект (оставлен)
         if (shineAlpha > 0f) {
             Canvas(modifier = Modifier.matchParentSize()) {
                 val rect = Rect(offset = Offset.Zero, size = size)
                 val path = Path().apply { addRoundRect(RoundRect(rect, CornerRadius(32.dp.toPx()))) }
-                drawPath(path, brush = Brush.verticalGradient(colors = listOf(shineColorBase.copy(alpha = shineColorBase.alpha * shineAlpha), Color.Transparent, Color.Transparent, shineColorBase.copy(alpha = 0.05f * shineAlpha))), style = Stroke(width = 1.dp.toPx()))
+                drawPath(
+                    path,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            shineColorBase.copy(alpha = shineColorBase.alpha * shineAlpha),
+                            Color.Transparent,
+                            Color.Transparent,
+                            shineColorBase.copy(alpha = 0.05f * shineAlpha)
+                        )
+                    ),
+                    style = Stroke(width = 1.dp.toPx())
+                )
             }
         }
 
@@ -163,25 +193,26 @@ fun GlassActionDock(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // КНОПКА СОРТИРОВКИ (ТЕПЕРЬ ПРОСТО КНОПКА)
             IconButton(
                 onClick = { onOpenSort() },
-                modifier = Modifier.size(44.dp).clip(CircleShape).background(buttonBgColor)
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(buttonBgColor)
             ) {
-                // Иконка меняется если включен фильтр, как индикация
                 val icon = if (viewModel.filterSelectedTags.isNotEmpty()) Icons.Outlined.FilterList else Icons.AutoMirrored.Filled.Sort
                 val tint = if (viewModel.filterSelectedTags.isNotEmpty()) BrandBlue else MaterialTheme.colorScheme.onSurface
 
                 Icon(imageVector = icon, contentDescription = "Sort", tint = tint)
             }
 
-            // ВЕСЬ DropdownMenu УДАЛЕН ОТСЮДА
-
-            // КНОПКА УВЕДОМЛЕНИЙ
             Box {
                 IconButton(
                     onClick = { onOpenNotifications() },
-                    modifier = Modifier.size(44.dp).clip(CircleShape).background(buttonBgColor)
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(buttonBgColor)
                 ) {
                     Icon(
                         imageVector = HeroiconsRectangleStack,
@@ -191,7 +222,13 @@ fun GlassActionDock(
                 }
 
                 if (viewModel.updates.isNotEmpty()) {
-                    Box(modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(8.dp).background(BrandRed, CircleShape))
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                            .size(8.dp)
+                            .background(BrandRed, CircleShape)
+                    )
                 }
             }
         }
@@ -223,7 +260,6 @@ fun GlassBottomNavigation(
             .padding(bottom = 24.dp)
             .fillMaxWidth()
     ) {
-        // 1. ЦЕНТРАЛЬНАЯ КАПСУЛА (Меню)
         SimpGlassCard(
             hazeState = hazeState,
             shape = CircleShape,
@@ -239,30 +275,108 @@ fun GlassBottomNavigation(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // 1. Stats
                 Box(modifier = Modifier.size(52.dp), contentAlignment = Alignment.Center) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize().clip(CircleShape).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { performHaptic(view, "light"); onShowStats() }) {
-                        Icon(imageVector = HeroiconsSquaresPlus, contentDescription = "Stats", tint = currentThemeColor.copy(alpha = 0.6f), modifier = Modifier.size(32.dp))
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                performHaptic(view, "light")
+                                onShowStats()
+                            }
+                    ) {
+                        Icon(
+                            imageVector = HeroiconsSquaresPlus,
+                            contentDescription = "Stats",
+                            tint = currentThemeColor.copy(alpha = 0.6f),
+                            modifier = Modifier.size(32.dp)
+                        )
                     }
                 }
 
-                // 2. Add
                 Box(modifier = Modifier.size(52.dp), contentAlignment = Alignment.Center) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize().clip(CircleShape).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { performHaptic(view, "success"); nav.navigate("add_anime") }) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                performHaptic(view, "success")
+                                nav.navigate("add_anime")
+                            }
+                    ) {
                         with(sharedTransitionScope) {
-                            Box(modifier = Modifier.size(48.dp).sharedBounds(rememberSharedContentState(key = "fab_container"), animatedVisibilityScope = animatedVisibilityScope, resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds).background(Color.Transparent), contentAlignment = Alignment.Center) {
-                                Icon(imageVector = HeroiconsPlus, contentDescription = "Add", tint = currentThemeColor, modifier = Modifier.size(36.dp).sharedElement(rememberSharedContentState(key = "fab_icon"), animatedVisibilityScope = animatedVisibilityScope))
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .sharedBounds(
+                                        rememberSharedContentState(key = "fab_container"),
+                                        animatedVisibilityScope = animatedVisibilityScope,
+                                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
+                                    )
+                                    .background(Color.Transparent),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = HeroiconsPlus,
+                                    contentDescription = "Add",
+                                    tint = currentThemeColor,
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .sharedElement(
+                                            rememberSharedContentState(key = "fab_icon"),
+                                            animatedVisibilityScope = animatedVisibilityScope
+                                        )
+                                )
                             }
                         }
                     }
                 }
 
-                // 3. Settings
                 Box(modifier = Modifier.size(52.dp), contentAlignment = Alignment.Center) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize().clip(CircleShape).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { performHaptic(view, "light"); nav.navigate("settings") }) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                performHaptic(view, "light")
+                                nav.navigate("settings")
+                            }
+                    ) {
                         with(sharedTransitionScope) {
-                            Box(modifier = Modifier.size(48.dp).sharedBounds(rememberSharedContentState(key = "settings_container"), animatedVisibilityScope = animatedVisibilityScope, resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds).background(Color.Transparent), contentAlignment = Alignment.Center) {
-                                Icon(imageVector = Icons.Outlined.Settings, contentDescription = "Settings", tint = currentThemeColor.copy(alpha = 0.6f), modifier = Modifier.size(32.dp).sharedElement(rememberSharedContentState(key = "settings_icon"), animatedVisibilityScope = animatedVisibilityScope))
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .sharedBounds(
+                                        rememberSharedContentState(key = "settings_container"),
+                                        animatedVisibilityScope = animatedVisibilityScope,
+                                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
+                                    )
+                                    .background(Color.Transparent),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Settings,
+                                    contentDescription = "Settings",
+                                    tint = currentThemeColor.copy(alpha = 0.6f),
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .sharedElement(
+                                            rememberSharedContentState(key = "settings_icon"),
+                                            animatedVisibilityScope = animatedVisibilityScope
+                                        )
+                                )
                             }
                         }
                     }
@@ -270,13 +384,24 @@ fun GlassBottomNavigation(
             }
         }
 
-        // 2. Кнопка поиска
         SimpGlassCard(
             hazeState = hazeState,
             shape = CircleShape,
-            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 24.dp).size(64.dp).clickable { performHaptic(view, "light"); onSearchClick() }
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 24.dp)
+                .size(64.dp)
+                .clickable {
+                    performHaptic(view, "light")
+                    onSearchClick()
+                }
         ) {
-            Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = if(isSearchActive) BrandBlue else currentThemeColor, modifier = Modifier.size(32.dp))
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search",
+                tint = if (isSearchActive) BrandBlue else currentThemeColor,
+                modifier = Modifier.size(32.dp)
+            )
         }
     }
 }

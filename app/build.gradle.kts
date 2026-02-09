@@ -6,15 +6,14 @@ plugins {
 
 android {
     namespace = "com.example.myapplication"
-    compileSdk = 35 // Или 36, если у вас скачан SDK Android 16 (Baklava)
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.myapplication"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "v2.2.6-beta"
-
+        versionName = "v2.2.7-beta"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -22,21 +21,17 @@ android {
         compose = true
     }
 
-    // Блок composeOptions больше не нужен в Kotlin 2.0+, удаляем его
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
 }
 
-// ВОТ ЗДЕСЬ БЫЛА ОШИБКА. ИСПОЛЬЗУЕМ НОВЫЙ СИНТАКСИС:
 kotlin {
-    jvmToolchain(17) // Указываем Toolchain
+    jvmToolchain(17)
 
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-        // Можно добавить флаги, если библиотека требует
         freeCompilerArgs.addAll(
             "-Xcontext-receivers"
         )
@@ -51,6 +46,7 @@ dependencies {
     implementation("dev.chrisbanes.haze:haze:0.7.3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.animation:animation")
+
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.navigation:navigation-compose:2.8.5")
     implementation("io.coil-kt:coil-compose:2.7.0")
@@ -59,10 +55,8 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
 
-    // ВЕРНУЛИ БИБЛИОТЕКУ
     implementation(libs.androidx.material3)
-// Или implementation("androidx.compose.material3:material3:1.3.1")
-    implementation(platform("androidx.compose:compose-bom:2024.04.00")) // или ваша версия
+    implementation(platform("androidx.compose:compose-bom:2024.04.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")

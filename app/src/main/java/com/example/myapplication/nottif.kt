@@ -51,7 +51,7 @@ private val IconUpdateColor = Color(0xFFFF9F0A)
 
 @Composable
 fun NotificationSyncOverlay(
-    visibleState: MutableTransitionState<Boolean>, // <--- ГЛАВНОЕ ИЗМЕНЕНИЕ: Принимаем состояние анимации
+    visibleState: MutableTransitionState<Boolean>,
     viewModel: AnimeViewModel,
     onDismiss: () -> Unit,
     onLogout: () -> Unit
@@ -65,7 +65,6 @@ fun NotificationSyncOverlay(
     val itemCardColor = if (isDark) CustomDarkCard else MaterialTheme.colorScheme.surfaceVariant
     val itemBorderColor = if (isDark) CustomDarkBorder else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
 
-    // Перехват кнопки "Назад": просто вызываем onDismiss, родитель сам поменяет стейт
     BackHandler { onDismiss() }
 
     Box(
@@ -73,7 +72,7 @@ fun NotificationSyncOverlay(
     ) {
         // 1. SCRIM (Затемнение фона)
         AnimatedVisibility(
-            visibleState = visibleState, // Используем переданный стейт
+            visibleState = visibleState,
             enter = fadeIn(animationSpec = tween(300)),
             exit = fadeOut(animationSpec = tween(300))
         ) {
@@ -90,9 +89,15 @@ fun NotificationSyncOverlay(
 
         // 2. ПАНЕЛЬ МЕНЮ
         AnimatedVisibility(
-            visibleState = visibleState, // Используем переданный стейт
-            enter = scaleIn(transformOrigin = TransformOrigin(1f, 0f), animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
-            exit = scaleOut(transformOrigin = TransformOrigin(1f, 0f), animationSpec = tween(200)) + fadeOut(),
+            visibleState = visibleState,
+            enter = scaleIn(
+                transformOrigin = TransformOrigin(1f, 0f),
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+            ) + fadeIn(),
+            exit = scaleOut(
+                transformOrigin = TransformOrigin(1f, 0f),
+                animationSpec = tween(200)
+            ) + fadeOut(),
             modifier = Modifier.align(Alignment.TopEnd)
         ) {
             Column(
@@ -125,7 +130,10 @@ fun NotificationSyncOverlay(
 
                         // Карточка 1: Время
                         val lastSyncTime = remember(syncState) {
-                            val ts = context.getSharedPreferences("dropbox_prefs", android.content.Context.MODE_PRIVATE)
+                            val ts = context.getSharedPreferences(
+                                "dropbox_prefs",
+                                android.content.Context.MODE_PRIVATE
+                            )
                                 .getLong("last_sync_time", 0L)
                             if (ts == 0L) "--:--" else DateFormat.format("HH:mm", ts).toString()
                         }
@@ -191,18 +199,34 @@ fun NotificationSyncOverlay(
                                         onClick = { DropboxSyncManager.scheduleAutoSync() },
                                         modifier = Modifier
                                             .size(44.dp)
-                                            .background(IconAccountColor.copy(alpha = 0.1f), CircleShape)
+                                            .background(
+                                                IconAccountColor.copy(alpha = 0.1f),
+                                                CircleShape
+                                            )
                                     ) {
-                                        Icon(Icons.Default.Sync, null, tint = IconAccountColor, modifier = Modifier.size(22.dp))
+                                        Icon(
+                                            Icons.Default.Sync,
+                                            null,
+                                            tint = IconAccountColor,
+                                            modifier = Modifier.size(22.dp)
+                                        )
                                     }
 
                                     IconButton(
                                         onClick = { showLogoutDialog = true },
                                         modifier = Modifier
                                             .size(44.dp)
-                                            .background(Color.Red.copy(alpha = 0.15f), CircleShape)
+                                            .background(
+                                                Color.Red.copy(alpha = 0.15f),
+                                                CircleShape
+                                            )
                                     ) {
-                                        Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.Red, modifier = Modifier.size(22.dp))
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.Logout,
+                                            null,
+                                            tint = Color.Red,
+                                            modifier = Modifier.size(22.dp)
+                                        )
                                     }
                                 }
                             }
@@ -234,11 +258,32 @@ fun NotificationSyncOverlay(
                                     onClick = { viewModel.acceptUpdate(update, context) },
                                     contentEnd = {
                                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                            IconButton(onClick = { viewModel.dismissUpdate(update) }, modifier = Modifier.size(36.dp)) {
-                                                Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
+                                            IconButton(
+                                                onClick = { viewModel.dismissUpdate(update) },
+                                                modifier = Modifier.size(36.dp)
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Close,
+                                                    null,
+                                                    tint = MaterialTheme.colorScheme.secondary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
                                             }
-                                            IconButton(onClick = { viewModel.acceptUpdate(update, context) }, modifier = Modifier.size(36.dp)) {
-                                                Icon(Icons.Default.Check, null, tint = IconAccountColor, modifier = Modifier.size(20.dp))
+                                            IconButton(
+                                                onClick = {
+                                                    viewModel.acceptUpdate(
+                                                        update,
+                                                        context
+                                                    )
+                                                },
+                                                modifier = Modifier.size(36.dp)
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Check,
+                                                    null,
+                                                    tint = IconAccountColor,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
                                             }
                                         }
                                     }
@@ -282,6 +327,7 @@ fun NotificationSyncOverlay(
 // ==========================================
 // КОМПОНЕНТ "ПИЛЮЛЯ"
 // ==========================================
+
 @Composable
 private fun PillCard(
     icon: ImageVector,
@@ -323,15 +369,14 @@ private fun PillCard(
         }
         Spacer(Modifier.width(16.dp))
 
-        // --- ИЗМЕНЕНИЯ ЗДЕСЬ ---
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
                 color = if (isSystemInDarkTheme()) Color.White else Color.Black,
-                maxLines = 1,                            // <--- Ограничиваем 1 строкой
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis // <--- Добавляем троеточие
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
             if (subtitle != null) {
                 Spacer(Modifier.height(2.dp))
@@ -343,7 +388,6 @@ private fun PillCard(
                 )
             }
         }
-        // -----------------------
 
         Spacer(Modifier.width(8.dp))
         contentEnd()

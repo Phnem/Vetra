@@ -116,6 +116,8 @@ import java.util.UUID
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sign
+import androidx.work.*
+import java.util.concurrent.TimeUnit
 
 // ==========================================
 // GENRE SYSTEM (LOCALIZATION & DATA)
@@ -148,7 +150,7 @@ object GenreRepository {
         GenreDefinition("Sports", "Спорт", "Sports", listOf(GenreCategory.ANIME, GenreCategory.MOVIE)),
         GenreDefinition("Action", "Экшен", "Action", listOf(GenreCategory.ANIME, GenreCategory.MOVIE, GenreCategory.SERIES)),
         GenreDefinition("Adventure", "Приключения", "Adventure", listOf(GenreCategory.ANIME, GenreCategory.MOVIE, GenreCategory.SERIES)),
-        GenreDefinition("Comedy", "Комедия", "Comedy", listOf(GenreCategory.ANIME, GenreCategory.MOVIE, GenreCategory.SERIES)),
+        GenreDefinition("Comedy", "Комедия", "Комедия", listOf(GenreCategory.ANIME, GenreCategory.MOVIE, GenreCategory.SERIES)),
         GenreDefinition("Drama", "Драма", "Drama", listOf(GenreCategory.ANIME, GenreCategory.MOVIE, GenreCategory.SERIES)),
         GenreDefinition("Fantasy", "Фэнтези", "Fantasy", listOf(GenreCategory.ANIME, GenreCategory.MOVIE, GenreCategory.SERIES)),
         GenreDefinition("Romance", "Романтика", "Romance", listOf(GenreCategory.ANIME, GenreCategory.MOVIE, GenreCategory.SERIES)),
@@ -244,24 +246,174 @@ data class UiStrings(
     val nottifStatusSub: String,
     val nottifAccountTitle: String,
     val nottifLogoutConfirmTitle: String,
-    val nottifLogoutConfirmBody: String
+    val nottifLogoutConfirmBody: String,
+    val syncModeTitle: String,
+    val syncAuto: String,
+    val syncManual: String,
+    val contentTypeTitle: String,
+    val typeAnime: String,
+    val typeMovies: String,
+    val cloudSettingsTitle: String,
+    val cloudTotalSize: String,
+    val cloudFiles: String,
+    val syncLabel: String,
+    val wifiOnly: String,
+    val anyNetwork: String,
+    val lastSync: String,
+    val never: String
 )
 
 val RussianStrings = UiStrings(
-    appName = "MAList", searchPlaceholder = "Поиск в коллекции...", newestFirst = "Сначала новые", highestRated = "Высокий рейтинг", nameAZ = "По названию (А-Я)", favorites = "Избранное", settings = "Настройки", emptyTitle = "В папке пусто", emptySubtitle = "Кажется, здесь еще ничего нет.", noResults = "Ничего не найдено", noFavorites = "Нет избранного", statsTitle = "Ваша статистика", statsSubtitle = "Все, что вы посмотрели", episodesWatched = "Эпизодов просмотрено", timeSpent = "Затраченное время", avgRating = "Средний рейтинг", rankTitle = "Ваш ранг:", updatesTitle = "Обновления", updatesChecking = "Проверка API (Shikimori, Jikan, TMDB)...\nЭто может занять некоторое время.", updatesUpToDate = "У вас все актуально!", deleteTitle = "Удалить тайтл?", deleteSubtitle = "Это действие нельзя будет отменить.", deleteConfirm = "Удалить", favTitle = "Добавить в избранное?", favSubtitle = "Будущий вы скажет вам «спасибо» :)", favConfirm = "В избранное", cancel = "Отмена", addTitle = "Добавить тайтл", editTitle = "Изменить", animeTitleHint = "Название аниме", episodesHint = "Просмотрено серий", addPhoto = "Добавить фото", enterTitleToast = "Введите название", updatedToast = "Обновлено: ", languageName = "RU", settingsScreenTitle = "Настройки", languageCardTitle = "Язык", langRu = "Русский", langEn = "English", themeTitle = "Тема оформления", themeLight = "Светлая", themeDark = "Тёмная", themeSystem = "Системная", checkForUpdateTitle = "Обновление приложения", checkButtonText = "Проверить версию", contactTitle = "Связь со мной", contactSubtitle = "Нашли баг или есть идея?", genreAnime = "Аниме", genreMovies = "Фильмы", genreSeries = "Сериалы", filterByGenre = "По жанрам",
+    appName = "Vetro",
+    searchPlaceholder = "Поиск в коллекции...",
+    newestFirst = "Сначала новые",
+    highestRated = "Высокий рейтинг",
+    nameAZ = "По названию (А-Я)",
+    favorites = "Избранное",
+    settings = "Настройки",
+    emptyTitle = "В папке пусто",
+    emptySubtitle = "Кажется, здесь еще ничего нет.",
+    noResults = "Ничего не найдено",
+    noFavorites = "Нет избранного",
+    statsTitle = "Ваша статистика",
+    statsSubtitle = "Все, что вы посмотрели",
+    episodesWatched = "Эпизодов просмотрено",
+    timeSpent = "Затраченное время",
+    avgRating = "Средний рейтинг",
+    rankTitle = "Ваш ранг:",
+    updatesTitle = "Обновления",
+    updatesChecking = "Проверка API (AniList, Shikimori, TMDB)...\nЭто может занять некоторое время.",
+    updatesUpToDate = "У вас все актуально!",
+    deleteTitle = "Удалить тайтл?",
+    deleteSubtitle = "Это действие нельзя будет отменить.",
+    deleteConfirm = "Удалить",
+    favTitle = "Добавить в избранное?",
+    favSubtitle = "Будущий вы скажет вам «спасибо» :)",
+    favConfirm = "В избранное",
+    cancel = "Отмена",
+    addTitle = "Добавить тайтл",
+    editTitle = "Изменить",
+    animeTitleHint = "Название аниме",
+    episodesHint = "Просмотрено серий",
+    addPhoto = "Добавить фото",
+    enterTitleToast = "Введите название",
+    updatedToast = "Обновлено: ",
+    languageName = "RU",
+    settingsScreenTitle = "Настройки",
+    languageCardTitle = "Язык",
+    langRu = "Русский",
+    langEn = "English",
+    themeTitle = "Тема оформления",
+    themeLight = "Светлая",
+    themeDark = "Тёмная",
+    themeSystem = "Системная",
+    checkForUpdateTitle = "Обновление приложения",
+    checkButtonText = "Проверить версию",
+    contactTitle = "Связь со мной",
+    contactSubtitle = "Нашли баг или есть идея?",
+    genreAnime = "Аниме",
+    genreMovies = "Фильмы",
+    genreSeries = "Сериалы",
+    filterByGenre = "По жанрам",
     nottifHeader = "Уведомления & Синхронизация",
     nottifLastSyncTitle = "last sync",
     nottifLastSyncSub = "Время обновления",
     nottifStatusTitle = "Статус",
     nottifStatusSub = "Состояние синхронизации",
-    nottifAccountTitle = "Мой MAList",
+    nottifAccountTitle = "Мой Vetro",
     nottifLogoutConfirmTitle = "Выйти из аккаунта?",
-    nottifLogoutConfirmBody = "Локальные данные будут удалены. Вы будете перенаправлены на экран приветствия."
+    nottifLogoutConfirmBody = "Локальные данные будут удалены. Вы будете перенаправлены на экран приветствия.",
+    syncModeTitle = "Режим синхронизации",
+    syncAuto = "Авто",
+    syncManual = "Ручная",
+    contentTypeTitle = "Тип контента",
+    typeAnime = "Аниме",
+    typeMovies = "Кино / ТВ",
+    cloudSettingsTitle = "Облачные настройки",
+    cloudTotalSize = "Общий размер",
+    cloudFiles = "Файлов",
+    syncLabel = "Синхронизировать",
+    wifiOnly = "Только Wi-Fi",
+    anyNetwork = "Любая сеть",
+    lastSync = "Последняя синхр.",
+    never = "Никогда"
 )
 
 val EnglishStrings = UiStrings(
-    appName = "MAList", searchPlaceholder = "Search collection...", newestFirst = "Newest First", highestRated = "Highest Rated", nameAZ = "Name (A-Z)", favorites = "Favorites", settings = "Settings", emptyTitle = "Nothing in folder", emptySubtitle = "Looks empty over here.", noResults = "No results found", noFavorites = "No favorites yet", statsTitle = "Your Watch Stats", statsSubtitle = "Everything you’ve watched so far", episodesWatched = "Episodes watched", timeSpent = "Time spent watching", avgRating = "Average rating", rankTitle = "Your rank:", updatesTitle = "Updates", updatesChecking = "Checking APIs (Shikimori, Jikan, TMDB)...\nThis will take a moment.", updatesUpToDate = "You are up to date!", deleteTitle = "Delete title?", deleteSubtitle = "There’s no “undo”, no “Ctrl+Z”...", deleteConfirm = "Delete", favTitle = "Add to favorites?", favSubtitle = "Future you will thank you)", favConfirm = "Set Favorite", cancel = "Cancel", addTitle = "Add title", editTitle = "Edit title", animeTitleHint = "Anime Title", episodesHint = "Episodes Watched", addPhoto = "Add Photo", enterTitleToast = "Enter title", updatedToast = "Updated: ", languageName = "EN", settingsScreenTitle = "Settings", languageCardTitle = "Language", langRu = "Russian", langEn = "English", themeTitle = "Themes", themeLight = "Light", themeDark = "Dark", themeSystem = "System", checkForUpdateTitle = "App Update", checkButtonText = "Check Version", contactTitle = "Contact me", contactSubtitle = "Found a bug or have an idea?", genreAnime = "Anime", genreMovies = "Movies", genreSeries = "TV Series", filterByGenre = "By genres",
-    nottifHeader = "Notifications & Sync", nottifLastSyncTitle = "Last Sync", nottifLastSyncSub = "Last updated time", nottifStatusTitle = "Status", nottifStatusSub = "Sync condition", nottifAccountTitle = "My MAList", nottifLogoutConfirmTitle = "Log out?", nottifLogoutConfirmBody = "Local data will be cleared. You will be redirected to the welcome screen." )
+    appName = "Vetro",
+    searchPlaceholder = "Search collection...",
+    newestFirst = "Newest First",
+    highestRated = "Highest Rated",
+    nameAZ = "Name (A-Z)",
+    favorites = "Favorites",
+    settings = "Settings",
+    emptyTitle = "Nothing in folder",
+    emptySubtitle = "Looks empty over here.",
+    noResults = "No results found",
+    noFavorites = "No favorites yet",
+    statsTitle = "Your Watch Stats",
+    statsSubtitle = "Everything you’ve watched so far",
+    episodesWatched = "Episodes watched",
+    timeSpent = "Time spent watching",
+    avgRating = "Average rating",
+    rankTitle = "Your rank:",
+    updatesTitle = "Updates",
+    updatesChecking = "Checking APIs (AniList, Shikimori, TMDB)...\nThis will take a moment.",
+    updatesUpToDate = "You are up to date!",
+    deleteTitle = "Delete title?",
+    deleteSubtitle = "There’s no “undo”, no “Ctrl+Z”...",
+    deleteConfirm = "Delete",
+    favTitle = "Add to favorites?",
+    favSubtitle = "Future you will thank you)",
+    favConfirm = "Set Favorite",
+    cancel = "Cancel",
+    addTitle = "Add title",
+    editTitle = "Edit title",
+    animeTitleHint = "Anime Title",
+    episodesHint = "Episodes Watched",
+    addPhoto = "Add Photo",
+    enterTitleToast = "Enter title",
+    updatedToast = "Updated: ",
+    languageName = "EN",
+    settingsScreenTitle = "Settings",
+    languageCardTitle = "Language",
+    langRu = "Russian",
+    langEn = "English",
+    themeTitle = "Themes",
+    themeLight = "Light",
+    themeDark = "Dark",
+    themeSystem = "System",
+    checkForUpdateTitle = "App Update",
+    checkButtonText = "Check Version",
+    contactTitle = "Contact me",
+    contactSubtitle = "Found a bug or have an idea?",
+    genreAnime = "Anime",
+    genreMovies = "Movies",
+    genreSeries = "TV Series",
+    filterByGenre = "By genres",
+    nottifHeader = "Notifications & Sync",
+    nottifLastSyncTitle = "Last Sync",
+    nottifLastSyncSub = "Last updated time",
+    nottifStatusTitle = "Status",
+    nottifStatusSub = "Sync condition",
+    nottifAccountTitle = "My Vetro",
+    nottifLogoutConfirmTitle = "Log out?",
+    nottifLogoutConfirmBody = "Local data will be cleared. You will be redirected to the welcome screen.",
+    syncModeTitle = "Sync Mode",
+    syncAuto = "Auto",
+    syncManual = "Manual",
+    contentTypeTitle = "Content Type",
+    typeAnime = "Anime",
+    typeMovies = "Movies & TV",
+    cloudSettingsTitle = "Cloud Settings",
+    cloudTotalSize = "Total Size",
+    cloudFiles = "Files",
+    syncLabel = "Sync Now",
+    wifiOnly = "Wi-Fi Only",
+    anyNetwork = "Any Network",
+    lastSync = "Last Sync",
+    never = "Never"
+)
 
 fun getStrings(lang: AppLanguage): UiStrings = when(lang) {
     AppLanguage.RU -> RussianStrings
@@ -404,14 +556,14 @@ sealed class DetailsState {
 object ApiRateLimiter {
     private val mutex = Mutex()
     suspend fun <T> executeSafe(block: suspend () -> T): T {
-        mutex.withLock { delay(1200); return block() }
+        mutex.withLock {
+            delay(1200)
+            return block()
+        }
     }
 }
 
 class AnimeRepository {
-    private val tmdbKey = "4f4dc3cd35d58a551162eefe92ff549c"
-
-    // --- DETAILS FETCHING LOGIC ---
 
     suspend fun fetchDetails(title: String, lang: AppLanguage): AnimeDetails? = withContext(Dispatchers.IO) {
         return@withContext when (lang) {
@@ -420,99 +572,50 @@ class AnimeRepository {
         }
     }
 
-    // RU STRATEGY: Shikimori Primary
     private suspend fun fetchDetailsRu(query: String): AnimeDetails? {
         try {
-            // 1. Search to get ID
             val searchUrl = "https://shikimori.one/api/animes?search=${enc(query)}&limit=1"
             val searchJson = getJson(searchUrl).asJsonArray
             if (searchJson.size() == 0) return null
-
             val id = searchJson[0].asJsonObject.get("id").asInt
-
-            // 2. Get Full Details
             val detailsUrl = "https://shikimori.one/api/animes/$id"
             val json = getJson(detailsUrl).asJsonObject
-
-            // 3. Map to Unified Model
             val totalEps = if (json.get("episodes").isJsonNull) 0 else json.get("episodes").asInt
             val airedEps = if (json.get("episodes_aired").isJsonNull) 0 else json.get("episodes_aired").asInt
             val status = json.get("status").asString.replace("_", " ").capitalize()
             val score = if (json.get("score").isJsonNull) 0.0 else json.get("score").asDouble
-
-            // Description processing
             var desc = if (json.get("description").isJsonNull) "Описание отсутствует." else json.get("description").asString
-            desc = desc.replace(Regex("\\[.*?\\]"), "") // Basic cleanup of Shikimori tags
-
+            desc = desc.replace(Regex("\\[.*?\\]"), "")
             val genres = mutableListOf<String>()
-            if (json.has("genres")) {
-                json.getAsJsonArray("genres").forEach { genres.add(it.asJsonObject.get("russian").asString) }
-            }
-
-            val poster = if (json.has("image") && !json.get("image").isJsonNull) {
-                "https://shikimori.one" + json.get("image").asJsonObject.get("original").asString
-            } else null
-
+            if (json.has("genres")) { json.getAsJsonArray("genres").forEach { genres.add(it.asJsonObject.get("russian").asString) } }
+            val poster = if (json.has("image") && !json.get("image").isJsonNull) { "https://shikimori.one" + json.get("image").asJsonObject.get("original").asString } else null
             return AnimeDetails(
-                title = json.get("russian").asString.ifEmpty { json.get("name").asString },
-                altTitle = json.get("name").asString,
-                description = desc,
-                type = json.get("kind").asString.uppercase(),
-                status = status,
-                episodesAired = airedEps,
-                episodesTotal = if (totalEps > 0) totalEps else null,
-                nextEpisode = null,
-                genres = genres,
-                rating = score,
-                posterUrl = poster,
-                source = "Shikimori"
+                title = json.get("russian").asString.ifEmpty { json.get("name").asString }, altTitle = json.get("name").asString, description = desc, type = json.get("kind").asString.uppercase(), status = status, episodesAired = airedEps, episodesTotal = if (totalEps > 0) totalEps else null, nextEpisode = null, genres = genres, rating = score, posterUrl = poster, source = "Shikimori"
             )
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return null
-        }
+        } catch (e: Exception) { return null }
     }
 
-    // EN STRATEGY: AniList GraphQL
     private suspend fun fetchDetailsEn(query: String): AnimeDetails? {
         try {
             val url = URL("https://graphql.anilist.co")
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "POST"
             conn.setRequestProperty("Content-Type", "application/json")
-            conn.setRequestProperty("Accept", "application/json")
             conn.doOutput = true
-
-            // ВАЖНО:
-            // 1. Мы используем ${'$'}q, чтобы Kotlin вставил просто символ $ перед q.
-            // 2. Мы убрали обратные слэши.
-            // 3. $query (в variables) — это обычная Kotlin-переменная из аргументов функции, она подставится сама.
-            val gql = """
-            {
-              "query": "query (${'$'}q: String) { Media (search: ${'$'}q, type: ANIME) { title { romaji english } description status episodes nextAiringEpisode { episode timeUntilAiring } genres averageScore coverImage { large } format } }",
-              "variables": { "q": "$query" }
-            }
-            """.trimIndent()
-
+            val gql = """{ "query": "query (${'$'}q: String) { Media (search: ${'$'}q, type: ANIME) { title { romaji english } description status episodes nextAiringEpisode { episode timeUntilAiring } genres averageScore coverImage { large } format } }", "variables": { "q": "$query" } }"""
             conn.outputStream.write(gql.toByteArray())
-
             if (conn.responseCode == 200) {
                 val resp = conn.inputStream.bufferedReader().use { it.readText() }
                 val json = JsonParser.parseString(resp).asJsonObject
                 if (!json.has("data") || json.get("data").isJsonNull) return null
                 val data = json.getAsJsonObject("data").getAsJsonObject("Media") ?: return null
-
                 val titleObj = data.getAsJsonObject("title")
                 val titleEn = if (titleObj.get("english").isJsonNull) titleObj.get("romaji").asString else titleObj.get("english").asString
-
                 var desc = if (data.get("description").isJsonNull) "No description." else data.get("description").asString
-                desc = desc.replace("<br>", "\n").replace(Regex("<.*?>"), "") // Remove HTML
-
+                desc = desc.replace("<br>", "\n").replace(Regex("<.*?>"), "")
                 val epsTotal = if (data.get("episodes").isJsonNull) null else data.get("episodes").asInt
                 val status = data.get("status").asString.replace("_", " ").capitalize()
                 val score = if (data.get("averageScore").isJsonNull) 0.0 else (data.get("averageScore").asInt / 10.0)
-
-                // Next Ep Logic
                 var nextEpStr: String? = null
                 if (data.has("nextAiringEpisode") && !data.get("nextAiringEpisode").isJsonNull) {
                     val nextObj = data.getAsJsonObject("nextAiringEpisode")
@@ -521,94 +624,23 @@ class AnimeRepository {
                     val days = seconds / 86400
                     nextEpStr = "Ep $epNum in $days days"
                 }
-
-                // Calc aired
-                val aired = if (nextEpStr != null && !data.get("nextAiringEpisode").isJsonNull) {
-                    data.getAsJsonObject("nextAiringEpisode").get("episode").asInt - 1
-                } else {
-                    epsTotal ?: 0
-                }
-
+                val aired = if (nextEpStr != null && !data.get("nextAiringEpisode").isJsonNull) { data.getAsJsonObject("nextAiringEpisode").get("episode").asInt - 1 } else { epsTotal ?: 0 }
                 val genres = mutableListOf<String>()
                 data.getAsJsonArray("genres").forEach { genres.add(it.asString) }
-
                 return AnimeDetails(
-                    title = titleEn,
-                    altTitle = titleObj.get("romaji").asString,
-                    description = desc,
-                    type = data.get("format").asString,
-                    status = status,
-                    episodesAired = aired,
-                    episodesTotal = epsTotal,
-                    nextEpisode = nextEpStr,
-                    genres = genres,
-                    rating = score,
-                    posterUrl = data.getAsJsonObject("coverImage").get("large").asString,
-                    source = "AniList"
+                    title = titleEn, altTitle = titleObj.get("romaji").asString, description = desc, type = data.get("format").asString, status = status, episodesAired = aired, episodesTotal = epsTotal, nextEpisode = nextEpStr, genres = genres, rating = score, posterUrl = data.getAsJsonObject("coverImage").get("large").asString, source = "AniList"
                 )
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        } catch (e: Exception) { e.printStackTrace() }
         return null
     }
 
-    // --- EXISTING UPDATE CHECKER ---
-    suspend fun findTotalEpisodes(title: String): Pair<Int, String>? = withContext(Dispatchers.IO) {
-        val shikiResult = checkShikimori(title)
-        if (shikiResult != null && shikiResult > 0) return@withContext shikiResult to "Shikimori"
-        val jikanResult = checkJikan(title)
-        if (jikanResult != null && jikanResult > 0) return@withContext jikanResult to "Jikan"
-        val tmdbResult = checkTmdb(title)
-        if (tmdbResult != null && tmdbResult > 0) return@withContext tmdbResult to "TMDB"
+    suspend fun findTotalEpisodes(title: String, categoryType: String, appContentType: AppContentType): Pair<Int, String>? = withContext(Dispatchers.IO) {
+        val result = APIfinder.findTotalEpisodes(title, categoryType, appContentType)
+        if (result != null) {
+            return@withContext result.episodeCount to result.sourceName
+        }
         return@withContext null
-    }
-
-    private suspend fun checkShikimori(query: String): Int? {
-        return try {
-            ApiRateLimiter.executeSafe {
-                val searchUrl = "https://shikimori.one/api/animes?search=${enc(query)}&limit=1"
-                val json = getJson(searchUrl).asJsonArray
-                if (json.size() == 0) return@executeSafe null
-                json[0].asJsonObject.get("episodes").let { if(it.isJsonNull) 0 else it.asInt }
-            }
-        } catch (e: Exception) { null }
-    }
-
-    private suspend fun checkJikan(query: String): Int? {
-        return try {
-            ApiRateLimiter.executeSafe {
-                val searchUrl = "https://api.jikan.moe/v4/anime?q=${enc(query)}&limit=1"
-                val resp = getJson(searchUrl).asJsonObject
-                val data = resp.getAsJsonArray("data")
-                if (data == null || data.size() == 0) return@executeSafe null
-                val anime = data[0].asJsonObject
-                if (anime.get("episodes").isJsonNull) 0 else anime.get("episodes").asInt
-            }
-        } catch (e: Exception) { null }
-    }
-
-    private suspend fun checkTmdb(query: String): Int? {
-        return try {
-            ApiRateLimiter.executeSafe {
-                val searchUrl = "https://api.themoviedb.org/3/search/tv?api_key=$tmdbKey&query=${enc(query)}"
-                val results = getJson(searchUrl).asJsonObject.getAsJsonArray("results")
-                if (results != null && results.size() > 0) {
-                    val id = results[0].asJsonObject.get("id").asInt
-                    val detailsUrl = "https://api.themoviedb.org/3/tv/$id?api_key=$tmdbKey"
-                    val details = getJson(detailsUrl).asJsonObject
-                    val seasons = details.getAsJsonArray("seasons")
-                    var total = 0
-                    seasons.forEach { s ->
-                        val seasonObj = s.asJsonObject
-                        val sNum = seasonObj.get("season_number").asInt
-                        if (sNum > 0) total += seasonObj.get("episode_count").asInt
-                    }
-                    return@executeSafe total
-                }
-                null
-            }
-        } catch (e: Exception) { null }
     }
 
     suspend fun checkGithubUpdate(): GithubReleaseInfo? = withContext(Dispatchers.IO) {
@@ -620,27 +652,17 @@ class AnimeRepository {
             var downloadUrl = htmlUrl
             val assets = json.getAsJsonArray("assets")
             if (assets != null && assets.size() > 0) {
-                for (i in 0 until assets.size()) {
-                    val asset = assets[i].asJsonObject
-                    val name = asset.get("name").asString
-                    if (name.endsWith(".apk", ignoreCase = true)) {
-                        downloadUrl = asset.get("browser_download_url").asString
-                        break
-                    }
-                }
+                for (i in 0 until assets.size()) { val asset = assets[i].asJsonObject; val name = asset.get("name").asString; if (name.endsWith(".apk", ignoreCase = true)) { downloadUrl = asset.get("browser_download_url").asString; break } }
             }
             GithubReleaseInfo(tag, htmlUrl, downloadUrl)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
+        } catch (e: Exception) { e.printStackTrace(); null }
     }
 
     private fun getJson(urlString: String): com.google.gson.JsonElement {
         val url = URL(urlString)
         val conn = url.openConnection() as HttpURLConnection
         conn.requestMethod = "GET"
-        conn.setRequestProperty("User-Agent", "MAList-App-Updater")
+        conn.setRequestProperty("User-Agent", "Vetro-App-Updater")
         conn.connectTimeout = 5000
         conn.readTimeout = 5000
         if (conn.responseCode in 200..299) {
@@ -650,22 +672,6 @@ class AnimeRepository {
             throw Exception("HTTP ${conn.responseCode}")
         }
     }
-
-    private fun postJson(urlString: String, jsonBody: String): String {
-        val url = URL(urlString)
-        val conn = url.openConnection() as HttpURLConnection
-        conn.requestMethod = "POST"
-        conn.setRequestProperty("Content-Type", "application/json")
-        conn.setRequestProperty("Accept", "application/json")
-        conn.doOutput = true
-        conn.outputStream.write(jsonBody.toByteArray())
-        if (conn.responseCode in 200..299) {
-            return conn.inputStream.bufferedReader().use { it.readText() }
-        } else {
-            throw Exception("HTTP ${conn.responseCode}")
-        }
-    }
-
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
     private fun String.capitalize() = replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
 }
@@ -759,7 +765,15 @@ data class Anime(
 )
 
 data class RankedAnime(val anime: Anime, val score: Int)
-enum class SortOption { DATE_NEWEST, RATING_HIGH, AZ, FAVORITES; fun getLabel(strings: UiStrings): String = when(this) { DATE_NEWEST -> strings.newestFirst; RATING_HIGH -> strings.highestRated; AZ -> strings.nameAZ; FAVORITES -> strings.favorites } }
+enum class SortOption {
+    DATE_NEWEST, RATING_HIGH, AZ, FAVORITES;
+    fun getLabel(strings: UiStrings): String = when(this) {
+        DATE_NEWEST -> strings.newestFirst
+        RATING_HIGH -> strings.highestRated
+        AZ -> strings.nameAZ
+        FAVORITES -> strings.favorites
+    }
+}
 enum class AppUpdateStatus { IDLE, LOADING, NO_UPDATE, UPDATE_AVAILABLE, ERROR }
 data class SemanticVersion(val major: Int, val minor: Int, val patch: Int, val suffix: String) : Comparable<SemanticVersion> {
     override fun compareTo(other: SemanticVersion): Int {
@@ -774,6 +788,7 @@ data class SemanticVersion(val major: Int, val minor: Int, val patch: Int, val s
 }
 
 class AnimeViewModel : ViewModel() {
+    var appContentType by mutableStateOf(AppContentType.ANIME)
     var currentLanguage by mutableStateOf(AppLanguage.EN); private set
     var currentTheme by mutableStateOf(AppTheme.SYSTEM); private set
     val strings: UiStrings get() = getStrings(currentLanguage)
@@ -784,11 +799,8 @@ class AnimeViewModel : ViewModel() {
     var filterSelectedTags by mutableStateOf<List<String>>(emptyList())
     var filterCategoryType by mutableStateOf("")
     var isGenreFilterVisible by mutableStateOf(false)
-
-    // --- DETAILS STATE ---
     var detailsState by mutableStateOf<DetailsState>(DetailsState.Idle); private set
     var selectedAnimeForDetails by mutableStateOf<Anime?>(null)
-
     private val SETTINGS_FILE = "settings.json"
     private val USER_AVATAR_FILE = "user_avatar.jpg"
 
@@ -803,34 +815,31 @@ class AnimeViewModel : ViewModel() {
             detailsState = if (details != null) DetailsState.Success(details) else DetailsState.Error
         }
     }
-
-    fun closeDetails() {
-        selectedAnimeForDetails = null
-        detailsState = DetailsState.Idle
-    }
-
+    fun closeDetails() { selectedAnimeForDetails = null; detailsState = DetailsState.Idle }
     private fun getSettingsFile(): File = File(getRoot(), SETTINGS_FILE)
     fun getGenreName(genreId: String): String = GenreRepository.getLabel(genreId, currentLanguage)
-
     fun setLanguage(lang: AppLanguage) { currentLanguage = lang; saveSettings() }
     fun setAppTheme(theme: AppTheme) { currentTheme = theme; saveSettings() }
-
     fun saveUserAvatar(context: Context, uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val destFile = File(getImgDir(), USER_AVATAR_FILE)
                 context.contentResolver.openInputStream(uri)?.use { input -> FileOutputStream(destFile).use { output -> input.copyTo(output) } }
                 withContext(Dispatchers.Main) { userAvatarPath = destFile.absolutePath }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
-
     private fun loadUserAvatar() { val f = File(getImgDir(), USER_AVATAR_FILE); if (f.exists()) userAvatarPath = f.absolutePath }
-
     fun initAppVersion(context: Context) {
-        try { val pInfo = context.packageManager.getPackageInfo(context.packageName, 0); currentVersionName = pInfo.versionName ?: "v1.0.0" } catch (e: Exception) { currentVersionName = "v1.0.0" }
+        try {
+            val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            currentVersionName = pInfo.versionName ?: "v1.0.0"
+        } catch (e: Exception) {
+            currentVersionName = "v1.0.0"
+        }
     }
-
     fun checkAppUpdate(context: Context) {
         if (updateStatus == AppUpdateStatus.LOADING) return
         updateStatus = AppUpdateStatus.LOADING
@@ -840,32 +849,64 @@ class AnimeViewModel : ViewModel() {
             try {
                 val release = repository.checkGithubUpdate()
                 if (release != null) {
-                    if (isNewerVersion(localVer, release.tagName)) { latestDownloadUrl = release.downloadUrl; updateStatus = AppUpdateStatus.UPDATE_AVAILABLE } else { updateStatus = AppUpdateStatus.NO_UPDATE }
-                } else { updateStatus = AppUpdateStatus.ERROR; delay(2000); updateStatus = AppUpdateStatus.IDLE }
-            } catch (e: Exception) { e.printStackTrace(); updateStatus = AppUpdateStatus.ERROR; delay(2000); updateStatus = AppUpdateStatus.IDLE }
+                    if (isNewerVersion(localVer, release.tagName)) {
+                        latestDownloadUrl = release.downloadUrl
+                        updateStatus = AppUpdateStatus.UPDATE_AVAILABLE
+                    } else {
+                        updateStatus = AppUpdateStatus.NO_UPDATE
+                    }
+                } else {
+                    updateStatus = AppUpdateStatus.ERROR
+                    delay(2000)
+                    updateStatus = AppUpdateStatus.IDLE
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                updateStatus = AppUpdateStatus.ERROR
+                delay(2000)
+                updateStatus = AppUpdateStatus.IDLE
+            }
         }
     }
-
     private fun isNewerVersion(local: String, remote: String): Boolean {
-        try { val localSem = parseVersion(local); val remoteSem = parseVersion(remote); return remoteSem > localSem } catch (e: Exception) { return false }
+        try {
+            val localSem = parseVersion(local)
+            val remoteSem = parseVersion(remote)
+            return remoteSem > localSem
+        } catch (e: Exception) {
+            return false
+        }
     }
-
     private fun parseVersion(versionStr: String): SemanticVersion {
         val clean = versionStr.removePrefix("v").trim()
         val dashSplit = clean.split("-", limit = 2)
         val dots = dashSplit[0].split(".").map { it.toIntOrNull() ?: 0 }
         return SemanticVersion(dots.getOrElse(0) { 0 }, dots.getOrElse(1) { 0 }, dots.getOrElse(2) { 0 }, if (dashSplit.size > 1) dashSplit[1] else "")
     }
-
-    private fun saveSettings() { try { getSettingsFile().writeText(Gson().toJson(mapOf("lang" to currentLanguage.name, "theme" to currentTheme.name))) } catch(e: Exception) { e.printStackTrace() } }
+    fun saveSettings() {
+        try {
+            val settingsMap = mapOf(
+                "lang" to currentLanguage.name,
+                "theme" to currentTheme.name,
+                "contentType" to appContentType.name
+            )
+            getSettingsFile().writeText(Gson().toJson(settingsMap))
+        } catch(e: Exception) { e.printStackTrace() }
+    }
     fun loadSettings() {
         val f = getSettingsFile()
         if (f.exists()) {
             try {
                 val map: Map<String, String> = Gson().fromJson(f.readText(), object : TypeToken<Map<String, String>>() {}.type)
                 currentLanguage = AppLanguage.valueOf(map["lang"] ?: "EN")
-                currentTheme = try { AppTheme.valueOf(map["theme"] ?: "SYSTEM") } catch (e: Exception) { AppTheme.SYSTEM }
-            } catch(e: Exception) { e.printStackTrace() }
+                currentTheme = try {
+                    AppTheme.valueOf(map["theme"] ?: "SYSTEM")
+                } catch (e: Exception) {
+                    AppTheme.SYSTEM
+                }
+            } catch(e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -873,21 +914,35 @@ class AnimeViewModel : ViewModel() {
     val animeList: List<Anime> get() = _animeList
     var searchQuery by mutableStateOf("")
     var sortOption by mutableStateOf(SortOption.DATE_NEWEST)
+
     private val _updates = mutableStateListOf<AnimeUpdate>()
     val updates: List<AnimeUpdate> get() = _updates
+
     var isCheckingUpdates by mutableStateOf(false)
     var needsUpdateCheck by mutableStateOf(true)
     private val repository = AnimeRepository()
-    private val ROOT = "MyAnimeList"
+    private val ROOT = "Vetro"
     private val IMG_DIR = "collection"
     private val FILE_NAME = "list.json"
     private val IGNORED_FILE_NAME = "ignored.json"
+    private val UPDATES_FILE_NAME = "updates.json"
+
     private var ignoredUpdatesMap = mutableMapOf<String, Int>()
 
-    private fun getRoot(): File { val d = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS); val f = File(d, ROOT); if (!f.exists()) f.mkdirs(); return f }
-    private fun getImgDir(): File { val f = File(getRoot(), IMG_DIR); if(!f.exists()) f.mkdirs(); return f }
+    private fun getRoot(): File {
+        val d = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+        val f = File(d, ROOT)
+        if (!f.exists()) f.mkdirs()
+        return f
+    }
+    private fun getImgDir(): File {
+        val f = File(getRoot(), IMG_DIR)
+        if(!f.exists()) f.mkdirs()
+        return f
+    }
     private fun getDataFile(): File = File(getRoot(), FILE_NAME)
     private fun getIgnoredFile(): File = File(getRoot(), IGNORED_FILE_NAME)
+    private fun getUpdatesFile(): File = File(getRoot(), UPDATES_FILE_NAME)
 
     fun loadAnime() {
         val f = getDataFile()
@@ -909,40 +964,109 @@ class AnimeViewModel : ViewModel() {
                         val dateAdded = if (obj.has("dateAdded") && !obj.get("dateAdded").isJsonNull) obj.get("dateAdded").asLong else System.currentTimeMillis()
                         val imageFileName = if (obj.has("imageFileName") && !obj.get("imageFileName").isJsonNull) obj.get("imageFileName").asString else null
                         val isFavorite = if (obj.has("isFavorite") && !obj.get("isFavorite").isJsonNull) obj.get("isFavorite").asBoolean else false
-                        val tags = mutableListOf<String>(); if (obj.has("tags") && obj.get("tags").isJsonArray) { obj.get("tags").asJsonArray.forEach { tags.add(it.asString) } }
+                        val tags = mutableListOf<String>()
+                        if (obj.has("tags") && obj.get("tags").isJsonArray) {
+                            obj.get("tags").asJsonArray.forEach { tags.add(it.asString) }
+                        }
                         val categoryType = if (obj.has("categoryType") && !obj.get("categoryType").isJsonNull) obj.get("categoryType").asString else ""
                         restoredList.add(Anime(id, title, episodes, rating, imageFileName, orderIndex, dateAdded, isFavorite, tags, categoryType))
-                    } catch (e: Exception) { e.printStackTrace() }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
-            }
-            _animeList.clear(); _animeList.addAll(restoredList.sortedBy { it.orderIndex })
-            if (_animeList.isNotEmpty()) save()
+            }; _animeList.clear(); _animeList.addAll(restoredList.sortedBy { it.orderIndex }); if (_animeList.isNotEmpty()) save()
         } catch (e: Exception) { e.printStackTrace() }
+
         loadUserAvatar()
+
         val fIgnored = getIgnoredFile()
-        if (fIgnored.exists()) { try { val map: Map<String, Int> = Gson().fromJson(fIgnored.readText(), object : TypeToken<Map<String, Int>>() {}.type) ?: emptyMap(); ignoredUpdatesMap.putAll(map) } catch (e: Exception) { e.printStackTrace() } }
-        needsUpdateCheck = true
-        checkForUpdates()
+        if (fIgnored.exists()) {
+            try {
+                val map: Map<String, Int> = Gson().fromJson(fIgnored.readText(), object : TypeToken<Map<String, Int>>() {}.type) ?: emptyMap()
+                ignoredUpdatesMap.putAll(map)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        loadUpdatesFromFile()
+
+        if (_updates.isEmpty()) {
+            needsUpdateCheck = true
+            checkForUpdates()
+        }
     }
 
-    fun toggleFavorite(id: String) { val idx = _animeList.indexOfFirst { it.id == id }; if (idx != -1) { val item = _animeList[idx]; _animeList[idx] = item.copy(isFavorite = !item.isFavorite); save() } }
+    private fun loadUpdatesFromFile() {
+        val f = getUpdatesFile()
+        if (f.exists()) {
+            try {
+                val listType = object : TypeToken<List<AnimeUpdate>>() {}.type
+                val savedUpdates: List<AnimeUpdate> = Gson().fromJson(f.readText(), listType) ?: emptyList()
+                _updates.clear()
+                _updates.addAll(savedUpdates)
+            } catch(e: Exception) { e.printStackTrace() }
+        }
+    }
+
+    private fun saveUpdatesToFile() {
+        try {
+            getUpdatesFile().writeText(Gson().toJson(_updates))
+        } catch(e: Exception) { e.printStackTrace() }
+    }
+
+    fun scheduleBackgroundWork(context: Context) {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val updateRequest = PeriodicWorkRequestBuilder<AnimeUpdateWorker>(
+            6, TimeUnit.HOURS
+        )
+            .setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            "AnimeUpdateWork",
+            ExistingPeriodicWorkPolicy.KEEP,
+            updateRequest
+        )
+    }
+
+    fun toggleFavorite(id: String) {
+        val idx = _animeList.indexOfFirst { it.id == id }
+        if (idx != -1) {
+            val item = _animeList[idx]
+            _animeList[idx] = item.copy(isFavorite = !item.isFavorite)
+            save()
+        }
+    }
 
     fun checkForUpdates(force: Boolean = false) {
         if (!force && !needsUpdateCheck && _updates.isEmpty()) return
         if (isCheckingUpdates) return
         isCheckingUpdates = true
+
+        _updates.clear()
+        saveUpdatesToFile()
+
         viewModelScope.launch {
             try {
-                val newUpdates = mutableListOf<AnimeUpdate>()
                 _animeList.forEach { anime ->
-                    val result = repository.findTotalEpisodes(anime.title)
+                    val result = repository.findTotalEpisodes(anime.title, anime.categoryType, appContentType)
                     if (result != null) {
                         val (remoteEps, source) = result
                         val isIgnored = ignoredUpdatesMap[anime.id] == remoteEps
-                        if (remoteEps > anime.episodes && !isIgnored) newUpdates.add(AnimeUpdate(anime.id, anime.title, anime.episodes, remoteEps, source))
+                        if (remoteEps > anime.episodes && !isIgnored) {
+                            val newUpdate = AnimeUpdate(anime.id, anime.title, anime.episodes, remoteEps, source)
+
+                            if (!_updates.contains(newUpdate)) {
+                                _updates.add(newUpdate)
+                                saveUpdatesToFile()
+                            }
+                        }
                     }
                 }
-                _updates.clear(); _updates.addAll(newUpdates)
                 if (_updates.isEmpty()) needsUpdateCheck = false
             } catch (e: Exception) { e.printStackTrace() } finally { isCheckingUpdates = false }
         }
@@ -952,64 +1076,123 @@ class AnimeViewModel : ViewModel() {
         val anime = getAnimeById(update.animeId) ?: return
         updateAnime(ctx, anime.id, anime.title, update.newEpisodes, anime.rating, null, anime.tags, anime.categoryType)
         _updates.remove(update)
+        saveUpdatesToFile()
     }
 
-    fun dismissUpdate(update: AnimeUpdate) { ignoredUpdatesMap[update.animeId] = update.newEpisodes; saveIgnored(); _updates.remove(update); if (_updates.isEmpty()) needsUpdateCheck = false }
-    fun getAnimeById(id: String): Anime? = _animeList.find { it.id == id }
+    fun dismissUpdate(update: AnimeUpdate) {
+        ignoredUpdatesMap[update.animeId] = update.newEpisodes
+        saveIgnored()
+        _updates.remove(update)
+        saveUpdatesToFile()
+        if (_updates.isEmpty()) needsUpdateCheck = false
+    }
 
+    fun getAnimeById(id: String): Anime? = _animeList.find { it.id == id }
     fun addAnime(ctx: Context, title: String, ep: Int, rate: Int, uri: Uri?, tags: List<String>, categoryType: String) {
         val id = UUID.randomUUID().toString()
         val img = if (uri != null) saveImg(ctx, uri, id) else null
         _animeList.add(0, Anime(id, title, ep, rate, img, (_animeList.maxOfOrNull { it.orderIndex }?:0)+1, tags = tags, categoryType = categoryType))
-        save(); needsUpdateCheck = true
+        save()
+        needsUpdateCheck = true
     }
-
     fun updateAnime(ctx: Context, id: String, title: String, ep: Int, rate: Int, uri: Uri?, tags: List<String>, categoryType: String) {
-        val idx = _animeList.indexOfFirst { it.id == id }; if (idx == -1) return
+        val idx = _animeList.indexOfFirst { it.id == id }
+        if (idx == -1) return
         var img = _animeList[idx].imageFileName
-        if (uri != null) { val newImg = saveImg(ctx, uri, id); if (newImg != null) { _animeList[idx].imageFileName?.let { File(getImgDir(), it).delete() }; img = newImg } }
+        if (uri != null) {
+            val newImg = saveImg(ctx, uri, id)
+            if (newImg != null) {
+                _animeList[idx].imageFileName?.let { File(getImgDir(), it).delete() }
+                img = newImg
+            }
+        }
         _animeList[idx] = _animeList[idx].copy(title=title, episodes=ep, rating=rate, imageFileName=img, tags=tags, categoryType=categoryType)
-        save(); needsUpdateCheck = true; if (ignoredUpdatesMap.containsKey(id)) { ignoredUpdatesMap.remove(id); saveIgnored() }
+        save()
+        needsUpdateCheck = true
+        if (ignoredUpdatesMap.containsKey(id)) {
+            ignoredUpdatesMap.remove(id)
+            saveIgnored()
+        }
     }
-
-    fun deleteAnime(id: String) { val anime = _animeList.find { it.id == id } ?: return; anime.imageFileName?.let { File(getImgDir(), it).delete() }; _animeList.remove(anime); save(); needsUpdateCheck = true }
-
+    fun deleteAnime(id: String) {
+        val anime = _animeList.find { it.id == id } ?: return
+        anime.imageFileName?.let { File(getImgDir(), it).delete() }
+        _animeList.remove(anime)
+        save()
+        needsUpdateCheck = true
+    }
     private fun save() {
         try {
             getDataFile().writeText(Gson().toJson(_animeList))
-            // TRIGGER SYNC
             DropboxSyncManager.scheduleAutoSync()
-        } catch(e:Exception){e.printStackTrace()}
+        } catch(e:Exception){
+            e.printStackTrace()
+        }
     }
-    private fun saveIgnored() { try { getIgnoredFile().writeText(Gson().toJson(ignoredUpdatesMap)) } catch(e:Exception){e.printStackTrace()} }
-    private fun saveImg(ctx: Context, uri: Uri, id: String): String? { return try { val name = "img_${id}_${System.currentTimeMillis()}.jpg"; ctx.contentResolver.openInputStream(uri)?.use { i -> FileOutputStream(File(getImgDir(), name)).use { o -> i.copyTo(o) } }; name } catch(e: Exception) { null } }
+    private fun saveIgnored() {
+        try {
+            getIgnoredFile().writeText(Gson().toJson(ignoredUpdatesMap))
+        } catch(e:Exception){
+            e.printStackTrace()
+        }
+    }
+    private fun saveImg(ctx: Context, uri: Uri, id: String): String? {
+        return try {
+            val name = "img_${id}_${System.currentTimeMillis()}.jpg"
+            ctx.contentResolver.openInputStream(uri)?.use { i -> FileOutputStream(File(getImgDir(), name)).use { o -> i.copyTo(o) } }
+            name
+        } catch(e: Exception) {
+            null
+        }
+    }
     fun getImgPath(name: String?): File? = if(name!=null) File(getImgDir(), name).let { if(it.exists()) it else null } else null
-
     fun getDisplayList(): List<Anime> {
         val rawQuery = searchQuery.trim()
         val filteredByGenre = if (filterSelectedTags.isEmpty()) _animeList else _animeList.filter { anime -> anime.tags.containsAll(filterSelectedTags) }
         if (rawQuery.isBlank()) return sortList(filteredByGenre)
         val normalizedQuery = rawQuery.lowercase()
-        return filteredByGenre.mapNotNull { anime -> val score = calculateRelevanceScore(normalizedQuery, anime.title.lowercase()); if (score > 0) RankedAnime(anime, score) else null }.sortedWith(compareByDescending<RankedAnime> { it.score }.thenBy { it.anime.title }).map { it.anime }
+        return filteredByGenre.mapNotNull { anime ->
+            val score = calculateRelevanceScore(normalizedQuery, anime.title.lowercase())
+            if (score > 0) RankedAnime(anime, score) else null
+        }.sortedWith(compareByDescending<RankedAnime> { it.score }.thenBy { it.anime.title }).map { it.anime }
     }
-
     private fun calculateRelevanceScore(query: String, title: String): Int {
         if (title == query) return 100
         if (title.startsWith(query)) return 90
-        val words = title.split(" ", "-", ":"); if (words.any { it.startsWith(query) }) return 80
+        val words = title.split(" ", "-", ":")
+        if (words.any { it.startsWith(query) }) return 80
         if (title.contains(query)) return 60
-        if (query.length > 2) { val dist = levenshtein(query, title); val maxEdits = if (query.length < 6) 1 else 2; if (dist <= maxEdits) return 50 }
+        if (query.length > 2) {
+            val dist = levenshtein(query, title)
+            val maxEdits = if (query.length < 6) 1 else 2
+            if (dist <= maxEdits) return 50
+        }
         return 0
     }
-
     private fun sortList(list: List<Anime>): List<Anime> {
-        return when(sortOption) { SortOption.DATE_NEWEST -> list.sortedByDescending { it.dateAdded }; SortOption.RATING_HIGH -> list.sortedByDescending { it.rating }; SortOption.AZ -> list.sortedBy { it.title }; SortOption.FAVORITES -> list.filter { it.isFavorite }.sortedBy { it.title } }
+        return when(sortOption) {
+            SortOption.DATE_NEWEST -> list.sortedByDescending { it.dateAdded }
+            SortOption.RATING_HIGH -> list.sortedByDescending { it.rating }
+            SortOption.AZ -> list.sortedBy { it.title }
+            SortOption.FAVORITES -> list.filter { it.isFavorite }.sortedBy { it.title }
+        }
     }
-
     private fun levenshtein(lhs: CharSequence, rhs: CharSequence): Int {
-        if (lhs == rhs) return 0; if (lhs.isEmpty()) return rhs.length; if (rhs.isEmpty()) return lhs.length
-        var cost = IntArray(lhs.length + 1) { it }; var newCost = IntArray(lhs.length + 1) { 0 }
-        for (i in 1..rhs.length) { newCost[0] = i; for (j in 1..lhs.length) { val match = if (lhs[j - 1] == rhs[i - 1]) 0 else 1; newCost[j] = min(min(cost[j] + 1, newCost[j - 1] + 1), cost[j - 1] + match) }; val swap = cost; cost = newCost; newCost = swap }
+        if (lhs == rhs) return 0
+        if (lhs.isEmpty()) return rhs.length
+        if (rhs.isEmpty()) return lhs.length
+        var cost = IntArray(lhs.length + 1) { it }
+        var newCost = IntArray(lhs.length + 1) { 0 }
+        for (i in 1..rhs.length) {
+            newCost[0] = i
+            for (j in 1..lhs.length) {
+                val match = if (lhs[j - 1] == rhs[i - 1]) 0 else 1
+                newCost[j] = min(min(cost[j] + 1, newCost[j - 1] + 1), cost[j - 1] + match)
+            }
+            val swap = cost
+            cost = newCost
+            newCost = swap
+        }
         return cost[lhs.length]
     }
 }
@@ -1020,8 +1203,14 @@ class AnimeViewModel : ViewModel() {
 
 fun performHaptic(view: View, type: String) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        when(type) { "success" -> view.performHapticFeedback(HapticFeedbackConstants.CONFIRM); "light" -> view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK); "warning" -> view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS) }
-    } else { view.performHapticFeedback(if (type == "success") HapticFeedbackConstants.LONG_PRESS else HapticFeedbackConstants.VIRTUAL_KEY) }
+        when(type) {
+            "success" -> view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+            "light" -> view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            "warning" -> view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+        }
+    } else {
+        view.performHapticFeedback(if (type == "success") HapticFeedbackConstants.LONG_PRESS else HapticFeedbackConstants.VIRTUAL_KEY)
+    }
 }
 fun performHaptic(view: View, isStrong: Boolean) { performHaptic(view, if (isStrong) "warning" else "light") }
 
@@ -1121,30 +1310,23 @@ fun RatingChip(rating: Int) {
     val starTint = getRatingColor(rating)
     val isDark = MaterialTheme.colorScheme.background == DarkBackground
 
-    // Фон:
-    // Dark: Полупрозрачный темный (в стиле Glass)
-    // Light: SurfaceVariant (чуть темнее фона, чтобы выделялось)
     val bgColor = if (isDark) {
         MaterialTheme.colorScheme.background.copy(alpha = 0.3f)
     } else {
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
     }
 
-    // Базовый модификатор (форма + фон)
     var modifier = Modifier
         .clip(RoundedCornerShape(8.dp))
         .background(bgColor)
 
-    // ЛОГИКА: Добавляем рамку ТОЛЬКО в темной теме
     if (isDark) {
         modifier = modifier.border(
             width = 0.5.dp,
-            color = Color.White.copy(alpha = 0.1f), // Та самая "красивая белая рамочка"
+            color = Color.White.copy(alpha = 0.1f),
             shape = RoundedCornerShape(8.dp)
         )
     }
-    // В светлой теме border не добавляем -> нет серой окантовки.
-    // shadow() не используем вообще -> нет артефактов "halo".
 
     Box(
         modifier = modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -1228,7 +1410,6 @@ fun OneUiAnimeCard(
         DarkBackground
     }
 
-    // Цвета для чипов жанров
     val chipBgColor = if (isDark) Color(0xFFE0E0E0) else Color(0xFF303030)
     val chipTextColor = if (isDark) Color.Black else Color.White
 
@@ -1251,7 +1432,6 @@ fun OneUiAnimeCard(
                     .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 1. ИЗОБРАЖЕНИЕ
                 Box(modifier = Modifier.aspectRatio(1f).fillMaxHeight().sharedElement(rememberSharedContentState(key = "image_${anime.id}"), animatedVisibilityScope = animatedVisibilityScope).clip(RoundedCornerShape(18.dp)).background(Color.Black)) {
                     if (imageFile != null) AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(imageFile).crossfade(true).build(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                     else Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize().background(Color(0xFF2C2C2E))) { Text(text = anime.title.take(1).uppercase(), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Gray) }
@@ -1259,12 +1439,10 @@ fun OneUiAnimeCard(
 
                 Spacer(Modifier.width(16.dp))
 
-                // 2. ЦЕНТРАЛЬНАЯ ЧАСТЬ (Текст)
                 Column(
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // Название и звезда
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(text = anime.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface, lineHeight = 20.sp, modifier = Modifier.weight(1f, false))
                         if (anime.isFavorite) {
@@ -1276,7 +1454,6 @@ fun OneUiAnimeCard(
                     Spacer(Modifier.height(4.dp))
                     Text(text = "${anime.episodes} episodes", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
 
-                    // Жанры
                     if (anime.tags.isNotEmpty()) {
                         Spacer(Modifier.height(6.dp))
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp), maxItemsInEachRow = 2) {
@@ -1289,23 +1466,20 @@ fun OneUiAnimeCard(
                     }
                 }
 
-                // 3. ПРАВАЯ КОЛОНКА
                 Column(
                     modifier = Modifier.fillMaxHeight().padding(start = 8.dp),
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // РЕЙТИНГ
                     if (anime.rating > 0) {
                         RatingChip(rating = anime.rating)
                         Spacer(Modifier.height(12.dp))
                     }
 
-                    // INFO КНОПКА
                     Icon(
                         imageVector = Icons.Outlined.Info,
                         contentDescription = "Details",
-                        tint = infoIconColor, // ← ВОТ ТУТ
+                        tint = infoIconColor,
                         modifier = Modifier
                             .size(24.dp)
                             .clickable(
@@ -1359,7 +1533,6 @@ fun AnimeDetailsSheet(
         modifier = Modifier.fillMaxSize().zIndex(100f),
         contentAlignment = Alignment.BottomCenter
     ) {
-        // Scrim
         AnimatedVisibility(
             visible = visible,
             enter = fadeIn(animationSpec = tween(300)),
@@ -1373,7 +1546,6 @@ fun AnimeDetailsSheet(
             )
         }
 
-        // Content
         AnimatedVisibility(
             visible = visible,
             enter = slideInVertically(initialOffsetY = { it }, animationSpec = spring(dampingRatio = 0.85f, stiffness = 450f)) + fadeIn(),
@@ -1425,9 +1597,7 @@ fun AnimeDetailsSheet(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DetailsContent(details: AnimeDetails, viewModel: AnimeViewModel) {
-    // Header
     Row(verticalAlignment = Alignment.Top) {
-        // Poster
         if (details.posterUrl != null) {
             AsyncImage(
                 model = details.posterUrl,
@@ -1447,7 +1617,7 @@ fun DetailsContent(details: AnimeDetails, viewModel: AnimeViewModel) {
                 text = details.title,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface // <--- ИСПРАВЛЕНИЕ: Читаемый цвет
+                color = MaterialTheme.colorScheme.onSurface
             )
             if (details.altTitle != null && details.altTitle != details.title) {
                 Text(
@@ -1458,7 +1628,6 @@ fun DetailsContent(details: AnimeDetails, viewModel: AnimeViewModel) {
             }
             Spacer(Modifier.height(8.dp))
 
-            // Source Badge
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
@@ -1477,7 +1646,6 @@ fun DetailsContent(details: AnimeDetails, viewModel: AnimeViewModel) {
 
     Spacer(Modifier.height(20.dp))
 
-    // Grid Stats
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         DetailStatCard(
             label = if (viewModel.currentLanguage == AppLanguage.RU) "Рейтинг" else "Score",
@@ -1504,7 +1672,6 @@ fun DetailsContent(details: AnimeDetails, viewModel: AnimeViewModel) {
 
     Spacer(Modifier.height(16.dp))
 
-    // Status & Next Ep
     Row(verticalAlignment = Alignment.CenterVertically) {
         val statusColor = if (details.status.contains("Ongoing", ignoreCase = true) || details.status.contains("онгоинг", ignoreCase = true)) RateColor5 else MaterialTheme.colorScheme.secondary
         Icon(Icons.Default.Info, null, tint = statusColor, modifier = Modifier.size(16.dp))
@@ -1521,7 +1688,6 @@ fun DetailsContent(details: AnimeDetails, viewModel: AnimeViewModel) {
 
     Spacer(Modifier.height(16.dp))
 
-    // Description
     Text(
         text = details.description,
         style = MaterialTheme.typography.bodyMedium,
@@ -1532,7 +1698,6 @@ fun DetailsContent(details: AnimeDetails, viewModel: AnimeViewModel) {
 
     Spacer(Modifier.height(16.dp))
 
-    // Genres
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         details.genres.forEach { genre ->
             Box(
@@ -1618,8 +1783,17 @@ fun GenreFilterSheet(viewModel: AnimeViewModel, onDismiss: () -> Unit) {
     fun triggerDismiss() { visible = false; android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ onDismiss() }, 300) }
     val onTagToggle: (String, String) -> Unit = { tag, categoryType ->
         val currentTags = viewModel.filterSelectedTags.toMutableList()
-        if (currentTags.contains(tag)) { currentTags.remove(tag); if (currentTags.isEmpty()) { viewModel.filterCategoryType = "" } } else { if (currentTags.size < 3 && (viewModel.filterCategoryType.isEmpty() || viewModel.filterCategoryType == categoryType)) { currentTags.add(tag); viewModel.filterCategoryType = categoryType } }
-        viewModel.filterSelectedTags = currentTags; performHaptic(view, "light")
+        if (currentTags.contains(tag)) {
+            currentTags.remove(tag)
+            if (currentTags.isEmpty()) { viewModel.filterCategoryType = "" }
+        } else {
+            if (currentTags.size < 3 && (viewModel.filterCategoryType.isEmpty() || viewModel.filterCategoryType == categoryType)) {
+                currentTags.add(tag)
+                viewModel.filterCategoryType = categoryType
+            }
+        }
+        viewModel.filterSelectedTags = currentTags
+        performHaptic(view, "light")
     }
     BackHandler { triggerDismiss() }
     Box(modifier = Modifier.fillMaxSize().zIndex(100f), contentAlignment = Alignment.BottomCenter) {
@@ -1655,11 +1829,10 @@ fun MalistWorkspaceTopBar(viewModel: AnimeViewModel, modifier: Modifier = Modifi
     val context = LocalContext.current
     val singlePhotoPickerLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia(), onResult = { uri -> if (uri != null) { viewModel.saveUserAvatar(context, uri) } })
 
-    // ИЗМЕНЕНИЕ: Меняем vertical = 12.dp на явные top = 24.dp и bottom = 12.dp
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 12.dp) // <-- Опустили ниже
+            .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 12.dp)
             .statusBarsPadding(),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1672,22 +1845,65 @@ fun MalistWorkspaceTopBar(viewModel: AnimeViewModel, modifier: Modifier = Modifi
 }
 
 @Composable
-fun StatsCard(title: String, icon: ImageVector, isExpanded: Boolean, onClick: () -> Unit, iconTint: Color? = null, iconBg: Color? = null, content: @Composable () -> Unit) {
+fun StatsCard(
+    title: String,
+    icon: ImageVector,
+    isExpanded: Boolean,
+    onClick: () -> Unit,
+    iconTint: Color? = null,
+    iconBg: Color? = null,
+    content: @Composable () -> Unit
+) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
     val borderColor = MaterialTheme.colorScheme.outline
     val contentColor = MaterialTheme.colorScheme.onSurface
-    val shape = RoundedCornerShape(20.dp)
+
+    val shape = RoundedCornerShape(48.dp)
+
     val finalIconTint = iconTint ?: MaterialTheme.colorScheme.onSecondaryContainer
     val finalIconBg = iconBg ?: MaterialTheme.colorScheme.secondaryContainer
-    Box(modifier = Modifier.fillMaxWidth().shadow(elevation = 8.dp, shape = shape, spotColor = Color.Black.copy(alpha = 0.08f)).clip(shape).background(brush = Brush.verticalGradient(colors = listOf(surfaceColor, surfaceVariant))).border(width = 1.dp, color = borderColor, shape = shape).clickable { onClick() }.animateContentSize()) {
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(elevation = 8.dp, shape = shape, spotColor = Color.Black.copy(alpha = 0.08f))
+            .clip(shape)
+            .background(brush = Brush.verticalGradient(colors = listOf(surfaceColor, surfaceVariant)))
+            .border(width = 1.dp, color = borderColor, shape = shape)
+            .clickable { onClick() }
+            .animateContentSize()
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.size(48.dp).clip(CircleShape).background(finalIconBg), contentAlignment = Alignment.Center) { Icon(imageVector = icon, contentDescription = null, tint = finalIconTint, modifier = Modifier.size(24.dp)) }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(text = title, style = MaterialTheme.typography.titleMedium, color = contentColor, fontWeight = FontWeight.SemiBold)
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(finalIconBg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = finalIconTint,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = contentColor,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
-            if (isExpanded) { Spacer(modifier = Modifier.height(16.dp)); Box(modifier = Modifier.fillMaxWidth()) { content() } }
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    content()
+                }
+            }
         }
     }
 }
@@ -1750,18 +1966,14 @@ fun HomeScreen(
     var showCSheet by remember { mutableStateOf(false) }
     var isSearchVisible by remember { mutableStateOf(false) }
 
-    // 1. NOTIFICATION OVERLAY ANIMATION
     var showNotificationsOverlay by remember { mutableStateOf(false) }
     val notifVisibleState = remember { MutableTransitionState(false) }
     notifVisibleState.targetState = showNotificationsOverlay
 
-    // 2. SORT OVERLAY ANIMATION
     var showSortOverlay by remember { mutableStateOf(false) }
     val sortVisibleState = remember { MutableTransitionState(false) }
     sortVisibleState.targetState = showSortOverlay
 
-    // 3. GENRE FILTER OVERLAY ANIMATION
-    // We bind this directly to the ViewModel's state to coordinate with the Sort menu
     val genreFilterVisibleState = remember { MutableTransitionState(false) }
     genreFilterVisibleState.targetState = vm.isGenreFilterVisible
 
@@ -1801,13 +2013,11 @@ fun HomeScreen(
     val showScrollToTop by remember { derivedStateOf { listState.firstVisibleItemIndex > 4 } }
     val bgColor = MaterialTheme.colorScheme.background
 
-    // Logic for blurring the list (all overlays included)
     val shouldBlur = (isSearchVisible && vm.searchQuery.isBlank()) ||
             showCSheet || animeToDelete != null || animeToFavorite != null ||
             vm.isGenreFilterVisible || showNotificationsOverlay || showSortOverlay
     val blurAmount by animateDpAsState(targetValue = if (shouldBlur) 10.dp else 0.dp, label = "blur")
 
-    // --- DETAILS SHEET ---
     if (vm.selectedAnimeForDetails != null) {
         AnimeDetailsSheet(
             viewModel = vm,
@@ -1819,14 +2029,12 @@ fun HomeScreen(
         Box(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.fillMaxSize().background(bgColor))
 
-            // Z-INDEX 6: DOCK (ALWAYS ON TOP)
             Box(modifier = Modifier.zIndex(6f).align(Alignment.TopEnd).padding(end = 16.dp)) {
                 GlassActionDock(
                     hazeState = hazeState,
                     isFloating = isHeaderFloating,
                     sortOption = vm.sortOption,
                     viewModel = vm,
-                    // Open Sort Overlay
                     onOpenSort = {
                         performHaptic(view, "light")
                         showSortOverlay = !showSortOverlay
@@ -1835,7 +2043,6 @@ fun HomeScreen(
                             vm.isGenreFilterVisible = false
                         }
                     },
-                    // Open Notifications Overlay
                     onOpenNotifications = {
                         performHaptic(view, "light")
                         showNotificationsOverlay = !showNotificationsOverlay
@@ -1848,9 +2055,7 @@ fun HomeScreen(
                 )
             }
 
-            // Z-INDEX 5: OVERLAYS
 
-            // A) Notifications Overlay
             if (notifVisibleState.currentState || notifVisibleState.targetState) {
                 Box(modifier = Modifier.zIndex(5f).fillMaxSize()) {
                     NotificationSyncOverlay(
@@ -1867,7 +2072,6 @@ fun HomeScreen(
                 }
             }
 
-            // B) Sort Overlay
             if (sortVisibleState.currentState || sortVisibleState.targetState) {
                 Box(modifier = Modifier.zIndex(5f).fillMaxSize()) {
                     SortFilterOverlay(
@@ -1880,14 +2084,12 @@ fun HomeScreen(
                         },
                         onOpenGenreFilter = {
                             performHaptic(view, "light")
-                            // Toggle VM state, animation triggers via genreFilterVisibleState
                             vm.isGenreFilterVisible = true
                         }
                     )
                 }
             }
 
-            // C) Genre Filter Overlay (NEW)
             if (genreFilterVisibleState.currentState || genreFilterVisibleState.targetState) {
                 Box(modifier = Modifier.zIndex(5f).fillMaxSize()) {
                     GenreFilterOverlay(
@@ -1898,7 +2100,6 @@ fun HomeScreen(
                 }
             }
 
-            // Z-INDEX 1: MAIN LIST
             Column(modifier = Modifier.fillMaxSize().blur(blurAmount)) {
                 Box(modifier = Modifier.fillMaxSize().weight(1f).background(bgColor)) {
                     val list = vm.getDisplayList()
@@ -1944,7 +2145,6 @@ fun HomeScreen(
                 }
             }
 
-            // BOTTOM BAR & SEARCH
             if (!isSearchVisible && animeToDelete == null && animeToFavorite == null) {
                 Box(modifier = Modifier.align(Alignment.BottomCenter).zIndex(3f).navigationBarsPadding()) {
                     AnimatedVisibility(visible = finalDockVisible, enter = slideInVertically(initialOffsetY = { it }, animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)) + fadeIn(animationSpec = tween(300)), exit = slideOutVertically(targetOffsetY = { it }, animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)) + fadeOut(animationSpec = tween(300))) {
@@ -1960,20 +2160,16 @@ fun HomeScreen(
                 LaunchedEffect(Unit) { searchFocusRequester.requestFocus(); kbd?.show() }
             }
 
-            // PLAIN SCRIM (Z-INDEX 2)
             if (shouldBlur && animeToDelete == null && animeToFavorite == null && vm.selectedAnimeForDetails == null && !showNotificationsOverlay && !showSortOverlay && !vm.isGenreFilterVisible) {
                 Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { focusManager.clearFocus(); isSearchVisible = false; kbd?.hide() }.zIndex(2f))
             }
 
-            // DIALOGS
             if (animeToDelete != null) { SpringBottomDialog(title = vm.strings.deleteTitle, subtitle = vm.strings.deleteSubtitle, confirmText = vm.strings.deleteConfirm, cancelText = vm.strings.cancel, icon = Icons.Default.Delete, accentColor = BrandRed, imageFile = vm.getImgPath(animeToDelete?.imageFileName), onConfirm = { vm.deleteAnime(animeToDelete!!.id); animeToDelete = null }, onCancel = { animeToDelete = null }) }
             if (animeToFavorite != null) { SpringBottomDialog(title = vm.strings.favTitle, subtitle = vm.strings.favSubtitle, confirmText = vm.strings.favConfirm, cancelText = vm.strings.cancel, icon = Icons.Default.Star, accentColor = RateColor3, imageFile = vm.getImgPath(animeToFavorite?.imageFileName), onConfirm = { vm.toggleFavorite(animeToFavorite!!.id); animeToFavorite = null }, onCancel = { animeToFavorite = null }) }
 
-            // SCROLL TO TOP
             AnimatedVisibility(visible = showScrollToTop && !isSearchVisible && animeToDelete == null && animeToFavorite == null, enter = fadeIn() + scaleIn(), exit = fadeOut() + scaleOut(), modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 160.dp, end = 24.dp).zIndex(1f)) { SimpGlassCard(hazeState = hazeState, shape = CircleShape, modifier = Modifier.size(44.dp).clickable { performHaptic(view, "light"); scope.launch { listState.animateScrollToItem(0) } }) { Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "Up", tint = MaterialTheme.colorScheme.onSurface) } }
         }
 
-        // BOTTOM SHEETS
         if (showCSheet) { StatsOverlay(viewModel = vm, onDismiss = { showCSheet = false }) }
     }
 }
@@ -2036,7 +2232,13 @@ fun GenreChip(text: String, isSelected: Boolean, onClick: () -> Unit) {
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun AddEditScreen(nav: NavController, vm: AnimeViewModel, id: String?, sharedTransitionScope: SharedTransitionScope, animatedVisibilityScope: AnimatedVisibilityScope) {
+fun AddEditScreen(
+    nav: NavController,
+    vm: AnimeViewModel,
+    id: String?,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
+) {
     val anime = remember(id) { id?.let { vm.getAnimeById(it) } }
     var title by remember { mutableStateOf(anime?.title ?: "") }
     var ep by remember { mutableStateOf(anime?.episodes?.toString() ?: "") }
@@ -2045,42 +2247,199 @@ fun AddEditScreen(nav: NavController, vm: AnimeViewModel, id: String?, sharedTra
     var selectedTags by remember { mutableStateOf(anime?.tags ?: emptyList()) }
     var activeCategory by remember { mutableStateOf(anime?.categoryType ?: "") }
     val scope = rememberCoroutineScope()
-    val hasChanges by remember(title, ep, rate, uri, selectedTags) { derivedStateOf { if (id == null) { title.isNotBlank() } else { (anime != null) && (title != anime.title || ep != anime.episodes.toString() || rate != anime.rating || uri != null || selectedTags != anime.tags) } } }
+    val hasChanges by remember(title, ep, rate, uri, selectedTags) {
+        derivedStateOf {
+            if (id == null) {
+                title.isNotBlank()
+            } else {
+                (anime != null) && (title != anime.title || ep != anime.episodes.toString() || rate != anime.rating || uri != null || selectedTags != anime.tags)
+            }
+        }
+    }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri = it }
     val ctx = LocalContext.current
     val view = LocalView.current
     val bg = MaterialTheme.colorScheme.background
     val textC = MaterialTheme.colorScheme.onBackground
     val s = vm.strings
-    val onTagToggle: (String, String) -> Unit = { tag, categoryType -> val currentTags = selectedTags.toMutableList(); if (currentTags.contains(tag)) { currentTags.remove(tag); if (currentTags.isEmpty()) { activeCategory = "" } } else { if (currentTags.size < 3 && (activeCategory.isEmpty() || activeCategory == categoryType)) { currentTags.add(tag); activeCategory = categoryType } }; selectedTags = currentTags; performHaptic(view, "light") }
+    val onTagToggle: (String, String) -> Unit = { tag, categoryType ->
+        val currentTags = selectedTags.toMutableList();
+        if (currentTags.contains(tag)) {
+            currentTags.remove(tag);
+            if (currentTags.isEmpty()) { activeCategory = "" }
+        } else {
+            if (currentTags.size < 3 && (activeCategory.isEmpty() || activeCategory == categoryType)) {
+                currentTags.add(tag); activeCategory = categoryType
+            }
+        }; selectedTags = currentTags; performHaptic(view, "light")
+    }
+
     with(sharedTransitionScope) {
-        val sharedModifier = if (id == null) { Modifier.sharedBounds(rememberSharedContentState(key = "fab_container"), animatedVisibilityScope = animatedVisibilityScope, resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds) } else { Modifier.sharedBounds(rememberSharedContentState(key = "card_${id}"), animatedVisibilityScope = animatedVisibilityScope, resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds) }
-        Scaffold(modifier = Modifier.fillMaxSize().then(sharedModifier), containerColor = Color.Transparent, topBar = { Row(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = textC, modifier = if (id == null) Modifier.sharedElement(rememberSharedContentState(key = "fab_icon"), animatedVisibilityScope = animatedVisibilityScope) else Modifier) }; Spacer(Modifier.width(16.dp)); Text(text = if (id == null) s.addTitle else s.editTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = textC) } }, floatingActionButton = { AnimatedSaveFab(isEnabled = hasChanges, onClick = { performHaptic(view, "success"); if (title.isNotEmpty()) { scope.launch { delay(600); if (id != null) vm.updateAnime(ctx, id, title, ep.toIntOrNull()?:0, rate, uri, selectedTags, activeCategory) else vm.addAnime(ctx, title, ep.toIntOrNull()?:0, rate, uri, selectedTags, activeCategory); nav.popBackStack() } } else { Toast.makeText(ctx, s.enterTitleToast, Toast.LENGTH_SHORT).show() } }) }) { innerPadding ->
-            Box(modifier = Modifier.fillMaxSize()) {
-                Box(modifier = Modifier.fillMaxSize().background(bg))
-                Column(modifier = Modifier.padding(innerPadding).imePadding().padding(horizontal = 24.dp).fillMaxSize().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
+        val sharedModifier = if (id == null) {
+            Modifier.sharedBounds(
+                rememberSharedContentState(key = "fab_container"),
+                animatedVisibilityScope = animatedVisibilityScope,
+                resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(32.dp))
+            )
+        } else {
+            Modifier.sharedBounds(
+                rememberSharedContentState(key = "card_${id}"),
+                animatedVisibilityScope = animatedVisibilityScope,
+                resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(32.dp))
+            )
+        }
+
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = Color.Transparent,
+            topBar = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { nav.popBackStack() }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            "Back",
+                            tint = textC,
+                            modifier = if (id == null) Modifier.sharedElement(
+                                rememberSharedContentState(key = "fab_icon"),
+                                animatedVisibilityScope = animatedVisibilityScope
+                            ) else Modifier
+                        )
+                    }; Spacer(Modifier.width(16.dp)); Text(
+                    text = if (id == null) s.addTitle else s.editTitle,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = textC
+                )
+                }
+            },
+            floatingActionButton = {
+                AnimatedSaveFab(isEnabled = hasChanges, onClick = {
+                    performHaptic(view, "success"); if (title.isNotEmpty()) {
+                    scope.launch {
+                        delay(600); if (id != null) vm.updateAnime(
+                        ctx, id, title, ep.toIntOrNull() ?: 0, rate, uri, selectedTags, activeCategory
+                    ) else vm.addAnime(
+                        ctx, title, ep.toIntOrNull() ?: 0, rate, uri, selectedTags, activeCategory
+                    ); nav.popBackStack()
+                    }
+                } else {
+                    Toast.makeText(ctx, s.enterTitleToast, Toast.LENGTH_SHORT).show()
+                }
+                })
+            }
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(sharedModifier)
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(bg)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(innerPadding)
+                        .imePadding()
+                        .padding(horizontal = 24.dp)
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Spacer(Modifier.height(16.dp))
-                    Box(modifier = Modifier.width(180.dp).aspectRatio(0.7f).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(32.dp)).clickable { performHaptic(view, "light"); launcher.launch("image/*") }, contentAlignment = Alignment.Center) {
-                        val imageModifier = if (id != null) Modifier.sharedElement(rememberSharedContentState(key = "image_${id}"), animatedVisibilityScope = animatedVisibilityScope) else Modifier
-                        Box(modifier = Modifier.fillMaxSize().then(imageModifier).clip(RoundedCornerShape(32.dp))) {
-                            if (uri != null) AsyncImage(uri, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                            else if (anime?.imageFileName != null) AsyncImage(vm.getImgPath(anime.imageFileName), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                            else Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Default.AddPhotoAlternate, null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.secondary); Text(s.addPhoto, color = MaterialTheme.colorScheme.secondary) }
+                    Box(
+                        modifier = Modifier
+                            .width(180.dp)
+                            .aspectRatio(0.7f)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant,
+                                RoundedCornerShape(32.dp)
+                            )
+                            .clickable {
+                                performHaptic(view, "light"); launcher.launch("image/*")
+                            }, contentAlignment = Alignment.Center
+                    ) {
+                        val imageModifier = if (id != null) Modifier.sharedElement(
+                            rememberSharedContentState(key = "image_${id}"),
+                            animatedVisibilityScope = animatedVisibilityScope
+                        ) else Modifier
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .then(imageModifier)
+                                .clip(RoundedCornerShape(32.dp))
+                        ) {
+                            if (uri != null) AsyncImage(
+                                uri, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
+                            )
+                            else if (anime?.imageFileName != null) AsyncImage(
+                                vm.getImgPath(anime.imageFileName), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
+                            )
+                            else Column(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    Icons.Default.AddPhotoAlternate,
+                                    null,
+                                    modifier = Modifier.size(40.dp),
+                                    tint = MaterialTheme.colorScheme.secondary
+                                ); Text(s.addPhoto, color = MaterialTheme.colorScheme.secondary)
+                            }
                         }
                     }
                     Spacer(Modifier.height(32.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.weight(1f)) { AnimatedOneUiTextField(value = title, onValueChange = { title = it }, placeholder = s.animeTitleHint, singleLine = false, maxLines = 4) }
-                        if (title.isNotEmpty()) { Spacer(Modifier.width(8.dp)); AnimatedCopyButton(textToCopy = title) }
+                        Box(modifier = Modifier.weight(1f)) {
+                            AnimatedOneUiTextField(
+                                value = title,
+                                onValueChange = { title = it },
+                                placeholder = s.animeTitleHint,
+                                singleLine = false,
+                                maxLines = 4
+                            )
+                        }
+                        if (title.isNotEmpty()) {
+                            Spacer(Modifier.width(8.dp)); AnimatedCopyButton(textToCopy = title)
+                        }
                     }
                     Spacer(Modifier.height(24.dp))
-                    AnimatedOneUiTextField(value = ep, onValueChange = { if (it.all { c -> c.isDigit() }) ep = it }, placeholder = s.episodesHint, keyboardType = KeyboardType.Number)
-                    Spacer(Modifier.height(12.dp)); EpisodeSuggestions { selectedEp -> performHaptic(view, "light"); ep = selectedEp }
+                    AnimatedOneUiTextField(
+                        value = ep,
+                        onValueChange = { if (it.all { c -> c.isDigit() }) ep = it },
+                        placeholder = s.episodesHint,
+                        keyboardType = KeyboardType.Number
+                    )
+                    Spacer(Modifier.height(12.dp)); EpisodeSuggestions { selectedEp ->
+                    performHaptic(view, "light"); ep = selectedEp
+                }
                     Spacer(Modifier.height(32.dp))
-                    Text(text = "Category & Genres", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), textAlign = TextAlign.Start)
-                    GenreSelectionSection(viewModel = vm, selectedTags = selectedTags, activeCategory = activeCategory, onTagToggle = onTagToggle)
+                    Text(
+                        text = "Category & Genres",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp),
+                        textAlign = TextAlign.Start
+                    )
+                    GenreSelectionSection(
+                        viewModel = vm,
+                        selectedTags = selectedTags,
+                        activeCategory = activeCategory,
+                        onTagToggle = onTagToggle
+                    )
                     Spacer(Modifier.height(32.dp))
-                    StarRatingBar(rating = rate) { newRate -> performHaptic(view, "light"); rate = newRate }
+                    StarRatingBar(rating = rate) { newRate ->
+                        performHaptic(view, "light"); rate = newRate
+                    }
                     Spacer(Modifier.height(120.dp))
                 }
             }
@@ -2094,7 +2453,12 @@ fun AddEditScreen(nav: NavController, vm: AnimeViewModel, id: String?, sharedTra
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun SettingsScreen(nav: NavController, vm: AnimeViewModel, sharedTransitionScope: SharedTransitionScope, animatedVisibilityScope: AnimatedVisibilityScope) {
+fun SettingsScreen(
+    nav: NavController,
+    vm: AnimeViewModel,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
+) {
     val bg = MaterialTheme.colorScheme.background
     val textC = MaterialTheme.colorScheme.onBackground
     val s = vm.strings
@@ -2104,15 +2468,93 @@ fun SettingsScreen(nav: NavController, vm: AnimeViewModel, sharedTransitionScope
     var expandedTheme by remember { mutableStateOf(false) }
     var expandedUpdate by remember { mutableStateOf(false) }
     var expandedContact by remember { mutableStateOf(false) }
+    var expandedCloud by remember { mutableStateOf(false) }
+
     with(sharedTransitionScope) {
-        Box(modifier = Modifier.fillMaxSize().sharedBounds(rememberSharedContentState(key = "settings_container"), animatedVisibilityScope = animatedVisibilityScope, resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds).background(bg)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .sharedBounds(
+                    rememberSharedContentState(key = "settings_container"),
+                    animatedVisibilityScope = animatedVisibilityScope,
+                    resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                    clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(32.dp))
+                )
+                .clip(RoundedCornerShape(32.dp))
+                .background(bg)
+        ) {
             Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-                Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = { performHaptic(view, "light"); nav.popBackStack() }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = textC, modifier = Modifier.sharedElement(rememberSharedContentState(key = "settings_icon"), animatedVisibilityScope = animatedVisibilityScope)) }; Spacer(Modifier.width(16.dp)); Text(text = s.settingsScreenTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = textC) }
-                LazyColumn(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(bottom = 32.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { performHaptic(view, "light"); nav.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = textC,
+                            modifier = Modifier.sharedElement(
+                                rememberSharedContentState(key = "settings_icon"),
+                                animatedVisibilityScope = animatedVisibilityScope
+                            )
+                        )
+                    }; Spacer(Modifier.width(16.dp)); Text(
+                    text = s.settingsScreenTitle,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = textC
+                )
+                }
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 32.dp)
+                ) {
                     item { StatsCard(title = s.languageCardTitle, icon = Icons.Outlined.Language, isExpanded = expandedLang, iconTint = EpisodesColor, iconBg = EpisodesColor.copy(alpha = 0.15f), onClick = { performHaptic(view, "light"); expandedLang = !expandedLang }) { Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) { LanguageOption(text = s.langEn, isSelected = vm.currentLanguage == AppLanguage.EN, onClick = { vm.setLanguage(AppLanguage.EN) }); LanguageOption(text = s.langRu, isSelected = vm.currentLanguage == AppLanguage.RU, onClick = { vm.setLanguage(AppLanguage.RU) }) } } }
                     item { StatsCard(title = s.themeTitle, icon = Icons.Outlined.Settings, isExpanded = expandedTheme, iconTint = Color(0xFF9C27B0), iconBg = Color(0xFF9C27B0).copy(alpha = 0.15f), onClick = { performHaptic(view, "light"); expandedTheme = !expandedTheme }) { Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) { ThemeOptionItem(label = s.themeLight, isSelected = vm.currentTheme == AppTheme.LIGHT, themeType = AppTheme.LIGHT, onClick = { performHaptic(view, "light"); vm.setAppTheme(AppTheme.LIGHT) }); ThemeOptionItem(label = s.themeDark, isSelected = vm.currentTheme == AppTheme.DARK, themeType = AppTheme.DARK, onClick = { performHaptic(view, "light"); vm.setAppTheme(AppTheme.DARK) }); ThemeOptionItem(label = s.themeSystem, isSelected = vm.currentTheme == AppTheme.SYSTEM, themeType = AppTheme.SYSTEM, onClick = { performHaptic(view, "light"); vm.setAppTheme(AppTheme.SYSTEM) }) } } }
                     item { StatsCard(title = s.checkForUpdateTitle, icon = Icons.Outlined.SystemUpdate, isExpanded = expandedUpdate, iconTint = RateColor4, iconBg = RateColor4.copy(alpha = 0.15f), onClick = { performHaptic(view, "light"); expandedUpdate = !expandedUpdate }) { Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(text = "Current version: ${vm.currentVersionName}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(bottom = 8.dp)); UpdateStateButton(status = vm.updateStatus, idleText = s.checkButtonText, onClick = { if (vm.updateStatus == AppUpdateStatus.IDLE || vm.updateStatus == AppUpdateStatus.ERROR) { vm.checkAppUpdate(context) } else if (vm.updateStatus == AppUpdateStatus.UPDATE_AVAILABLE) { vm.latestDownloadUrl?.let { url -> val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)); view.context.startActivity(intent) } } }) } } } }
-                    item { StatsCard(title = s.contactTitle, icon = Icons.Outlined.Person, isExpanded = expandedContact, iconTint = BrandBlue, iconBg = BrandBlue.copy(alpha = 0.15f), onClick = { performHaptic(view, "light"); expandedContact = !expandedContact }) { Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) { Text(text = s.contactSubtitle, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.secondary); Spacer(Modifier.height(16.dp)); Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(64.dp).clip(CircleShape).clickable { performHaptic(view, "light"); val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Phnem/MAList")); view.context.startActivity(intent) }, contentAlignment = Alignment.Center) { Image(painter = painterResource(id = R.drawable.gh), contentDescription = "GitHub", modifier = Modifier.size(56.dp), contentScale = ContentScale.Fit) }; Box(modifier = Modifier.size(64.dp).clip(CircleShape).clickable { performHaptic(view, "light"); val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/H415base")); view.context.startActivity(intent) }, contentAlignment = Alignment.Center) { Image(painter = painterResource(id = R.drawable.tg), contentDescription = "Telegram", modifier = Modifier.size(56.dp), contentScale = ContentScale.Fit) } } } } }
+                    item {
+                        StatsCard(title = if (vm.currentLanguage == AppLanguage.RU) "Облачные настройки" else "Cloud Settings", icon = Icons.Outlined.Cloud, isExpanded = expandedCloud, iconTint = BrandBlue, iconBg = BrandBlue.copy(alpha = 0.15f), onClick = { performHaptic(view, "light"); expandedCloud = !expandedCloud }) {
+                            Column(modifier = Modifier.padding(top = 8.dp)) { CloudSettingsSection(viewModel = vm, onLogout = { DropboxSyncManager.logout(); nav.navigate("welcome") { popUpTo("home") { inclusive = true } } }) }
+                        }
+                    }
+                    item {
+                        var expandedType by remember { mutableStateOf(false) }
+                        StatsCard(
+                            title = s.contentTypeTitle,
+                            icon = Icons.Outlined.Category,
+                            isExpanded = expandedType,
+                            iconTint = Color(0xFFFF9500),
+                            iconBg = Color(0xFFFF9500).copy(alpha = 0.15f),
+                            onClick = { expandedType = !expandedType }
+                        ) {
+                            SegmentedToggle(
+                                label1 = s.typeAnime,
+                                icon1 = Icons.Default.TempleHindu,
+                                isSelected1 = vm.appContentType == AppContentType.ANIME,
+                                label2 = s.typeMovies,
+                                icon2 = Icons.Default.Movie,
+                                isSelected2 = vm.appContentType == AppContentType.MOVIES,
+                                accentColor = Color(0xFFFF9500),
+                                onSelect1 = { vm.appContentType = AppContentType.ANIME; vm.saveSettings() },
+                                onSelect2 = { vm.appContentType = AppContentType.MOVIES; vm.saveSettings() }
+                            )
+                        }
+                    }
+                    item {
+                        StatsCard(title = s.contactTitle, icon = Icons.Outlined.Person, isExpanded = expandedContact, iconTint = Color(0xFFE91E63), iconBg = Color(0xFFE91E63).copy(alpha = 0.15f), onClick = { performHaptic(view, "light"); expandedContact = !expandedContact }) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                                Text(text = s.contactSubtitle, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.secondary); Spacer(Modifier.height(16.dp))
+                                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+                                    Box(modifier = Modifier.size(64.dp).clip(CircleShape).clickable { performHaptic(view, "light"); val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Phnem/MAList")); view.context.startActivity(intent) }, contentAlignment = Alignment.Center) { Image(painter = painterResource(id = R.drawable.gh), contentDescription = "GitHub", modifier = Modifier.size(56.dp), contentScale = ContentScale.Fit) }
+                                    Box(modifier = Modifier.size(64.dp).clip(CircleShape).clickable { performHaptic(view, "light"); val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/H415base")); view.context.startActivity(intent) }, contentAlignment = Alignment.Center) { Image(painter = painterResource(id = R.drawable.tg), contentDescription = "Telegram", modifier = Modifier.size(56.dp), contentScale = ContentScale.Fit) }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -2157,9 +2599,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-
-
-        // 1. Init Dropbox
         DropboxSyncManager.init(this)
 
         checkPerms()
@@ -2167,12 +2606,11 @@ class MainActivity : ComponentActivity() {
             val viewModel: AnimeViewModel = viewModel()
             val context = LocalContext.current
 
-            // Auto-sync listener logic could go here or in ViewModel
-
             LaunchedEffect(Unit) {
                 viewModel.loadAnime()
                 viewModel.loadSettings()
                 viewModel.initAppVersion(context)
+                viewModel.scheduleBackgroundWork(context)
             }
 
             val isSystemDark = isSystemInDarkTheme()
@@ -2185,26 +2623,20 @@ class MainActivity : ComponentActivity() {
             OneUiTheme(darkTheme = useDarkTheme) {
                 val navController = rememberNavController()
 
-                // Determine start destination
                 val startDest = if (DropboxSyncManager.hasToken()) "home" else "welcome"
 
                 SharedTransitionLayout {
                     NavHost(navController = navController, startDestination = startDest) {
 
-                        // NEW: Welcome Screen Route
                         composable("welcome") {
-                            // --- НАЧАЛО ИЗМЕНЕНИЙ ---
 
                             val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
 
-                            // Этот блок срабатывает, когда экран становится активным (возврат из браузера)
                             DisposableEffect(lifecycleOwner) {
                                 val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
                                     if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
-                                        // 1. Забираем токен (если он пришел)
                                         DropboxSyncManager.onOAuthResult()
 
-                                        // 2. Если токен есть — летим на Home
                                         if (DropboxSyncManager.hasToken()) {
                                             navController.navigate("home") {
                                                 popUpTo("welcome") { inclusive = true }
@@ -2229,9 +2661,7 @@ class MainActivity : ComponentActivity() {
 
                         composable("home") {
                             HomeScreen(nav = navController, vm = viewModel, sharedTransitionScope = this@SharedTransitionLayout, animatedVisibilityScope = this)
-                            // Add sync observer here if you want to show a sync icon
                         }
-                        // ... остальные composable (add_anime, settings) без изменений
                         composable("add_anime?animeId={animeId}", arguments = listOf(navArgument("animeId") { nullable = true })) { AddEditScreen(navController, viewModel, it.arguments?.getString("animeId"), this@SharedTransitionLayout, this) }
                         composable("settings") { SettingsScreen(nav = navController, vm = viewModel, sharedTransitionScope = this@SharedTransitionLayout, animatedVisibilityScope = this) }
                     }
@@ -2252,11 +2682,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Capture OAuth token return
         DropboxSyncManager.onOAuthResult()
     }
-
-    // ... checkPerms logic
 
 }
 
