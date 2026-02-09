@@ -276,13 +276,14 @@ fun CloudActionCard(
     onClick: () -> Unit
 ) {
     val shape = CircleShape
-    val isDark = isSystemInDarkTheme()
-    val cardBg = if (isDark) TileColorDark else MaterialTheme.colorScheme.surfaceVariant
+    // ИСПРАВЛЕНИЕ: Проверяем текущую тему приложения по цвету фона, а не по системной настройке
+    val isAppDark = MaterialTheme.colorScheme.background == DarkBackground
+    val cardBg = if (isAppDark) TileColorDark else MaterialTheme.colorScheme.surfaceVariant
 
     val borderCol = if (isSelected) {
         accentColor.copy(alpha = 0.2f)
     } else {
-        if (isDark) TileBorderDark else MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+        if (isAppDark) TileBorderDark else MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
     }
     val borderWidth = 1.dp
 
@@ -376,7 +377,9 @@ fun CloudInfoCard(
     icon: ImageVector,
     iconTint: Color = CloudAccent
 ) {
-    val bgColor = if (isSystemInDarkTheme()) TileColorDark else MaterialTheme.colorScheme.surfaceVariant
+    // ИСПРАВЛЕНИЕ: Проверяем текущую тему приложения по цвету фона
+    val isAppDark = MaterialTheme.colorScheme.background == DarkBackground
+    val bgColor = if (isAppDark) TileColorDark else MaterialTheme.colorScheme.surfaceVariant
     val contentColor = MaterialTheme.colorScheme.onSurface
     Column(
         modifier = modifier
