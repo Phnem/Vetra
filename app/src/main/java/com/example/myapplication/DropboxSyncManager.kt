@@ -223,7 +223,7 @@ object DropboxSyncManager {
             .writeTimeout(60, TimeUnit.SECONDS)
             .build()
         val requestor = DropboxOkHttpRequestor(okHttpClient)
-        return DbxRequestConfig.newBuilder("Vetra/1.0").withHttpRequestor(requestor).build()
+        return DbxRequestConfig.newBuilder("Vetro/1.0").withHttpRequestor(requestor).build()
     }
 
     fun startOAuth(context: Context) {

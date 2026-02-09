@@ -284,7 +284,7 @@ class AnimeUpdateWorker(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
-            val root = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "MyAnimeList")
+            val root = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "Vetro")
             val listFile = File(root, "list.json")
             val ignoredFile = File(root, "ignored.json")
             val updatesFile = File(root, "updates.json")
