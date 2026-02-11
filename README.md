@@ -146,7 +146,7 @@ All data is stored locally in JSON format and can be synchronized securely with 
 </ul>
 
 <p align="center">
-  <img src="1000008355.jpg" width="350">
+  <img src="1000008355.png" width="350">
 </p>
 
 <hr>
