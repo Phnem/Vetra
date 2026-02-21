@@ -1,8 +1,0 @@
-<resources>
-    <string name="welcome_title">Welcome to the app &amp; let\'s get started</string>
-    <string name="welcome_body">You’ve just downloaded the best app in the universe.\nYou can call me \'Modesty personified\' — I don\'t mind.</string>
-    <string name="btn_login">Log in</string>
-    <string name="btn_guest">Continue as a guest</string>
-    <string name="sync_conflict_title">Sync Conflict</string>
-    <string name="sync_conflict_msg">Data has changed on both devices. Please choose which version to keep.</string>
-</resources>
