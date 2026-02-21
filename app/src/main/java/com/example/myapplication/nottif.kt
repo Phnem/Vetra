@@ -1,5 +1,9 @@
 package com.example.myapplication
 
+import com.example.myapplication.data.models.*
+import com.example.myapplication.ui.shared.theme.BrandBlue
+import com.example.myapplication.ui.shared.theme.BrandRed
+import com.example.myapplication.utils.performHaptic
 import android.text.format.DateFormat
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
@@ -21,6 +25,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,6 +39,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 
 // ==========================================
 // NOTIFICATION & SYNC OVERLAY
@@ -49,23 +56,32 @@ private val IconStatusColor = Color(0xFF2E7D32)
 private val IconAccountColor = Color(0xFF3E82F7)
 private val IconUpdateColor = Color(0xFFFF9F0A)
 
+// ... (imports)
+
 @Composable
 fun NotificationSyncOverlay(
     visibleState: MutableTransitionState<Boolean>,
-    viewModel: AnimeViewModel,
+    strings: UiStrings,
+    updates: List<AnimeUpdate>,
     onDismiss: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onAcceptUpdate: (AnimeUpdate) -> Unit = {},
+    onDismissUpdate: (AnimeUpdate) -> Unit = {}
 ) {
-    val syncState by DropboxSyncManager.syncState.collectAsState()
+    val syncState by DropboxSyncManager.syncState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val strings = viewModel.strings
-    val isDark = isSystemInDarkTheme()
 
+    // Вместо .luminance() < 0.5f
+    val isDark = MaterialTheme.colorScheme.background.toArgb() == Color(0xFF111318).toArgb()
+
+    // Цвета теперь будут переключаться корректно
     val panelBgColor = if (isDark) CustomDarkSurface else MaterialTheme.colorScheme.surface
     val itemCardColor = if (isDark) CustomDarkCard else MaterialTheme.colorScheme.surfaceVariant
-    val itemBorderColor = if (isDark) CustomDarkBorder else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+    val itemBorderColor = if (isDark) CustomDarkBorder else MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
 
     BackHandler { onDismiss() }
+
+    // ... (далее код без изменений)
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -96,7 +112,7 @@ fun NotificationSyncOverlay(
             ) + fadeIn(),
             exit = scaleOut(
                 transformOrigin = TransformOrigin(1f, 0f),
-                animationSpec = tween(200)
+                animationSpec = spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessMedium)
             ) + fadeOut(),
             modifier = Modifier.align(Alignment.TopEnd)
         ) {
@@ -233,7 +249,7 @@ fun NotificationSyncOverlay(
                         )
 
                         // Уведомления
-                        if (viewModel.updates.isNotEmpty()) {
+                        if (updates.isNotEmpty()) {
                             HorizontalDivider(
                                 modifier = Modifier.padding(vertical = 20.dp),
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
@@ -245,7 +261,7 @@ fun NotificationSyncOverlay(
                                 modifier = Modifier.padding(bottom = 12.dp, start = 8.dp)
                             )
 
-                            viewModel.updates.forEach { update ->
+                            updates.forEach { update ->
                                 Spacer(Modifier.height(8.dp))
                                 PillCard(
                                     icon = Icons.Outlined.Movie,
@@ -255,11 +271,11 @@ fun NotificationSyncOverlay(
                                     borderColor = itemBorderColor,
                                     iconBgColor = IconUpdateColor.copy(alpha = 0.15f),
                                     iconTintColor = IconUpdateColor,
-                                    onClick = { viewModel.acceptUpdate(update, context) },
+                                    onClick = { onAcceptUpdate(update) },
                                     contentEnd = {
                                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                             IconButton(
-                                                onClick = { viewModel.dismissUpdate(update) },
+                                                onClick = { onDismissUpdate(update) },
                                                 modifier = Modifier.size(36.dp)
                                             ) {
                                                 Icon(
@@ -270,12 +286,7 @@ fun NotificationSyncOverlay(
                                                 )
                                             }
                                             IconButton(
-                                                onClick = {
-                                                    viewModel.acceptUpdate(
-                                                        update,
-                                                        context
-                                                    )
-                                                },
+                                                onClick = { onAcceptUpdate(update) },
                                                 modifier = Modifier.size(36.dp)
                                             ) {
                                                 Icon(
@@ -374,7 +385,7 @@ private fun PillCard(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
-                color = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
@@ -383,7 +394,7 @@ private fun PillCard(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
+                    color = MaterialTheme.colorScheme.secondary,
                     maxLines = 1
                 )
             }

@@ -2,6 +2,18 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.kotlin.serialization)
+    id("app.cash.sqldelight")
+    alias(libs.plugins.apollo)
+}
+
+sqldelight {
+    databases {
+        create("AnimeDatabase") {
+            // ВАЖНО: Укажи именно этот пакет, чтобы не было конфликтов
+            packageName.set("com.example.myapplication.data.local")
+        }
+    }
 }
 
 android {
@@ -13,7 +25,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "v2.2.7-beta"
+        versionName = "v3.0.0-alpha"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -71,6 +83,29 @@ dependencies {
     androidTestImplementation("androidx.test:rules:1.5.0")
     implementation("com.dropbox.core:dropbox-core-sdk:5.4.5")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation(libs.sqldelight.android.driver)
+    implementation(libs.sqldelight.coroutines)
+
+    // 💉 Koin (DI)
+    implementation("io.insert-koin:koin-android:3.5.3")
+    implementation("io.insert-koin:koin-androidx-compose:3.5.3")
+
+    // 🌐 Ktor (Сеть)
+    implementation(platform(libs.ktor.bom))
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.ktor.client.logging)
+
+    // 💾 DataStore (Настройки)
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+
+    // 🧬 Kotlin Serialization (JSON)
+    implementation(libs.kotlinx.serialization.json)
+
+    // 🚀 Apollo GraphQL (для AniList) - через core:network модуль
+    implementation(project(":core:network"))
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

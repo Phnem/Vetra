@@ -1,5 +1,11 @@
 package com.example.myapplication
 
+import com.example.myapplication.data.models.*
+import com.example.myapplication.ui.navigation.navigateToAddEdit
+import com.example.myapplication.ui.navigation.navigateToSettings
+import com.example.myapplication.ui.shared.theme.BrandBlue
+import com.example.myapplication.ui.shared.theme.BrandRed
+import com.example.myapplication.utils.performHaptic
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -20,8 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.FilterList
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,11 +48,38 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.*
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.ui.text.font.FontFamily
+import com.example.myapplication.data.models.SortOption
+import com.example.myapplication.data.models.UiStrings
+import com.example.myapplication.data.models.GenreCategory
+import com.example.myapplication.data.models.GenreDefinition
+import com.example.myapplication.data.repository.GenreRepository
+import com.example.myapplication.network.AppLanguage
+import com.example.myapplication.ui.shared.components.GenreSelectionSection
+import com.example.myapplication.ui.shared.theme.SnProFamily
+import org.koin.compose.koinInject
 import android.widget.Toast
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeChild
 
+@Composable
+fun isAppInDarkTheme(): Boolean {
+    return MaterialTheme.colorScheme.background.toArgb() == Color(0xFF111318).toArgb()
+}
 // ==========================================
 // КОМПОНЕНТ "СИМП-СТЕКЛО"
 // ==========================================
@@ -58,16 +90,16 @@ fun SimpGlassCard(
     shape: Shape = CircleShape,
     content: @Composable BoxScope.() -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
 
     val glassTint = if (isDark) {
-        Color.Black.copy(alpha = 0.15f)
+        Color(0xFF1A1D26).copy(alpha = 0.55f)
     } else {
-        Color.White.copy(alpha = 0.05f)
+        Color.White.copy(alpha = 0.45f)
     }
 
-    val shineColor = if (isDark) Color.White.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.7f)
-    val borderStroke = if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.2f)
+    val shineColor = if (isDark) Color.White.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.6f)
+    val borderStroke = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.8f)
 
     Box(
         modifier = modifier
@@ -76,13 +108,15 @@ fun SimpGlassCard(
                 state = hazeState,
                 shape = shape,
                 style = HazeStyle(
-                    blurRadius = 20.dp,
-                    tint = glassTint
+                    blurRadius = 32.dp,
+                    tint = glassTint,
+                    noiseFactor = 0.06f
                 )
             )
             .border(0.5.dp, borderStroke, shape),
         contentAlignment = Alignment.Center
     ) {
+        // ... (внутренности Box без изменений)
         Canvas(modifier = Modifier.matchParentSize()) {
             val rect = Rect(offset = Offset.Zero, size = size)
             val path = Path().apply {
@@ -107,13 +141,6 @@ fun SimpGlassCard(
 }
 
 // ==========================================
-// GLASSACTIONDOCK (МЕНЮ СОРТИРОВКИ И ФИЛЬТРА)
-// ==========================================
-// ==========================================
-// GLASSACTIONDOCK (МЕНЮ СОРТИРОВКИ И ФИЛЬТРА + НОВЫЕ УВЕДОМЛЕНИЯ)
-// ==========================================
-
-// ==========================================
 // GLASSACTIONDOCK (Обновленный)
 // ==========================================
 @Composable
@@ -121,28 +148,30 @@ fun GlassActionDock(
     hazeState: HazeState,
     isFloating: Boolean,
     sortOption: SortOption,
-    viewModel: AnimeViewModel,
+    filterSelectedTags: List<String>,
+    updates: List<AnimeUpdate>,
     onOpenSort: () -> Unit,
     onOpenNotifications: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
 
     val topPadding by animateDpAsState(
         targetValue = if (isFloating) 16.dp else 0.dp,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "dockPadding"
     )
-    val targetTint = if (isDark) Color.Black.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.05f)
+    val targetTint = if (isDark) Color(0xFF1A1D26).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.45f)
     val tintColor by animateColorAsState(
         targetValue = if (isFloating) targetTint else Color.Transparent,
         label = "tint"
     )
     val blurRadius by animateDpAsState(
-        targetValue = if (isFloating) 30.dp else 0.dp,
+        targetValue = if (isFloating) 40.dp else 0.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "blur"
     )
-    val borderStrokeBase = if (isDark) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f) else Color.Transparent
+    val borderStrokeBase = if (isDark) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.8f)
     val borderColor by animateColorAsState(
         targetValue = if (isFloating) borderStrokeBase else Color.Transparent,
         label = "border"
@@ -153,7 +182,9 @@ fun GlassActionDock(
         label = "shineAlpha"
     )
     val buttonBgColor by animateColorAsState(
-        targetValue = if (isFloating) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        targetValue = if (isFloating) Color.Transparent else
+            if (isDark) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            else Color.Black.copy(alpha = 0.04f),
         label = "btnBg"
     )
 
@@ -200,8 +231,8 @@ fun GlassActionDock(
                     .clip(CircleShape)
                     .background(buttonBgColor)
             ) {
-                val icon = if (viewModel.filterSelectedTags.isNotEmpty()) Icons.Outlined.FilterList else Icons.AutoMirrored.Filled.Sort
-                val tint = if (viewModel.filterSelectedTags.isNotEmpty()) BrandBlue else MaterialTheme.colorScheme.onSurface
+                val icon = if (filterSelectedTags.isNotEmpty()) Icons.Outlined.FilterList else Icons.AutoMirrored.Filled.Sort
+                val tint = if (filterSelectedTags.isNotEmpty()) BrandBlue else MaterialTheme.colorScheme.onSurface
 
                 Icon(imageVector = icon, contentDescription = "Sort", tint = tint)
             }
@@ -221,7 +252,7 @@ fun GlassActionDock(
                     )
                 }
 
-                if (viewModel.updates.isNotEmpty()) {
+                if (updates.isNotEmpty()) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -243,7 +274,6 @@ fun GlassActionDock(
 fun GlassBottomNavigation(
     hazeState: HazeState,
     nav: androidx.navigation.NavController,
-    viewModel: AnimeViewModel,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     onShowStats: () -> Unit,
@@ -309,7 +339,7 @@ fun GlassBottomNavigation(
                                 indication = null
                             ) {
                                 performHaptic(view, "success")
-                                nav.navigate("add_anime")
+                                nav.navigateToAddEdit()
                             }
                     ) {
                         with(sharedTransitionScope) {
@@ -351,7 +381,7 @@ fun GlassBottomNavigation(
                                 indication = null
                             ) {
                                 performHaptic(view, "light")
-                                nav.navigate("settings")
+                                nav.navigateToSettings()
                             }
                     ) {
                         with(sharedTransitionScope) {
@@ -550,3 +580,354 @@ val HeroiconsRectangleStack: ImageVector
         }.build()
         return _HeroiconsRectangleStack!!
     }
+
+// ==========================================
+// ЦВЕТА И РАСШИРЕНИЯ ДЛЯ СТАРОГО ДИЗАЙНА
+// ==========================================
+private val CustomDarkSurface = Color(0xFF1F222B)
+private val CustomDarkCard = Color(0xFF262A35)
+private val CustomDarkBorder = Color.White.copy(alpha = 0.08f)
+private val IconFilterColor = Color(0xFFE91E63)
+
+fun SortOption.getLabel(strings: UiStrings): String = when (this) {
+    SortOption.RATING -> strings.ratingHigh
+    SortOption.EPISODES -> strings.episodesHigh
+    SortOption.TITLE -> strings.titleAZ
+}
+
+fun SortOption.getIcon(): ImageVector = when (this) {
+    SortOption.RATING -> Icons.Rounded.Star
+    SortOption.EPISODES -> Icons.Outlined.Tv
+    SortOption.TITLE -> Icons.AutoMirrored.Filled.Sort
+}
+
+fun SortOption.getAccentColor(): Color = when (this) {
+    SortOption.RATING -> Color(0xFFFFD60A)
+    SortOption.EPISODES -> Color(0xFF3E82F7)
+    SortOption.TITLE -> Color(0xFF5E5CE6)
+}
+
+// ==========================================
+// SORT & FILTER OVERLAYS
+// ==========================================
+
+@Composable
+fun SortFilterOverlay(
+    visibleState: MutableTransitionState<Boolean>,
+    strings: UiStrings,
+    sortOption: SortOption,
+    sortAscending: Boolean = false,
+    filterSelectedTags: List<String>,
+    filterCategoryType: String,
+    currentLanguage: AppLanguage,
+    onDismiss: () -> Unit,
+    onSortSelected: (SortOption) -> Unit,
+    onOpenGenreFilter: () -> Unit
+) {
+    val isDark = MaterialTheme.colorScheme.background.toArgb() == Color(0xFF111318).toArgb()
+    val panelBgColor = if (isDark) CustomDarkSurface else MaterialTheme.colorScheme.surface
+    val itemCardColor = if (isDark) CustomDarkCard else MaterialTheme.colorScheme.surfaceVariant
+    val itemBorderColor = if (isDark) CustomDarkBorder else MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+
+    BackHandler { onDismiss() }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        AnimatedVisibility(
+            visibleState = visibleState,
+            enter = fadeIn(animationSpec = tween(220)),
+            exit = fadeOut(animationSpec = tween(180))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.35f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onDismiss() }
+            )
+        }
+
+        AnimatedVisibility(
+            visibleState = visibleState,
+            enter = scaleIn(
+                transformOrigin = TransformOrigin(1f, 0f),
+                animationSpec = spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessMediumLow)
+            ) + fadeIn(),
+            exit = scaleOut(
+                transformOrigin = TransformOrigin(1f, 0f),
+                animationSpec = spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessMedium)
+            ) + fadeOut(),
+            modifier = Modifier.align(Alignment.TopEnd)
+        ) {
+            Column(
+                modifier = Modifier
+                    .statusBarsPadding()
+                    .padding(top = 90.dp, end = 16.dp)
+                    .width(280.dp)
+            ) {
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = panelBgColor),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+                    border = BorderStroke(0.5.dp, if (isDark) itemBorderColor else Color.Black.copy(alpha = 0.06f)),
+                    modifier = Modifier.clickable(enabled = false) {}
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Sort by",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
+                        )
+
+                        SortOption.entries.forEach { option ->
+                            val isSelected = sortOption == option
+                            val accentColor = option.getAccentColor()
+                            val directionIcon = if (isSelected) {
+                                if (sortAscending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown
+                            } else null
+
+                            SortPillCard(
+                                icon = option.getIcon(),
+                                title = option.getLabel(strings),
+                                isSelected = isSelected,
+                                cardColor = if (isSelected) accentColor.copy(alpha = 0.1f) else itemCardColor,
+                                borderColor = if (isSelected) accentColor.copy(alpha = 0.4f) else itemBorderColor,
+                                iconBgColor = if (isSelected) accentColor else accentColor.copy(alpha = 0.12f),
+                                iconTintColor = if (isSelected) Color.White else accentColor,
+                                onClick = {
+                                    onSortSelected(option)
+                                    onDismiss()
+                                },
+                                contentEnd = {
+                                    if (directionIcon != null) {
+                                        Icon(
+                                            imageVector = directionIcon,
+                                            contentDescription = null,
+                                            tint = accentColor,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            )
+                            Spacer(Modifier.height(8.dp))
+                        }
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 12.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                        )
+
+                        val activeFiltersCount = filterSelectedTags.size
+                        SortPillCard(
+                            icon = Icons.Outlined.FilterList,
+                            title = strings.filterByGenre,
+                            isSelected = activeFiltersCount > 0,
+                            cardColor = itemCardColor,
+                            borderColor = itemBorderColor,
+                            iconBgColor = IconFilterColor.copy(alpha = 0.12f),
+                            iconTintColor = IconFilterColor,
+                            onClick = {
+                                onOpenGenreFilter()
+                                onDismiss()
+                            },
+                            contentEnd = {
+                                if (activeFiltersCount > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(CircleShape)
+                                            .background(IconFilterColor)
+                                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                                    ) {
+                                        Text(
+                                            text = activeFiltersCount.toString(),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ==========================================
+// КОМПОНЕНТ КАРТОЧКИ СОРТИРОВКИ
+// ==========================================
+@Composable
+private fun SortPillCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    isSelected: Boolean,
+    cardColor: Color,
+    borderColor: Color,
+    iconBgColor: Color,
+    iconTintColor: Color,
+    modifier: Modifier = Modifier,
+    contentEnd: (@Composable () -> Unit)? = null,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(CircleShape)
+            .background(cardColor)
+            .border(1.dp, borderColor, CircleShape)
+            .clickable { onClick() }
+            .padding(vertical = 12.dp, horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clip(CircleShape)
+                .background(iconBgColor),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTintColor,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        Spacer(Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (subtitle != null) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    maxLines = 1
+                )
+            }
+        }
+        if (contentEnd != null) {
+            Spacer(Modifier.width(8.dp))
+            contentEnd()
+        } else if (isSelected) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun GenreFilterOverlay(
+    visibleState: MutableTransitionState<Boolean>,
+    strings: UiStrings,
+    filterSelectedTags: List<String>,
+    filterCategoryType: String,
+    currentLanguage: AppLanguage,
+    getGenreName: (String) -> String,
+    onTagToggle: (String, String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val genreRepository: GenreRepository = org.koin.compose.koinInject()
+    val isDark = isAppInDarkTheme()
+    val panelBg = if (isDark) Color(0xFF1F222B) else MaterialTheme.colorScheme.surface
+    val borderColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
+    
+    BackHandler { onDismiss() }
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        AnimatedVisibility(
+            visibleState = visibleState,
+            enter = fadeIn(tween(200)),
+            exit = fadeOut(tween(150))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onDismiss() }
+            )
+        }
+        
+        AnimatedVisibility(
+            visibleState = visibleState,
+            enter = slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+            ) + fadeIn(),
+            exit = slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMedium)
+            ) + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                colors = CardDefaults.cardColors(containerColor = panelBg),
+                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+                border = if (isDark) BorderStroke(1.dp, borderColor) else null
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(24.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = strings.filterByGenre,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = 20.dp)
+                    )
+                    
+                    GenreSelectionSection(
+                        strings = strings,
+                        currentLanguage = currentLanguage,
+                        selectedTags = filterSelectedTags,
+                        activeCategory = filterCategoryType,
+                        onTagToggle = onTagToggle
+                    )
+                    
+                    Spacer(Modifier.height(20.dp))
+                    
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandBlue)
+                    ) {
+                        Text(
+                            "Done",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontFamily = SnProFamily
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
