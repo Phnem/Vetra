@@ -1,0 +1,40 @@
+# Minimal schema for SearchMedia query (AniList API)
+# Full schema: run :core:network:downloadAnilistApolloSchemaFromIntrospection (requires JAVA_HOME)
+
+type Query {
+  Media(search: String, type: MediaType): Media
+}
+
+enum MediaType {
+  ANIME
+  MANGA
+}
+
+type Media {
+  title: MediaTitle
+  description: String
+  type: MediaType
+  status: MediaStatus
+  episodes: Int
+  nextAiringEpisode: AiringSchedule
+  averageScore: Int
+  genres: [String]
+}
+
+type MediaTitle {
+  romaji: String
+  english: String
+}
+
+type AiringSchedule {
+  episode: Int
+  airingAt: Int
+}
+
+enum MediaStatus {
+  FINISHED
+  RELEASING
+  NOT_YET_RELEASED
+  CANCELLED
+  HIATUS
+}

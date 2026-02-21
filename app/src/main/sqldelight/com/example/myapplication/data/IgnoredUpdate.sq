@@ -1,0 +1,20 @@
+CREATE TABLE ignoredUpdate (
+    animeId TEXT NOT NULL PRIMARY KEY,
+    episodeCount INTEGER NOT NULL
+);
+
+selectAll:
+SELECT * FROM ignoredUpdate;
+
+selectByAnimeId:
+SELECT * FROM ignoredUpdate WHERE animeId = ?;
+
+insert:
+INSERT OR REPLACE INTO ignoredUpdate (animeId, episodeCount)
+VALUES (?, ?);
+
+deleteByAnimeId:
+DELETE FROM ignoredUpdate WHERE animeId = ?;
+
+deleteAll:
+DELETE FROM ignoredUpdate;

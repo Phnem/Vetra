@@ -1,0 +1,20 @@
+CREATE TABLE settings (
+    setting_key TEXT NOT NULL PRIMARY KEY,
+    setting_value TEXT NOT NULL
+);
+
+selectAll:
+SELECT * FROM settings;
+
+selectByKey:
+SELECT setting_value FROM settings WHERE setting_key = ?;
+
+insert:
+INSERT OR REPLACE INTO settings (setting_key, setting_value)
+VALUES (?, ?);
+
+deleteByKey:
+DELETE FROM settings WHERE setting_key = ?;
+
+deleteAll:
+DELETE FROM settings;

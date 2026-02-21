@@ -1,0 +1,8 @@
+<resources>
+    <string name="welcome_title">Добро пожаловать в приложение &amp; давайте начнём</string>
+    <string name="welcome_body">Вы только что скачали лучшее приложение во вселенной.\nМожете звать меня «воплощением скромности» — я не против.</string>
+    <string name="btn_login">Войти</string>
+    <string name="btn_guest">Продолжить как гость</string>
+    <string name="sync_conflict_title">Конфликт синхронизации</string>
+    <string name="sync_conflict_msg">Данные изменились на обоих устройствах. Пожалуйста, выберите версию, которую нужно сохранить.</string>
+</resources>

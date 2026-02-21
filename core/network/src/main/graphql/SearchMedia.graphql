@@ -1,0 +1,18 @@
+query SearchMedia($q: String) {
+  Media(search: $q, type: ANIME) {
+    title {
+      romaji
+      english
+    }
+    description
+    type
+    status
+    episodes
+    nextAiringEpisode {
+      episode
+      airingAt
+    }
+    averageScore
+    genres
+  }
+}
