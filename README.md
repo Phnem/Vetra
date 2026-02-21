@@ -1,7 +1,9 @@
 <h1 align="center">Vetra 🎬</h1>
 
 <p align="center">
-  <img src="/343.png" width="900" style="border-radius:18px;">
+  <a href="images/343BG.png">
+    <img src="images/343SM.png" width="900">
+  </a>
 </p>
 
 <p align="center">
@@ -33,11 +35,25 @@ but evolved into a flexible media management system with:
 <h2 align="center">📸 Screenshots</h2>
 
 <p align="center">
-  <img src="338.png" width="220" style="border-radius:16px;">
-  <img src="339.png" width="220" style="border-radius:16px;">
-  <img src="340.png" width="220" style="border-radius:16px;">
-  <img src="341.png" width="220" style="border-radius:16px;">
-  <img src="342.png" width="220" style="border-radius:16px;">
+  <a href="images/338BG.png">
+    <img src="images/338SM.png" width="220">
+  </a>
+  <a href="images/339BG.png">
+    <img src="images/339SM.png" width="220">
+  </a>
+  <a href="images/340BG.png">
+    <img src="images/340SM.png" width="220">
+  </a>
+  <a href="images/341BG.png">
+    <img src="images/341SM.png" width="220">
+  </a>
+  <a href="images/342BG.png">
+    <img src="images/342SM.png" width="220">
+  </a>
+</p>
+
+<p align="center">
+  <i>Click any image to view full resolution</i>
 </p>
 
 ---
