@@ -1,0 +1,20 @@
+CREATE TABLE animeUpdate (
+    animeId TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    currentEpisodes INTEGER NOT NULL,
+    newEpisodes INTEGER NOT NULL,
+    source TEXT NOT NULL
+);
+
+selectAll:
+SELECT * FROM animeUpdate;
+
+insert:
+INSERT OR REPLACE INTO animeUpdate (animeId, title, currentEpisodes, newEpisodes, source)
+VALUES (?, ?, ?, ?, ?);
+
+deleteByAnimeId:
+DELETE FROM animeUpdate WHERE animeId = ?;
+
+deleteAll:
+DELETE FROM animeUpdate;
