@@ -10,7 +10,8 @@ data class Anime(
     val dateAdded: Long,
     val isFavorite: Boolean = false,
     val tags: List<String> = emptyList(),
-    val categoryType: String = ""
+    val categoryType: String = "",
+    val comment: String = ""
 )
 
 data class RankedAnime(val anime: Anime, val score: Int)

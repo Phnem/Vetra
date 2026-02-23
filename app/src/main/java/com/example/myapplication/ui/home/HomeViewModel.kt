@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.example.myapplication.DropboxSyncManager
+import com.example.myapplication.SyncState
 import java.io.File
 import java.util.concurrent.TimeUnit
 import androidx.work.*
@@ -60,6 +62,13 @@ class HomeViewModel(
                 needsUpdateCheck = true
                 checkForUpdates()
             }
+        }
+        viewModelScope.launch {
+            try {
+                DropboxSyncManager.syncState.collect { state ->
+                    _uiState.update { it.copy(isRestoringFromCloud = state == SyncState.SYNCING) }
+                }
+            } catch (_: Exception) { }
         }
     }
 

@@ -62,6 +62,8 @@ class AddEditViewModel(
                             rating = anime.rating,
                             selectedTags = anime.tags,
                             categoryType = anime.categoryType,
+                            comment = anime.comment,
+                            commentMode = if (anime.comment.isBlank()) CommentMode.AddButton else CommentMode.Saved,
                             isLoading = false
                         )
                     }
@@ -105,6 +107,23 @@ class AddEditViewModel(
             )
         }
     }
+
+    fun updateCommentMode(mode: CommentMode) {
+        _uiState.update { it.copy(commentMode = mode) }
+    }
+
+    fun saveComment(newComment: String) {
+        _uiState.update {
+            it.copy(
+                comment = newComment,
+                commentMode = if (newComment.isBlank()) CommentMode.AddButton else CommentMode.Saved
+            )
+        }
+        val id = _uiState.value.animeId ?: return
+        viewModelScope.launch {
+            localDataSource.updateAnimeComment(id, newComment)
+        }
+    }
     
     fun saveAnime(
         context: Context,
@@ -134,7 +153,8 @@ class AddEditViewModel(
                         dateAdded = System.currentTimeMillis(),
                         isFavorite = false,
                         tags = state.selectedTags,
-                        categoryType = state.categoryType
+                        categoryType = state.categoryType,
+                        comment = state.comment
                     )
                     localDataSource.insertAnime(newAnime)
                 } else {
@@ -148,7 +168,8 @@ class AddEditViewModel(
                         rating = state.rating,
                         imageFileName = imageFileName ?: anime.imageFileName,
                         tags = state.selectedTags,
-                        categoryType = state.categoryType
+                        categoryType = state.categoryType,
+                        comment = state.comment
                     )
                     localDataSource.updateAnime(updatedAnime)
                 }

@@ -35,6 +35,9 @@ import com.example.myapplication.utils.performHaptic
 import com.example.myapplication.ui.shared.components.*
 import com.example.myapplication.ui.shared.theme.*
 import com.example.myapplication.ui.home.HomeViewModel
+import com.example.myapplication.ui.addedit.CommentMorphingContainer
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -69,6 +72,7 @@ fun AddEditScreen(
         animeId?.let { homeViewModel.getAnimeById(it) }
     }
 
+    val commentHazeState = remember { HazeState() }
     with(sharedTransitionScope) {
         val sharedModifier = if (animeId == null) {
             Modifier.sharedBounds(
@@ -142,6 +146,7 @@ fun AddEditScreen(
                     .fillMaxSize()
                     .then(sharedModifier)
                     .clip(RoundedCornerShape(32.dp))
+                    .hazeSource(commentHazeState)
                     .background(bg)
             ) {
                 Column(
@@ -275,6 +280,14 @@ fun AddEditScreen(
                         performHaptic(view, "light")
                         viewModel.updateRating(newRate)
                     }
+                    Spacer(Modifier.height(24.dp))
+                    CommentMorphingContainer(
+                        state = uiState,
+                        hazeState = commentHazeState,
+                        onModeChange = viewModel::updateCommentMode,
+                        onSaveComment = viewModel::saveComment,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                     Spacer(Modifier.height(120.dp))
                 }
             }

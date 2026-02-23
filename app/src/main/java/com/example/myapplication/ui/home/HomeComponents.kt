@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -111,6 +112,84 @@ fun EmptyStateView(
                     ),
                     color = MaterialTheme.colorScheme.secondary,
                     textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+// ==========================================
+// CloudRestoreIndicator — восстановление из облака
+// ==========================================
+@Composable
+fun CloudRestoreIndicator(
+    isRestoring: Boolean,
+    modifier: Modifier = Modifier
+) {
+    AnimatedVisibility(
+        visible = isRestoring,
+        enter = fadeIn() + scaleIn(initialScale = 0.9f),
+        exit = fadeOut() + scaleOut(targetScale = 0.9f),
+        modifier = modifier
+    ) {
+        ElevatedCard(
+            modifier = Modifier
+                .padding(32.dp)
+                .fillMaxWidth(0.85f),
+            shape = MaterialTheme.shapes.large,
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            ),
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                val infiniteTransition = rememberInfiniteTransition(label = "SyncTransition")
+                val rotation by infiniteTransition.animateFloat(
+                    initialValue = 0f,
+                    targetValue = 360f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(1500, easing = LinearEasing),
+                        repeatMode = RepeatMode.Restart
+                    ),
+                    label = "SyncRotation"
+                )
+                Icon(
+                    imageVector = Icons.Default.CloudSync,
+                    contentDescription = "Restoring from cloud",
+                    modifier = Modifier
+                        .size(48.dp)
+                        .rotate(rotation),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Восстановление базы данных...",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontFamily = SnProFamily,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "Загружаем вашу коллекцию из облака. Пожалуйста, подождите.",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontFamily = SnProFamily
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             }
         }

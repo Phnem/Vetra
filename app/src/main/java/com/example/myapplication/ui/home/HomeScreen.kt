@@ -337,6 +337,10 @@ fun HomeScreen(
                             }
                         }
                     }
+                    CloudRestoreIndicator(
+                        isRestoring = uiState.isRestoringFromCloud,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
             }
 

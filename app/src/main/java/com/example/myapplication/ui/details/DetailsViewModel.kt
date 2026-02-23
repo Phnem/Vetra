@@ -34,7 +34,8 @@ class DetailsViewModel(
     private val _uiState = MutableStateFlow<DetailsUiState>(DetailsUiState.Idle)
     val uiState: StateFlow<DetailsUiState> = _uiState.asStateFlow()
 
-    private val _currentAnime = MutableStateFlow<Anime?>(null)
+    // Инициализация синхронно: узел sharedBounds есть в дереве на 0-м кадре — Exit transition работает.
+    private val _currentAnime = MutableStateFlow<Anime?>(repository.getAnimeById(animeId))
     val currentAnime: StateFlow<Anime?> = _currentAnime.asStateFlow()
 
     private val _currentLanguage = MutableStateFlow(AppLanguage.EN)
@@ -42,12 +43,10 @@ class DetailsViewModel(
 
     init {
         viewModelScope.launch {
-            val anime = repository.getAnimeById(animeId)
-            _currentAnime.value = anime
             val prefs = settingsDataStore.data.first()
             val langKey = stringPreferencesKey("lang")
             _currentLanguage.value = AppLanguage.valueOf(prefs[langKey] ?: "EN")
-            anime?.let { loadDetails(it, _currentLanguage.value) }
+            _currentAnime.value?.let { loadDetails(it, _currentLanguage.value) }
         }
     }
 

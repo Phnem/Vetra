@@ -22,6 +22,7 @@ class VetroApplication : Application(), ImageLoaderFactory {
         super.onCreate()
         runVetroDbMigrationIfNeeded()
         runSyncStatusMigration()
+        runCommentColumnMigration()
         startKoin {
             androidContext(this@VetroApplication)
             modules(
@@ -93,6 +94,19 @@ class VetroApplication : Application(), ImageLoaderFactory {
             if (!dbPath.exists()) return
             SQLiteDatabase.openDatabase(dbPath.absolutePath, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
                 db.execSQL("ALTER TABLE anime ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'SYNCED'")
+            }
+        } catch (e: Exception) {
+            if (!e.message.orEmpty().contains("duplicate column name")) throw e
+        }
+    }
+
+    /** One-time migration: add comment column (existing DBs). */
+    private fun runCommentColumnMigration() {
+        try {
+            val dbPath = getDatabasePath("anime.db")
+            if (!dbPath.exists()) return
+            SQLiteDatabase.openDatabase(dbPath.absolutePath, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("ALTER TABLE anime ADD COLUMN comment TEXT NOT NULL DEFAULT ''")
             }
         } catch (e: Exception) {
             if (!e.message.orEmpty().contains("duplicate column name")) throw e

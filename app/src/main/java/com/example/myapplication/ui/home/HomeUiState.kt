@@ -18,5 +18,6 @@ data class HomeUiState(
     val isCheckingUpdates: Boolean = false,
     val updates: List<AnimeUpdate> = emptyList(),
     val selectedAnimeForDetails: Anime? = null,
-    val statsAnimeList: List<Anime> = emptyList()
+    val statsAnimeList: List<Anime> = emptyList(),
+    val isRestoringFromCloud: Boolean = false
 )

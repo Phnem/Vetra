@@ -2,6 +2,8 @@ package com.example.myapplication.ui.addedit
 
 import android.net.Uri
 
+enum class CommentMode { AddButton, Editing, Saved }
+
 /**
  * Immutable UI state для AddEditScreen
  */
@@ -14,7 +16,9 @@ data class AddEditUiState(
     val categoryType: String = "",
     val imageUri: Uri? = null,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val comment: String = "",
+    val commentMode: CommentMode = CommentMode.AddButton
 ) {
     /**
      * Проверка наличия изменений
