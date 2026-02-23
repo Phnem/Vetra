@@ -24,3 +24,7 @@ fun NavController.navigateToAddEdit(animeId: String? = null) {
 fun NavController.navigateToSettings() {
     navigate(AppRoute.Settings.route)
 }
+
+fun NavController.navigateToDetails(animeId: String) {
+    navigate(AppRoute.Details.createRoute(animeId))
+}

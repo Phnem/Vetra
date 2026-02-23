@@ -19,4 +19,10 @@ sealed class AppRoute(val route: String) {
     }
 
     object Settings : AppRoute("settings")
+
+    object Details : AppRoute("details") {
+        const val ARG_ANIME_ID = "animeId"
+        const val ROUTE = "details?animeId={animeId}"
+        fun createRoute(animeId: String) = "details?animeId=$animeId"
+    }
 }

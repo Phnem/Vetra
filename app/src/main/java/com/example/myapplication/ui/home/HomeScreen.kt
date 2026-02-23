@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.LocalOverscrollConfiguration
@@ -55,12 +56,12 @@ import com.example.myapplication.data.repository.GenreRepository
 import com.example.myapplication.utils.getStrings
 import com.example.myapplication.utils.performHaptic
 import com.example.myapplication.ui.details.AnimeDetailsSheet
-import com.example.myapplication.ui.details.DetailsViewModel
 import com.example.myapplication.ui.navigation.navigateToAddEdit
+import com.example.myapplication.ui.navigation.navigateToDetails
 import com.example.myapplication.ui.navigation.navigateToWelcome
 import com.example.myapplication.ui.shared.theme.*
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
+import dev.chrisbanes.haze.hazeSource
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -70,7 +71,6 @@ import org.koin.compose.koinInject
 fun HomeScreen(
     navController: NavController,
     viewModel: HomeViewModel,
-    detailsViewModel: DetailsViewModel,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
@@ -138,24 +138,10 @@ fun HomeScreen(
     val showScrollToTop by remember { derivedStateOf { listState.firstVisibleItemIndex > 4 } }
     val bgColor = MaterialTheme.colorScheme.background
 
-    val showDetails = uiState.selectedAnimeForDetails != null
     val shouldBlur = (isSearchVisible && uiState.searchQuery.isBlank()) ||
             showCSheet || animeToDelete != null || animeToFavorite != null ||
-            uiState.isGenreFilterVisible || showNotificationsOverlay || showSortOverlay ||
-            showDetails
+            uiState.isGenreFilterVisible || showNotificationsOverlay || showSortOverlay
     val blurAmount by animateDpAsState(targetValue = if (shouldBlur) 10.dp else 0.dp, label = "blur")
-
-    // Details overlay shown on top of everything
-    if (showDetails) {
-        val selectedAnime = uiState.selectedAnimeForDetails!!
-        AnimeDetailsSheet(
-            viewModel = detailsViewModel,
-            anime = selectedAnime,
-            language = currentLanguage,
-            getImgPath = { name -> viewModel.getImgPath(name) },
-            onDismiss = { viewModel.clearSelectedAnime() }
-        )
-    }
 
     Scaffold(containerColor = Color.Transparent, bottomBar = {}, floatingActionButton = {}) { _ ->
         Box(modifier = Modifier.fillMaxSize()) {
@@ -256,26 +242,10 @@ fun HomeScreen(
 
             Column(modifier = Modifier.fillMaxSize().blur(blurAmount)) {
                 Box(modifier = Modifier.fillMaxSize().weight(1f).background(bgColor)) {
-                    val list by viewModel.animeListFlow.collectAsState(initial = emptyList())
-                    val isEmpty = list.isEmpty()
-                    if (isEmpty) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            MalistWorkspaceTopBar(
-                                strings = getStrings(currentLanguage),
-                                userAvatarPath = null,
-                                onSaveUserAvatar = { uri ->
-                                    // TODO: Implement avatar save
-                                }
-                            )
-                            Box(modifier = Modifier.weight(1f)) {
-                                EmptyStateView(
-                                    title = if (uiState.searchQuery.isNotEmpty()) "No results" else "Nothing in folder",
-                                    subtitle = if (uiState.searchQuery.isNotEmpty()) "" else "Looks empty over here."
-                                )
-                            }
-                        }
-                    } else {
-                        CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
+                    val list by viewModel.animeListFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+                    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+
+                    CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -283,67 +253,88 @@ fun HomeScreen(
                                 .customOverscroll(listState) { overscrollAmount = it }
                                 .offset { IntOffset(0, overscrollAmount.roundToInt()) }
                         ) {
-                            LazyColumn(
-                                state = listState,
-                                contentPadding = PaddingValues(top = 0.dp, bottom = 220.dp, start = 0.dp, end = 0.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
-                                modifier = Modifier.haze(state = hazeState)
+                            PullToRefreshBox(
+                                isRefreshing = isRefreshing,
+                                onRefresh = { viewModel.refreshList() },
+                                modifier = Modifier.fillMaxSize()
                             ) {
-                                item {
-                            MalistWorkspaceTopBar(
-                                strings = getStrings(currentLanguage),
-                                userAvatarPath = null,
-                                onSaveUserAvatar = { uri ->
-                                    // TODO: Implement avatar save
-                                }
-                            )
-                                }
-                                items(
-                                    items = list,
-                                    key = { it.id }
-                                ) { anime ->
-                                    val dismissState = rememberSwipeToDismissBoxState(
-                                        confirmValueChange = {
-                                            when(it) {
-                                                SwipeToDismissBoxValue.StartToEnd -> {
-                                                    performHaptic(view, "success")
-                                                    animeToFavorite = anime
-                                                    false
-                                                }
-                                                SwipeToDismissBoxValue.EndToStart -> {
-                                                    performHaptic(view, "warning")
-                                                    animeToDelete = anime
-                                                    false
-                                                }
-                                                else -> false
-                                            }
-                                        },
-                                        positionalThreshold = { totalDistance -> totalDistance * 0.4f }
-                                    )
-                                    SwipeToDismissBox(
-                                        state = dismissState,
-                                        backgroundContent = { SwipeBackground(dismissState) },
-                                        modifier = Modifier
-                                            .padding(horizontal = 16.dp)
-                                            .animateItem()
-                                    ) {
-                                        OneUiAnimeCard(
-                                            anime = anime,
-                                            getImgPath = { name -> viewModel.getImgPath(name) },
-                                            getGenreName = { genreId -> genreRepository.getLabel(genreId, currentLanguage) },
-                                            sharedTransitionScope = sharedTransitionScope,
-                                            animatedVisibilityScope = animatedVisibilityScope,
-                                            onClick = { navController.navigateToAddEdit(anime.id) },
-                                            onDetailsClick = {
-                                                performHaptic(view, "light")
-                                                viewModel.selectAnimeForDetails(anime)
-                                                detailsViewModel.loadDetails(anime, currentLanguage)
-                                            }
+                                LazyColumn(
+                                    state = listState,
+                                    contentPadding = PaddingValues(top = 0.dp, bottom = 220.dp, start = 0.dp, end = 0.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .hazeSource(state = hazeState)
+                                ) {
+                                    item {
+                                        MalistWorkspaceTopBar(
+                                            strings = getStrings(currentLanguage),
+                                            userAvatarPath = null,
+                                            onSaveUserAvatar = { uri -> /* TODO */ }
                                         )
+                                    }
+
+                                    if (list.isEmpty()) {
+                                        item {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillParentMaxSize()
+                                                    .padding(bottom = 120.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                EmptyStateView(
+                                                    title = if (uiState.searchQuery.isNotEmpty()) "No results" else "Nothing in folder",
+                                                    subtitle = if (uiState.searchQuery.isNotEmpty()) "" else "Looks empty over here."
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        items(
+                                            items = list,
+                                            key = { it.id }
+                                        ) { anime ->
+                                            val dismissState = rememberSwipeToDismissBoxState(
+                                                confirmValueChange = {
+                                                    when(it) {
+                                                        SwipeToDismissBoxValue.StartToEnd -> {
+                                                            performHaptic(view, "success")
+                                                            animeToFavorite = anime
+                                                            false
+                                                        }
+                                                        SwipeToDismissBoxValue.EndToStart -> {
+                                                            performHaptic(view, "warning")
+                                                            animeToDelete = anime
+                                                            false
+                                                        }
+                                                        else -> false
+                                                    }
+                                                },
+                                                positionalThreshold = { totalDistance -> totalDistance * 0.4f }
+                                            )
+                                            SwipeToDismissBox(
+                                                state = dismissState,
+                                                backgroundContent = { SwipeBackground(dismissState) },
+                                                modifier = Modifier
+                                                    .padding(horizontal = 16.dp)
+                                                    .animateItem()
+                                            ) {
+                                                OneUiAnimeCard(
+                                                    anime = anime,
+                                                    getImgPath = { name -> viewModel.getImgPath(name) },
+                                                    getGenreName = { genreId -> genreRepository.getLabel(genreId, currentLanguage) },
+                                                    sharedTransitionScope = sharedTransitionScope,
+                                                    animatedVisibilityScope = animatedVisibilityScope,
+                                                    onClick = { navController.navigateToAddEdit(anime.id) },
+                                                    onDetailsClick = {
+                                                        performHaptic(view, "light")
+                                                        navController.navigateToDetails(anime.id)
+                                                    }
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
-                        }
                         }
                     }
                 }
@@ -424,7 +415,7 @@ fun HomeScreen(
                 }
             }
 
-            if (shouldBlur && animeToDelete == null && animeToFavorite == null && uiState.selectedAnimeForDetails == null && !showNotificationsOverlay && !showSortOverlay && !uiState.isGenreFilterVisible) {
+            if (shouldBlur && animeToDelete == null && animeToFavorite == null && !showNotificationsOverlay && !showSortOverlay && !uiState.isGenreFilterVisible) {
                 Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
                     focusManager.clearFocus()
                     isSearchVisible = false

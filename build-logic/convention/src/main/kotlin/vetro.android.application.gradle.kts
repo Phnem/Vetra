@@ -8,10 +8,10 @@ plugins {
 }
 
 extensions.configure<BaseExtension> {
-    compileSdkVersion(35)
+    compileSdkVersion(36)
     defaultConfig {
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     compileOptions {

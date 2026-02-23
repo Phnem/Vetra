@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
-import com.example.myapplication.data.local.AnimeDatabase
 import com.example.myapplication.data.local.AnimeLocalDataSource
 import com.example.myapplication.data.local.LegacyMigrationRepositoryImpl
 import com.example.myapplication.data.local.MigrationManager
@@ -21,8 +20,6 @@ private val Context.settingsDataStore: DataStore<Preferences> by preferencesData
 
 val databaseModule = module {
     single { SQLDelightDatabaseFactory(androidContext()) }
-    single { get<SQLDelightDatabaseFactory>().createDriver() }
-    single { AnimeDatabase(get()) }
     single { AnimeLocalDataSource(get()) }
     single<LegacyMigrationRepository> {
         LegacyMigrationRepositoryImpl(context = androidContext())

@@ -69,6 +69,8 @@ class AnimeRepository(
         return result
     }
 
+    fun getAnimeById(id: String): Anime? = localDataSource.getAnimeById(id)
+
     suspend fun fetchDetails(title: String, language: AppLanguage): Result<AnimeDetails?> {
         return apiService.fetchDetails(title, language)
     }

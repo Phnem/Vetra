@@ -2,6 +2,7 @@ package com.example.myapplication.ui.details
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -31,7 +33,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import org.koin.androidx.compose.koinViewModel
 import com.example.myapplication.data.models.Anime
 import com.example.myapplication.network.AppLanguage
 import com.example.myapplication.isAppInDarkTheme
@@ -40,47 +44,138 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun DetailsScreen(
+    animeId: String,
+    navController: NavController,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    viewModel: DetailsViewModel = koinViewModel()
+) {
+    val anime by viewModel.currentAnime.collectAsStateWithLifecycle()
+    val language by viewModel.currentLanguage.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isDark = isAppInDarkTheme()
+    val screenBg = if (isDark) Color(0xFF141419) else Color(0xFFF2F2F7)
+
+    BackHandler { navController.popBackStack() }
+
+    val cornerSize by animatedVisibilityScope.transition.animateDp(
+        label = "DetailsCornerSize"
+    ) { state ->
+        if (state == EnterExitState.Visible) 0.dp else 24.dp
+    }
+
+    anime?.let { currentAnime ->
+        with(sharedTransitionScope) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .sharedBounds(
+                        sharedContentState = rememberSharedContentState(key = "anime_${animeId}_bounds"),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                        clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(cornerSize))
+                    )
+                    .clip(RoundedCornerShape(cornerSize))
+                    .background(screenBg)
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    TopAppBar(
+                        title = { },
+                        navigationIcon = {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color.Transparent,
+                            navigationIconContentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    )
+                    AnimeDetailsSheet(
+                        viewModel = viewModel,
+                        anime = currentAnime,
+                        language = language,
+                        getImgPath = { viewModel.getImgPath(it) },
+                        onDismiss = { navController.popBackStack() },
+                        embedded = true
+                    )
+                }
+            }
+        }
+    } ?: run {
+        LaunchedEffect(Unit) { navController.popBackStack() }
+    }
+}
+
 @Composable
 fun AnimeDetailsSheet(
     viewModel: DetailsViewModel,
     anime: Anime,
     language: AppLanguage,
     getImgPath: (String?) -> File?,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    embedded: Boolean = false
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDark = isAppInDarkTheme()
-    var visible by remember { mutableStateOf(false) }
+    var visible by remember { mutableStateOf(embedded) }
 
-    LaunchedEffect(Unit) { visible = true }
+    if (!embedded) LaunchedEffect(Unit) { visible = true }
 
     fun triggerDismiss() {
         visible = false
     }
 
-    // Auto-dismiss after exit animation completes
-    LaunchedEffect(visible) {
-        if (!visible) {
-            delay(280)
-            onDismiss()
+    if (!embedded) {
+        LaunchedEffect(visible) {
+            if (!visible) {
+                delay(280)
+                onDismiss()
+            }
         }
+        BackHandler { triggerDismiss() }
     }
 
-    BackHandler { triggerDismiss() }
-
-    // Stagger animation for content
-    val contentAlpha = remember { Animatable(0f) }
-    val contentOffsetY = remember { Animatable(20f) }
-    LaunchedEffect(visible) {
-        if (visible) {
-            delay(200)
-            launch { contentAlpha.animateTo(1f, spring(dampingRatio = 0.9f, stiffness = 300f)) }
-            launch { contentOffsetY.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = 300f)) }
+    val contentAlpha = remember { Animatable(if (embedded) 1f else 0f) }
+    val contentOffsetY = remember { Animatable(if (embedded) 0f else 20f) }
+    if (!embedded) {
+        LaunchedEffect(visible) {
+            if (visible) {
+                delay(200)
+                launch { contentAlpha.animateTo(1f, spring(dampingRatio = 0.9f, stiffness = 300f)) }
+                launch { contentOffsetY.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = 300f)) }
+            }
         }
     }
 
     val panelBg = if (isDark) Color(0xFF1A1D26) else Color.White
     val subtitleColor = if (isDark) Color(0xFF9898A0) else Color(0xFF8E8E93)
+
+    if (embedded) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+        ) {
+            DetailsSheetBody(
+                anime = anime,
+                uiState = uiState,
+                language = language,
+                isDark = isDark,
+                panelBg = panelBg,
+                subtitleColor = subtitleColor,
+                getImgPath = getImgPath,
+                contentAlpha = contentAlpha,
+                contentOffsetY = contentOffsetY,
+                showCloseButton = false,
+                onDismiss = onDismiss
+            )
+        }
+        return
+    }
 
     Box(
         modifier = Modifier
@@ -88,7 +183,6 @@ fun AnimeDetailsSheet(
             .zIndex(100f),
         contentAlignment = Alignment.Center
     ) {
-        // Scrim
         AnimatedVisibility(
             visible = visible,
             enter = fadeIn(animationSpec = tween(250)),
@@ -105,15 +199,11 @@ fun AnimeDetailsSheet(
             )
         }
 
-        // Card
         AnimatedVisibility(
             visible = visible,
             enter = slideInVertically(
                 initialOffsetY = { it },
-                animationSpec = spring(
-                    dampingRatio = 0.8f,
-                    stiffness = 400f
-                )
+                animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
             ) + fadeIn(animationSpec = tween(250)),
             exit = slideOutVertically(
                 targetOffsetY = { it },
@@ -140,8 +230,41 @@ fun AnimeDetailsSheet(
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // Hero image
-                    Box(
+                    DetailsSheetBody(
+                        anime = anime,
+                        uiState = uiState,
+                        language = language,
+                        isDark = isDark,
+                        panelBg = panelBg,
+                        subtitleColor = subtitleColor,
+                        getImgPath = getImgPath,
+                        contentAlpha = contentAlpha,
+                        contentOffsetY = contentOffsetY,
+                        showCloseButton = true,
+                        onDismiss = { triggerDismiss() }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailsSheetBody(
+    anime: Anime,
+    uiState: DetailsUiState,
+    language: AppLanguage,
+    isDark: Boolean,
+    panelBg: Color,
+    subtitleColor: Color,
+    getImgPath: (String?) -> File?,
+    contentAlpha: Animatable<Float, *>,
+    contentOffsetY: Animatable<Float, *>,
+    showCloseButton: Boolean,
+    onDismiss: () -> Unit
+) {
+    // Hero image
+    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp)
@@ -186,23 +309,24 @@ fun AnimeDetailsSheet(
                                 )
                         )
 
-                        // Close button
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(12.dp)
-                                .size(36.dp)
-                                .clip(androidx.compose.foundation.shape.CircleShape)
-                                .background(Color.Black.copy(alpha = 0.4f))
-                                .clickable { triggerDismiss() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Close",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
+                        if (showCloseButton) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(12.dp)
+                                    .size(36.dp)
+                                    .clip(androidx.compose.foundation.shape.CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.4f))
+                                    .clickable { onDismiss() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Close",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
 
@@ -446,10 +570,6 @@ fun AnimeDetailsSheet(
                             }
                         }
                     }
-                }
-            }
-        }
-    }
 }
 
 @Composable

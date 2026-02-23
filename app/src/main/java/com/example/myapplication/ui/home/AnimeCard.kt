@@ -1,17 +1,19 @@
 package com.example.myapplication.ui.home
 
-import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.materials.CupertinoMaterials
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,9 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.style.LineBreak
@@ -35,8 +36,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.myapplication.data.models.Anime
 import com.example.myapplication.isAppInDarkTheme
+import com.example.myapplication.ui.shared.fluidClickable
 import com.example.myapplication.ui.shared.theme.SnProFamily
 import com.example.myapplication.ui.shared.theme.getRatingColor
 
@@ -51,14 +54,9 @@ fun OneUiAnimeCard(
     onClick: () -> Unit,
     onDetailsClick: () -> Unit
 ) {
+    val localHazeState = remember { HazeState() }
     val isDark = isAppInDarkTheme()
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.975f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMedium),
-        label = "cardScale"
-    )
-
+    val borderStroke = if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.4f)
     val cardBg = if (isDark) Color(0xFF1C1F28) else Color.White
     val cardShadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color.Black.copy(alpha = 0.08f)
     val subtitleColor = if (isDark) Color(0xFF9898A0) else Color(0xFF8E8E93)
@@ -68,10 +66,7 @@ fun OneUiAnimeCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                }
+                .fluidClickable(scaleDown = 0.975f, onClick = onClick)
                 .shadow(
                     elevation = if (isDark) 8.dp else 4.dp,
                     shape = RoundedCornerShape(24.dp),
@@ -90,16 +85,6 @@ fun OneUiAnimeCard(
                     BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
                     RoundedCornerShape(24.dp)
                 )
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onPress = {
-                            isPressed = true
-                            tryAwaitRelease()
-                            isPressed = false
-                        },
-                        onTap = { onClick() }
-                    )
-                }
                 .animateContentSize(
                     animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
                 )
@@ -110,7 +95,7 @@ fun OneUiAnimeCard(
                     .padding(14.dp),
                 verticalAlignment = Alignment.Top
             ) {
-                // Image
+                // Image: слоистый UI — fallback всегда внизу, AsyncImage поверх (без I/O на Main)
                 Box(
                     modifier = Modifier
                         .size(width = 90.dp, height = 126.dp)
@@ -119,33 +104,38 @@ fun OneUiAnimeCard(
                             animatedVisibilityScope = animatedVisibilityScope
                         )
                         .clip(RoundedCornerShape(16.dp))
+                        .hazeSource(state = localHazeState)
+                        .background(if (isDark) Color(0xFF2C2C34) else Color(0xFFE8E8ED)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    val imgFile = getImgPath(anime.imageFileName)
-                    if (imgFile != null && imgFile.exists()) {
+                    // Fallback-подложка (z-index 0): placeholder до загрузки или при отсутствии файла
+                    Text(
+                        text = anime.title.take(1).uppercase(),
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Black,
+                        color = if (isDark) Color.White.copy(alpha = 0.3f)
+                        else Color.Black.copy(alpha = 0.15f),
+                        fontFamily = SnProFamily
+                    )
+
+                    val imgFile = remember(anime.imageFileName) { getImgPath(anime.imageFileName) }
+                    if (imgFile != null) {
+                        val context = LocalContext.current
+                        val filePath = imgFile.absolutePath
+                        val imageRequest = remember(filePath) {
+                            ImageRequest.Builder(context)
+                                .data(imgFile)
+                                .crossfade(true)
+                                .memoryCacheKey(filePath)
+                                .diskCacheKey(filePath)
+                                .build()
+                        }
                         AsyncImage(
-                            model = imgFile,
+                            model = imageRequest,
                             contentDescription = anime.title,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
                         )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    if (isDark) Color(0xFF2C2C34) else Color(0xFFE8E8ED)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = anime.title.take(1).uppercase(),
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.Black,
-                                color = if (isDark) Color.White.copy(alpha = 0.3f)
-                                else Color.Black.copy(alpha = 0.15f),
-                                fontFamily = SnProFamily
-                            )
-                        }
                     }
                 }
 
@@ -184,7 +174,11 @@ fun OneUiAnimeCard(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(chipBg)
+                                    .hazeEffect(
+                                        state = localHazeState,
+                                        style = CupertinoMaterials.thin()
+                                    )
+                                    .border(0.5.dp, borderStroke, RoundedCornerShape(8.dp))
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Row(
@@ -256,36 +250,39 @@ fun OneUiAnimeCard(
 
                     Spacer(Modifier.height(12.dp))
 
-                    // Details button
+                    // Details — стекло (thin) + тонировка поверх
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(
-                                if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                else MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                            .fluidClickable(scaleDown = 0.92f, onClick = onDetailsClick)
+                            .clip(RoundedCornerShape(100))
+                            .hazeEffect(
+                                state = localHazeState,
+                                style = CupertinoMaterials.thin()
                             )
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { onDetailsClick() }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)) // как у кнопки Sync now в Cloud Settings
+                            .border(0.5.dp, borderStroke, RoundedCornerShape(100))
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.Center
                         ) {
                             Icon(
-                                Icons.Default.Info,
+                                imageVector = Icons.Default.Info,
                                 contentDescription = "Details",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(14.dp)
+                                tint = if (isDark) Color.White else Color.Black,
+                                modifier = Modifier.size(16.dp)
                             )
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                "Details",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontFamily = SnProFamily
+                                text = "Details",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontFamily = SnProFamily,
+                                    fontSize = 13.sp
+                                ),
+                                color = if (isDark) Color.White else Color.Black
                             )
                         }
                     }

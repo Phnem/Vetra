@@ -7,44 +7,51 @@ import com.example.myapplication.data.models.Anime
 import com.example.myapplication.data.models.AnimeUpdate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 
 class AnimeLocalDataSource(
-    private val database: AnimeDatabase
+    private val factory: SQLDelightDatabaseFactory
 ) {
 
+    private fun db(): AnimeDatabase = factory.getDatabase()
+
     /**
-     * Реактивный поток: при любом изменении таблицы anime Flow эмитит новый список.
-     * Фильтрация и сортировка выполняются в ViewModel в памяти (рекомендация для коллекций до ~3–5k записей).
+     * Реактивный поток; при reconnectDatabase() переподписывается на новое подключение (hot swap).
      */
-    fun observeAllAnime(): Flow<List<Anime>> = database.animeQueries
-        .getAllAnime()
-        .asFlow()
-        .mapToList(Dispatchers.IO)
-        .map { rows -> rows.map { row -> mapRowToAnime(row.id, row.title, row.imagePath, row.episodes, row.rating, row.orderIndex, row.dateAdded, row.isFavorite, row.categoryType) } }
+    fun observeAllAnime(): Flow<List<Anime>> = factory.dbConnectionTrigger.flatMapLatest {
+        db().animeQueries
+            .getAllAnime()
+            .asFlow()
+            .mapToList(Dispatchers.IO)
+            .map { rows -> rows.map { row -> mapRowToAnime(row.id, row.title, row.imagePath, row.episodes, row.rating, row.orderIndex, row.dateAdded, row.isFavorite, row.categoryType) } }
+    }
+
+    /** Закрывает старый коннект и открывает новый (после миграции .copyTo). */
+    fun reconnectDatabase() = factory.reconnectDatabase()
 
     fun getAnimeCount(): Int {
-        return database.animeQueries.getAnimeCount().executeAsOne().toInt()
+        return db().animeQueries.getAnimeCount().executeAsOne().toInt()
     }
 
     fun getMaxOrderIndex(): Int {
-        return database.animeQueries.getMaxOrderIndex().executeAsOne().toInt()
+        return db().animeQueries.getMaxOrderIndex().executeAsOne().toInt()
     }
 
     fun getAnimePage(offset: Int, limit: Int): List<Anime> {
-        return database.animeQueries.getAnimePaged(limit.toLong(), offset.toLong())
+        return db().animeQueries.getAnimePaged(limit.toLong(), offset.toLong())
             .executeAsList()
             .map { row -> mapRowToAnime(row.id, row.title, row.imagePath, row.episodes, row.rating, row.orderIndex, row.dateAdded, row.isFavorite, row.categoryType) }
     }
 
     fun getAllAnimeList(): List<Anime> {
-        return database.animeQueries.getAllAnime()
+        return db().animeQueries.getAllAnime()
             .executeAsList()
             .map { row -> mapRowToAnime(row.id, row.title, row.imagePath, row.episodes, row.rating, row.orderIndex, row.dateAdded, row.isFavorite, row.categoryType) }
     }
 
     fun getAnimeById(id: String): Anime? {
-        return database.animeQueries
+        return db().animeQueries
             .getAnimeById(id)
             .executeAsOneOrNull()
             ?.let { row -> mapRowToAnime(row.id, row.title, row.imagePath, row.episodes, row.rating, row.orderIndex, row.dateAdded, row.isFavorite, row.categoryType) }
@@ -74,8 +81,8 @@ class AnimeLocalDataSource(
     )
 
     suspend fun insertAnime(anime: Anime) {
-        database.animeQueries.transaction {
-            database.animeQueries.insertAnime(
+        db().animeQueries.transaction {
+            db().animeQueries.insertAnime(
                 id = anime.id,
                 title = anime.title,
                 imagePath = anime.imageFileName,
@@ -91,7 +98,7 @@ class AnimeLocalDataSource(
             
             // Insert tags
             anime.tags.forEach { tag ->
-                database.animeQueries.insertAnimeTag(
+                db().animeQueries.insertAnimeTag(
                     anime_id = anime.id,
                     tag = tag
                 )
@@ -100,8 +107,8 @@ class AnimeLocalDataSource(
     }
 
     suspend fun updateAnime(anime: Anime) {
-        database.animeQueries.transaction {
-            database.animeQueries.updateAnime(
+        db().animeQueries.transaction {
+            db().animeQueries.updateAnime(
                 title = anime.title,
                 imagePath = anime.imageFileName,
                 episodes = anime.episodes.toLong(),
@@ -115,9 +122,9 @@ class AnimeLocalDataSource(
             )
             
             // Update tags
-            database.animeQueries.deleteAnimeTags(anime.id)
+            db().animeQueries.deleteAnimeTags(anime.id)
             anime.tags.forEach { tag ->
-                database.animeQueries.insertAnimeTag(
+                db().animeQueries.insertAnimeTag(
                     anime_id = anime.id,
                     tag = tag
                 )
@@ -126,16 +133,16 @@ class AnimeLocalDataSource(
     }
 
     suspend fun deleteAnime(id: String) {
-        database.animeQueries.transaction {
-            database.animeQueries.deleteAnimeTags(id)
-            database.animeQueries.deleteAnime(id)
+        db().animeQueries.transaction {
+            db().animeQueries.deleteAnimeTags(id)
+            db().animeQueries.deleteAnime(id)
         }
     }
 
     suspend fun insertAllAnime(list: List<Anime>) {
-        database.animeQueries.transaction {
+        db().animeQueries.transaction {
             list.forEach { anime ->
-                database.animeQueries.insertAnime(
+                db().animeQueries.insertAnime(
                     id = anime.id,
                     title = anime.title,
                     imagePath = anime.imageFileName,
@@ -149,7 +156,7 @@ class AnimeLocalDataSource(
                     categoryType = anime.categoryType
                 )
                 anime.tags.forEach { tag ->
-                    database.animeQueries.insertAnimeTag(
+                    db().animeQueries.insertAnimeTag(
                         anime_id = anime.id,
                         tag = tag
                     )
@@ -159,7 +166,7 @@ class AnimeLocalDataSource(
     }
 
     fun getUpdates(): List<AnimeUpdate> {
-        return database.animeQueries.getAllUpdates()
+        return db().animeQueries.getAllUpdates()
             .executeAsList()
             .map { row ->
                 AnimeUpdate(
@@ -173,16 +180,16 @@ class AnimeLocalDataSource(
     }
 
     fun getIgnoredMap(): Map<String, Int> {
-        return database.animeQueries.getIgnoredMap()
+        return db().animeQueries.getIgnoredMap()
             .executeAsList()
             .associate { row -> row.anime_id to row.new_episodes.toInt() }
     }
 
     suspend fun setUpdates(updates: List<AnimeUpdate>) {
-        database.animeQueries.transaction {
-            database.animeQueries.deleteAllUpdates()
+        db().animeQueries.transaction {
+            db().animeQueries.deleteAllUpdates()
             updates.forEach { u ->
-                database.animeQueries.insertUpdate(
+                db().animeQueries.insertUpdate(
                     anime_id = u.animeId,
                     title = u.title,
                     current_episodes = u.currentEpisodes.toLong(),
@@ -194,18 +201,18 @@ class AnimeLocalDataSource(
     }
 
     suspend fun addIgnored(animeId: String, newEpisodes: Int) {
-        database.animeQueries.setIgnored(
+        db().animeQueries.setIgnored(
             anime_id = animeId,
             new_episodes = newEpisodes.toLong()
         )
     }
 
     suspend fun removeUpdate(animeId: String) {
-        database.animeQueries.deleteUpdateByAnimeId(animeId)
+        db().animeQueries.deleteUpdateByAnimeId(animeId)
     }
 
     private fun getTagsForAnime(animeId: String): List<String> {
-        return database.animeQueries
+        return db().animeQueries
             .getAnimeTags(animeId)
             .executeAsList()
     }

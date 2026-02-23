@@ -1,34 +1,71 @@
 package com.example.myapplication
 
-import com.example.myapplication.data.models.*
-import com.example.myapplication.ui.navigation.navigateToAddEdit
-import com.example.myapplication.ui.navigation.navigateToSettings
-import com.example.myapplication.ui.shared.theme.BrandBlue
-import com.example.myapplication.ui.shared.theme.BrandRed
-import com.example.myapplication.utils.performHaptic
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Tv
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,45 +73,37 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.*
-import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material.icons.rounded.StarBorder
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.ui.text.font.FontFamily
+import com.example.myapplication.data.models.AnimeUpdate
 import com.example.myapplication.data.models.SortOption
 import com.example.myapplication.data.models.UiStrings
-import com.example.myapplication.data.models.GenreCategory
-import com.example.myapplication.data.models.GenreDefinition
 import com.example.myapplication.data.repository.GenreRepository
 import com.example.myapplication.network.AppLanguage
+import com.example.myapplication.ui.navigation.navigateToAddEdit
+import com.example.myapplication.ui.navigation.navigateToSettings
 import com.example.myapplication.ui.shared.components.GenreSelectionSection
+import com.example.myapplication.ui.shared.fluidClickable
+import com.example.myapplication.ui.shared.theme.BrandBlue
+import com.example.myapplication.ui.shared.theme.BrandRed
 import com.example.myapplication.ui.shared.theme.SnProFamily
-import org.koin.compose.koinInject
-import android.widget.Toast
+import com.example.myapplication.utils.performHaptic
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.materials.CupertinoMaterials
 
 @Composable
 fun isAppInDarkTheme(): Boolean {
@@ -91,32 +120,19 @@ fun SimpGlassCard(
     content: @Composable BoxScope.() -> Unit
 ) {
     val isDark = isAppInDarkTheme()
-
-    val glassTint = if (isDark) {
-        Color(0xFF1A1D26).copy(alpha = 0.55f)
-    } else {
-        Color.White.copy(alpha = 0.45f)
-    }
-
     val shineColor = if (isDark) Color.White.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.6f)
     val borderStroke = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.8f)
 
     Box(
         modifier = modifier
             .clip(shape)
-            .hazeChild(
+            .hazeEffect(
                 state = hazeState,
-                shape = shape,
-                style = HazeStyle(
-                    blurRadius = 32.dp,
-                    tint = glassTint,
-                    noiseFactor = 0.06f
-                )
+                style = CupertinoMaterials.ultraThin()
             )
             .border(0.5.dp, borderStroke, shape),
         contentAlignment = Alignment.Center
     ) {
-        // ... (внутренности Box без изменений)
         Canvas(modifier = Modifier.matchParentSize()) {
             val rect = Rect(offset = Offset.Zero, size = size)
             val path = Path().apply {
@@ -161,15 +177,10 @@ fun GlassActionDock(
         animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "dockPadding"
     )
-    val targetTint = if (isDark) Color(0xFF1A1D26).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.45f)
-    val tintColor by animateColorAsState(
-        targetValue = if (isFloating) targetTint else Color.Transparent,
-        label = "tint"
-    )
-    val blurRadius by animateDpAsState(
-        targetValue = if (isFloating) 40.dp else 0.dp,
+    val effectAlpha by animateFloatAsState(
+        targetValue = if (isFloating) 1f else 0f,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "blur"
+        label = "hazeAlpha"
     )
     val borderStrokeBase = if (isDark) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.8f)
     val borderColor by animateColorAsState(
@@ -193,11 +204,12 @@ fun GlassActionDock(
             .padding(top = topPadding)
             .statusBarsPadding()
             .clip(RoundedCornerShape(32.dp))
-            .hazeChild(
+            .hazeEffect(
                 state = hazeState,
-                shape = RoundedCornerShape(32.dp),
-                style = HazeStyle(blurRadius = blurRadius, tint = tintColor)
-            )
+                style = CupertinoMaterials.ultraThin()
+            ) {
+                alpha = effectAlpha
+            }
             .border(0.5.dp, borderColor, RoundedCornerShape(32.dp))
     ) {
         if (shineAlpha > 0f) {
@@ -283,20 +295,26 @@ fun GlassBottomNavigation(
     modifier: Modifier = Modifier
 ) {
     val view = LocalView.current
+    val isDark = isAppInDarkTheme()
     val currentThemeColor = MaterialTheme.colorScheme.onSurface
+    val borderStroke = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.8f)
 
     Box(
         modifier = modifier
             .padding(bottom = 24.dp)
             .fillMaxWidth()
     ) {
-        SimpGlassCard(
-            hazeState = hazeState,
-            shape = CircleShape,
+        Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .height(64.dp)
                 .wrapContentWidth()
+                .clip(CircleShape)
+                .hazeEffect(
+                    state = hazeState,
+                    style = CupertinoMaterials.ultraThin()
+                )
+                .border(0.5.dp, borderStroke, CircleShape)
         ) {
             Row(
                 modifier = Modifier
@@ -376,10 +394,7 @@ fun GlassBottomNavigation(
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(CircleShape)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
+                            .fluidClickable {
                                 performHaptic(view, "light")
                                 nav.navigateToSettings()
                             }

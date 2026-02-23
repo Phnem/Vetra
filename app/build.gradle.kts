@@ -18,14 +18,14 @@ sqldelight {
 
 android {
     namespace = "com.example.myapplication"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.myapplication"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
-        versionName = "v3.0.0-alpha"
+        versionName = "v3.0.1-Beta"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -55,7 +55,8 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation("dev.chrisbanes.haze:haze:0.7.3")
+    implementation("dev.chrisbanes.haze:haze:1.7.2")
+    implementation("dev.chrisbanes.haze:haze-materials:1.7.2")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.animation:animation")
 

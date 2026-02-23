@@ -10,6 +10,7 @@ import com.example.myapplication.data.models.AnimeUpdate
 import com.example.myapplication.network.AppContentType
 import com.example.myapplication.data.models.SortOption
 import com.example.myapplication.data.repository.AnimeRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -31,7 +32,10 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    /** Реактивный список: при изменении БД или поиска/сортировки/фильтра UI обновляется автоматически. */
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    /** Реактивный список; при reconnectDatabase() переподписывается на новое подключение (hot swap). */
     val animeListFlow: StateFlow<List<Anime>> = repository.observeAnimeList(
         searchQuery = _uiState.map { it.searchQuery },
         sortOption = _uiState.map { it.sortOption },
@@ -67,6 +71,16 @@ class HomeViewModel(
     }
 
     fun loadAnime() {}
+
+    /** Hot swap: закрывает старый коннект, открывает новый (после .copyTo миграции), UI переподписывается. */
+    fun refreshList() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            localDataSource.reconnectDatabase()
+            delay(500)
+            _isRefreshing.value = false
+        }
+    }
 
     fun scheduleBackgroundWork(context: Context) {
         val constraints = Constraints.Builder()

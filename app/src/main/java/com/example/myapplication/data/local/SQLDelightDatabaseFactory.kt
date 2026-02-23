@@ -7,13 +7,18 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.example.myapplication.data.local.AnimeDatabase
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
 import java.lang.reflect.Method
 
 class SQLDelightDatabaseFactory(private val context: Context) {
     private var cachedDriver: SqlDriver? = null
+    private var database: AnimeDatabase? = null
 
-    fun createDriver(): SqlDriver {
+    /** При изменении триггера Flow в DataSource переподписываются на новое подключение. */
+    val dbConnectionTrigger = MutableStateFlow(0)
+
+    private fun getDriver(): SqlDriver {
         if (cachedDriver == null) {
             cachedDriver = AndroidSqliteDriver(
                 schema = AnimeDatabase.Schema,
@@ -24,10 +29,27 @@ class SQLDelightDatabaseFactory(private val context: Context) {
         return cachedDriver!!
     }
 
+    fun getDatabase(): AnimeDatabase {
+        if (database == null) {
+            database = AnimeDatabase(getDriver())
+        }
+        return database!!
+    }
+
+    /** Закрывает старый коннект и при следующем доступе открывает новый (после .copyTo миграции). */
+    fun reconnectDatabase() {
+        cachedDriver?.close()
+        cachedDriver = null
+        database = null
+        dbConnectionTrigger.value += 1
+    }
+
+    fun createDriver(): SqlDriver = getDriver()
+
     suspend fun checkpoint() {
         withContext(Dispatchers.IO) {
             try {
-                cachedDriver?.let { driver ->
+                getDriver().let { driver ->
                     if (driver is AndroidSqliteDriver) {
                         // Get SQLiteDatabase through reflection
                         val aClass = Class.forName("app.cash.sqldelight.driver.android.AndroidSqliteDriver")

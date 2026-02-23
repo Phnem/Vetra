@@ -17,7 +17,7 @@ import com.example.myapplication.WelcomeScreen
 import org.koin.compose.koinInject
 import com.example.myapplication.ui.addedit.AddEditScreen
 import com.example.myapplication.ui.addedit.AddEditViewModel
-import com.example.myapplication.ui.details.DetailsViewModel
+import com.example.myapplication.ui.details.DetailsScreen
 import com.example.myapplication.ui.home.HomeScreen
 import com.example.myapplication.ui.home.HomeViewModel
 import com.example.myapplication.ui.settings.SettingsScreen
@@ -38,7 +38,6 @@ fun AppNavGraph(
     val homeViewModel: HomeViewModel = koinViewModel()
     val addEditViewModel: AddEditViewModel = koinViewModel()
     val settingsViewModel: SettingsViewModel = koinViewModel()
-    val detailsViewModel: DetailsViewModel = koinViewModel()
     val dropboxSyncManager: DropboxSyncManager = org.koin.compose.koinInject()
     val context = LocalContext.current
 
@@ -95,7 +94,24 @@ fun AppNavGraph(
                 HomeScreen(
                     navController = navController,
                     viewModel = homeViewModel,
-                    detailsViewModel = detailsViewModel,
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedVisibilityScope = this
+                )
+            }
+
+            composable(
+                route = AppRoute.Details.ROUTE,
+                arguments = listOf(
+                    navArgument(AppRoute.Details.ARG_ANIME_ID) {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    }
+                )
+            ) { backStackEntry ->
+                val animeId = backStackEntry.arguments?.getString(AppRoute.Details.ARG_ANIME_ID) ?: ""
+                DetailsScreen(
+                    animeId = animeId,
+                    navController = navController,
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this
                 )
