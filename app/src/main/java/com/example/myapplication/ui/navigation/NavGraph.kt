@@ -1,20 +1,23 @@
 package com.example.myapplication.ui.navigation
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.NavType
-import androidx.navigation.navArgument
+import androidx.navigation.toRoute
 import com.example.myapplication.DropboxSyncManager
 import com.example.myapplication.WelcomeScreen
-import org.koin.compose.koinInject
 import com.example.myapplication.ui.addedit.AddEditScreen
 import com.example.myapplication.ui.addedit.AddEditViewModel
 import com.example.myapplication.ui.details.DetailsScreen
@@ -26,19 +29,18 @@ import com.example.myapplication.ui.splash.SplashViewModel
 import com.example.myapplication.ui.splash.VetroSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionLayout
+import org.koin.compose.koinInject
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
-    startDestination: String = AppRoute.Welcome.route
+    startDestination: Any = SplashRoute
 ) {
     val homeViewModel: HomeViewModel = koinViewModel()
     val addEditViewModel: AddEditViewModel = koinViewModel()
     val settingsViewModel: SettingsViewModel = koinViewModel()
-    val dropboxSyncManager: DropboxSyncManager = org.koin.compose.koinInject()
+    val dropboxSyncManager: DropboxSyncManager = koinInject()
     val context = LocalContext.current
 
     LaunchedEffect(Unit) {
@@ -50,27 +52,30 @@ fun AppNavGraph(
             navController = navController,
             startDestination = startDestination
         ) {
-            composable(AppRoute.Splash.route) {
+            composable<SplashRoute> {
                 val splashViewModel: SplashViewModel = koinViewModel()
                 val splashState by splashViewModel.uiState.collectAsStateWithLifecycle()
                 VetroSplashScreen(
                     uiState = splashState,
                     onSplashComplete = { nextRoute ->
-                        navController.navigate(nextRoute) {
-                            popUpTo(AppRoute.Splash.route) { inclusive = true }
+                        when (nextRoute) {
+                            "home" -> navController.navigate(HomeRoute) {
+                                popUpTo(SplashRoute) { inclusive = true }
+                            }
+                            else -> navController.navigate(WelcomeRoute) {
+                                popUpTo(SplashRoute) { inclusive = true }
+                            }
                         }
                     }
                 )
             }
 
-            composable(AppRoute.Welcome.route) {
+            composable<WelcomeRoute> {
                 val lifecycleOwner = LocalLifecycleOwner.current
-
                 androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
                     val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
                         if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
                             dropboxSyncManager.onOAuthResult()
-
                             if (dropboxSyncManager.hasToken()) {
                                 navController.navigateToHome()
                             }
@@ -79,18 +84,15 @@ fun AppNavGraph(
                     lifecycleOwner.lifecycle.addObserver(observer)
                     onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
                 }
-                
                 WelcomeScreen(
                     onLoginClick = {
                         dropboxSyncManager.startOAuth(context as android.app.Activity)
                     },
-                    onGuestClick = {
-                        navController.navigateToHome()
-                    }
+                    onGuestClick = { navController.navigateToHome() }
                 )
             }
 
-            composable(AppRoute.Home.route) {
+            composable<HomeRoute> {
                 HomeScreen(
                     navController = navController,
                     viewModel = homeViewModel,
@@ -99,47 +101,41 @@ fun AppNavGraph(
                 )
             }
 
-            composable(
-                route = AppRoute.Details.ROUTE,
-                arguments = listOf(
-                    navArgument(AppRoute.Details.ARG_ANIME_ID) {
-                        type = NavType.StringType
-                        defaultValue = ""
-                    }
-                )
+            composable<DetailsRoute>(
+                enterTransition = {
+                    slideInHorizontally(animationSpec = tween(350)) { it } + fadeIn(tween(350))
+                },
+                exitTransition = {
+                    slideOutHorizontally(animationSpec = tween(350)) { -it / 3 } + fadeOut(tween(350))
+                },
+                popEnterTransition = {
+                    slideInHorizontally(animationSpec = tween(350)) { -it / 3 } + fadeIn(tween(350))
+                },
+                popExitTransition = {
+                    slideOutHorizontally(animationSpec = tween(350)) { it } + fadeOut(tween(350))
+                }
             ) { backStackEntry ->
-                val animeId = backStackEntry.arguments?.getString(AppRoute.Details.ARG_ANIME_ID) ?: ""
+                val route = backStackEntry.toRoute<DetailsRoute>()
                 DetailsScreen(
-                    animeId = animeId,
+                    animeId = route.animeId,
                     navController = navController,
-                    sharedTransitionScope = this@SharedTransitionLayout,
-                    animatedVisibilityScope = this
+                    onBackClick = { navController.popBackStack() }
                 )
             }
 
-            composable(
-                route = AppRoute.AddEdit.ROUTE,
-                arguments = listOf(
-                    navArgument(AppRoute.AddEdit.ARG_ANIME_ID) {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    }
-                )
-            ) { backStackEntry ->
-                val animeId = backStackEntry.arguments?.getString(AppRoute.AddEdit.ARG_ANIME_ID)
-                
+            composable<AddEditRoute> { backStackEntry ->
+                val route = backStackEntry.toRoute<AddEditRoute>()
                 AddEditScreen(
                     navController = navController,
                     viewModel = addEditViewModel,
                     homeViewModel = homeViewModel,
-                    animeId = animeId,
+                    animeId = route.animeId,
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this
                 )
             }
 
-            composable(AppRoute.Settings.route) {
+            composable<SettingsRoute> {
                 SettingsScreen(
                     navController = navController,
                     viewModel = settingsViewModel,

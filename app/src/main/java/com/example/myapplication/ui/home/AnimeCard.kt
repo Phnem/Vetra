@@ -1,8 +1,5 @@
 package com.example.myapplication.ui.home
 
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -11,6 +8,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.CupertinoMaterials
@@ -35,77 +34,94 @@ import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.example.myapplication.data.models.Anime
 import com.example.myapplication.isAppInDarkTheme
 import com.example.myapplication.ui.shared.fluidClickable
 import com.example.myapplication.ui.shared.theme.SnProFamily
 import com.example.myapplication.ui.shared.theme.getRatingColor
 
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun OneUiAnimeCard(
     anime: Anime,
     getImgPath: (String?) -> java.io.File?,
     getGenreName: (String) -> String,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
     onClick: () -> Unit,
     onDetailsClick: () -> Unit
 ) {
     val localHazeState = remember { HazeState() }
     val isDark = isAppInDarkTheme()
+    val ratingChipHazeStyle = remember(isDark) {
+        if (isDark) {
+            HazeStyle(
+                blurRadius = 12.dp,
+                tint = HazeTint(Color.Black.copy(alpha = 0.3f)),
+                noiseFactor = 0.05f
+            )
+        } else {
+            HazeStyle(
+                blurRadius = 12.dp,
+                tint = HazeTint(Color.White.copy(alpha = 0.4f)),
+                noiseFactor = 0.05f
+            )
+        }
+    }
+
+    val detailsButtonHazeStyle = remember(isDark) {
+        if (isDark) {
+            HazeStyle(
+                blurRadius = 12.dp,
+                tint = HazeTint(Color.Black.copy(alpha = 0.3f)),
+                noiseFactor = 0.05f
+            )
+        } else {
+            HazeStyle(
+                blurRadius = 12.dp,
+                tint = HazeTint(Color.White.copy(alpha = 0.4f)),
+                noiseFactor = 0.05f
+            )
+        }
+    }
     val borderStroke = if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.4f)
     val cardBg = if (isDark) Color(0xFF1C1F28) else Color.White
     val cardShadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color.Black.copy(alpha = 0.08f)
     val subtitleColor = if (isDark) Color(0xFF9898A0) else Color(0xFF8E8E93)
     val chipBg = if (isDark) Color.Black.copy(alpha = 0.35f) else Color.Black.copy(alpha = 0.08f)
 
-    with(sharedTransitionScope) {
-        Box(
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fluidClickable(scaleDown = 0.975f, onClick = onClick)
+            .shadow(
+                elevation = if (isDark) 8.dp else 4.dp,
+                shape = RoundedCornerShape(24.dp),
+                spotColor = cardShadowColor
+            )
+            .clip(RoundedCornerShape(24.dp))
+            .background(cardBg)
+            .border(
+                BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
+                RoundedCornerShape(24.dp)
+            )
+            .animateContentSize(
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+            )
+    ) {
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .fluidClickable(scaleDown = 0.975f, onClick = onClick)
-                .shadow(
-                    elevation = if (isDark) 8.dp else 4.dp,
-                    shape = RoundedCornerShape(24.dp),
-                    spotColor = cardShadowColor
-                )
-                .sharedBounds(
-                    rememberSharedContentState(key = "anime_${anime.id}_bounds"),
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    enter = androidx.compose.animation.fadeIn(),
-                    exit = androidx.compose.animation.fadeOut(),
-                    resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
-                )
-                .clip(RoundedCornerShape(24.dp))
-                .background(cardBg)
-                .border(
-                    BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
-                    RoundedCornerShape(24.dp)
-                )
-                .animateContentSize(
-                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-                )
+                .padding(14.dp),
+            verticalAlignment = Alignment.Top
         ) {
-            Row(
+            // Постер: без Shared Element для Predictive Back на Details
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                // Image: слоистый UI — fallback всегда внизу, AsyncImage поверх (без I/O на Main)
-                Box(
-                    modifier = Modifier
-                        .size(width = 90.dp, height = 126.dp)
-                        .sharedElement(
-                            rememberSharedContentState(key = "anime_${anime.id}"),
-                            animatedVisibilityScope = animatedVisibilityScope
-                        )
-                        .clip(RoundedCornerShape(16.dp))
-                        .hazeSource(state = localHazeState)
-                        .background(if (isDark) Color(0xFF2C2C34) else Color(0xFFE8E8ED)),
+                    .size(width = 90.dp, height = 126.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .hazeSource(state = localHazeState)
+                    .background(if (isDark) Color(0xFF2C2C34) else Color(0xFFE8E8ED)),
                     contentAlignment = Alignment.Center
                 ) {
                     // Fallback-подложка (z-index 0): placeholder до загрузки или при отсутствии файла
@@ -168,7 +184,7 @@ fun OneUiAnimeCard(
                             modifier = Modifier.weight(1f)
                         )
 
-                        // Rating chip on the right
+                        // Rating chip: реактивное стекло при смене темы
                         if (anime.rating > 0) {
                             Spacer(Modifier.width(8.dp))
                             Box(
@@ -176,7 +192,7 @@ fun OneUiAnimeCard(
                                     .clip(RoundedCornerShape(8.dp))
                                     .hazeEffect(
                                         state = localHazeState,
-                                        style = CupertinoMaterials.thin()
+                                        style = ratingChipHazeStyle
                                     )
                                     .border(0.5.dp, borderStroke, RoundedCornerShape(8.dp))
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -195,7 +211,7 @@ fun OneUiAnimeCard(
                                         text = "${anime.rating}",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Black,
-                                        color = getRatingColor(anime.rating),
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         fontFamily = SnProFamily
                                     )
                                 }
@@ -250,16 +266,16 @@ fun OneUiAnimeCard(
 
                     Spacer(Modifier.height(12.dp))
 
-                    // Details — стекло (thin) + тонировка поверх
+                    // Details — реактивное стекло + цвета из MaterialTheme (Dynamic Color)
                     Box(
                         modifier = Modifier
                             .fluidClickable(scaleDown = 0.92f, onClick = onDetailsClick)
                             .clip(RoundedCornerShape(100))
                             .hazeEffect(
                                 state = localHazeState,
-                                style = CupertinoMaterials.thin()
+                                style = detailsButtonHazeStyle
                             )
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)) // как у кнопки Sync now в Cloud Settings
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
                             .border(0.5.dp, borderStroke, RoundedCornerShape(100))
                             .padding(horizontal = 14.dp, vertical = 6.dp),
                         contentAlignment = Alignment.Center
@@ -271,7 +287,7 @@ fun OneUiAnimeCard(
                             Icon(
                                 imageVector = Icons.Default.Info,
                                 contentDescription = "Details",
-                                tint = if (isDark) Color.White else Color.Black,
+                                tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -282,12 +298,11 @@ fun OneUiAnimeCard(
                                     fontFamily = SnProFamily,
                                     fontSize = 13.sp
                                 ),
-                                color = if (isDark) Color.White else Color.Black
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
                 }
             }
         }
-    }
 }

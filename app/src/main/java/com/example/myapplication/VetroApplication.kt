@@ -9,15 +9,19 @@ import com.example.myapplication.di.appModule
 import com.example.myapplication.di.databaseModule
 import com.example.myapplication.di.networkModule
 import com.example.myapplication.di.viewModelModule
-import coil.ImageLoader
-import coil.ImageLoaderFactory
-import coil.disk.DiskCache
-import coil.memory.MemoryCache
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.disk.DiskCache
+import coil3.disk.directory
+import coil3.memory.MemoryCache
+import okio.Path.Companion.toOkioPath
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 import java.io.File
 
-class VetroApplication : Application(), ImageLoaderFactory {
+class VetroApplication : Application(), SingletonImageLoader.Factory {
+
     override fun onCreate() {
         super.onCreate()
         runVetroDbMigrationIfNeeded()
@@ -34,20 +38,19 @@ class VetroApplication : Application(), ImageLoaderFactory {
         }
     }
 
-    override fun newImageLoader(): ImageLoader {
-        return ImageLoader.Builder(this)
+    override fun newImageLoader(context: PlatformContext): ImageLoader {
+        return ImageLoader.Builder(context)
             .memoryCache {
-                MemoryCache.Builder(this)
-                    .maxSizePercent(0.25)
+                MemoryCache.Builder()
+                    .maxSizePercent(context, 0.25)
                     .build()
             }
             .diskCache {
                 DiskCache.Builder()
-                    .directory(cacheDir.resolve("image_cache"))
-                    .maxSizePercent(0.02)
+                    .directory(context.cacheDir.resolve("image_cache").toOkioPath())
+                    .maxSizeBytes(50L * 1024 * 1024) // 50MB
                     .build()
             }
-            .allowHardware(true)
             .build()
     }
 

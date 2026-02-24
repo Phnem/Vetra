@@ -2,29 +2,27 @@ package com.example.myapplication.ui.navigation
 
 import androidx.navigation.NavController
 
-/**
- * Extension функции для type-safe навигации
- */
+/** Type-safe навигация (маршруты из Routes.kt). */
 fun NavController.navigateToWelcome() {
-    navigate(AppRoute.Welcome.route) {
+    navigate(WelcomeRoute) {
         popUpTo(graph.startDestinationId) { inclusive = true }
     }
 }
 
 fun NavController.navigateToHome() {
-    navigate(AppRoute.Home.route) {
-        popUpTo(AppRoute.Welcome.route) { inclusive = true }
+    navigate(HomeRoute) {
+        popUpTo(WelcomeRoute) { inclusive = true }
     }
 }
 
 fun NavController.navigateToAddEdit(animeId: String? = null) {
-    navigate(AppRoute.AddEdit.createRoute(animeId))
+    navigate(AddEditRoute(animeId = animeId))
 }
 
 fun NavController.navigateToSettings() {
-    navigate(AppRoute.Settings.route)
+    navigate(SettingsRoute)
 }
 
 fun NavController.navigateToDetails(animeId: String) {
-    navigate(AppRoute.Details.createRoute(animeId))
+    navigate(DetailsRoute(animeId = animeId))
 }

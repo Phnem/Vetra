@@ -7,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.DropboxSyncManager
 import com.example.myapplication.data.local.MigrationManager
 import com.example.myapplication.data.repository.LegacyMigrationRepository
-import com.example.myapplication.ui.navigation.AppRoute
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,7 +51,7 @@ class SplashViewModel(
             migrationManager.runMigration()
 
             // 4. Роутинг: авторизован → Home, иначе → Welcome
-            val route = if (dropboxSyncManager.hasToken()) AppRoute.Home.route else AppRoute.Welcome.route
+            val route = if (dropboxSyncManager.hasToken()) "home" else "welcome"
             _uiState.update { SplashState.Completed(route) }
         }
     }

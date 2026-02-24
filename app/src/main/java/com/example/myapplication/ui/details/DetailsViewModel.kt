@@ -8,7 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.models.Anime
 import com.example.myapplication.network.AppLanguage
 import com.example.myapplication.data.repository.AnimeRepository
-import com.example.myapplication.ui.navigation.AppRoute
+import com.example.myapplication.ui.navigation.DetailsRoute
+import androidx.navigation.toRoute
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,9 +28,7 @@ class DetailsViewModel(
     private val settingsDataStore: DataStore<Preferences>
 ) : ViewModel() {
 
-    private val animeId: String = checkNotNull(savedStateHandle[AppRoute.Details.ARG_ANIME_ID]) {
-        "animeId is required for DetailsScreen"
-    }
+    private val animeId: String = savedStateHandle.toRoute<DetailsRoute>().animeId
 
     private val _uiState = MutableStateFlow<DetailsUiState>(DetailsUiState.Idle)
     val uiState: StateFlow<DetailsUiState> = _uiState.asStateFlow()

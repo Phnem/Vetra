@@ -3,14 +3,13 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
-    id("app.cash.sqldelight")
+    alias(libs.plugins.sqldelight)
     alias(libs.plugins.apollo)
 }
 
 sqldelight {
     databases {
         create("AnimeDatabase") {
-            // ВАЖНО: Укажи именно этот пакет, чтобы не было конфликтов
             packageName.set("com.example.myapplication.data.local")
         }
     }
@@ -25,7 +24,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "v3.0.2-Beta"
+        versionName = "v3.0.3-Beta"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "GITHUB_OWNER", "\"Phnem\"")
@@ -55,47 +54,50 @@ kotlin {
 }
 
 dependencies {
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
-    implementation("dev.chrisbanes.haze:haze:1.7.2")
-    implementation("dev.chrisbanes.haze:haze-materials:1.7.2")
-    implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.compose.animation:animation")
+    // 1. Compose: строго через BOM
+    implementation(platform(libs.compose.bom))
+    implementation(libs.compose.ui)
+    implementation(libs.compose.ui.graphics)
+    implementation(libs.compose.material3)
+    implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.compose.material.icons.extended)
+    implementation(libs.compose.animation)
+    debugImplementation(libs.compose.ui.tooling)
 
-    implementation("androidx.activity:activity-compose:1.9.3")
-    implementation("androidx.navigation:navigation-compose:2.8.5")
-    implementation("io.coil-kt:coil-compose:2.7.0")
-    implementation("com.google.code.gson:gson:2.10.1")
+    // 2. Koin 4: строго через BOM
+    implementation(platform(libs.koin.bom))
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
+
+    // 3. Coil 3
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+
+    // 4. Навигация, UI, Стейт
+    implementation(libs.navigation.compose)
+    implementation(libs.activity.compose)
+    implementation(libs.datastore.preferences)
+    implementation(libs.haze)
+    implementation(libs.haze.materials)
+
+    // 5. AndroidX Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
 
-    implementation(libs.androidx.material3)
-    implementation(platform("androidx.compose:compose-bom:2024.04.00"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
-    implementation("com.dropbox.core:dropbox-core-sdk:5.4.5")
+    // 6. Dropbox
+    implementation(libs.dropbox.core)
+    implementation(libs.dropbox.android)
 
-    androidTestImplementation("tools.fastlane:screengrab:2.1.1")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.6.0")
-    androidTestImplementation("androidx.test:runner:1.5.2")
-    androidTestImplementation("androidx.test:rules:1.5.0")
-    implementation("com.dropbox.core:dropbox-core-sdk:5.4.5")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // 7. OkHttp, WorkManager
+    implementation(libs.okhttp)
+    implementation(libs.work.runtime.ktx)
+
+    // 8. SQLDelight
     implementation(libs.sqldelight.android.driver)
     implementation(libs.sqldelight.coroutines)
 
-    // 💉 Koin (DI)
-    implementation("io.insert-koin:koin-android:3.5.3")
-    implementation("io.insert-koin:koin-androidx-compose:3.5.3")
-
-    // 🌐 Ktor (Сеть)
+    // 9. Ktor (сеть)
     implementation(platform(libs.ktor.bom))
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
@@ -103,20 +105,19 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.client.logging)
 
-    // 💾 DataStore (Настройки)
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
-
-    // 🧬 Kotlin Serialization (JSON)
+    // 10. Kotlin Serialization + Immutable collections (Zero Jank)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.collections.immutable)
 
-    // 🚀 Apollo GraphQL (для AniList) - через core:network модуль
+    // 11. Apollo (core:network; по умолчанию Apollo 4 использует OkHttp на Android)
     implementation(project(":core:network"))
+    implementation(libs.apollo.runtime)
 
+    // Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }

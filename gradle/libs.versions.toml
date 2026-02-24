@@ -1,38 +1,90 @@
 [versions]
-agp = "8.9.1"
+# --- Core & Architecture ---
 kotlin = "2.1.0"
+agp = "8.9.1"
+koin = "4.1.1"
+datastore = "1.2.0"
+workManager = "2.9.0"
+activity = "1.9.3"
 coreKtx = "1.15.0"
+appcompat = "1.7.0"
+material = "1.12.0"
+
+# --- Compose & UI ---
+composeBom = "2025.12.00"
+navigationCompose = "2.9.7"
+haze = "1.7.2"
+coil = "3.3.0"
+
+# --- Data & Network ---
+dropbox = "7.0.0"
+apollo = "4.1.0"
+sqldelight = "2.0.2"
+okhttp = "4.12.0"
+serializationJson = "1.7.3"
+kotlinxSerializationJson = "1.7.3"  # для Navigation Compose type-safe (runtime)
+ktor = "3.0.3"
+
+# --- Collections (Zero Jank: стабильные списки для Compose) ---
+kotlinx-immutable = "0.3.8"
+
+# --- Test ---
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
-appcompat = "1.7.0"
-material = "1.12.0"
-composeBom = "2024.12.01"
-sqldelight = "2.0.2"
-serializationJson = "1.7.3"
-ktor = "3.0.3"
-apollo = "4.0.0"
 
 [libraries]
+# --- AndroidX Core ---
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-junit = { group = "junit", name = "junit", version.ref = "junit" }
-androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
-androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
-androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
-androidx-ui = { group = "androidx.compose.ui", name = "ui" }
-androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
-androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
-androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
-androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
-androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+# --- Koin 4.1.1 (через BOM) ---
+koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
+koin-android = { module = "io.insert-koin:koin-android" }
+koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose" }
 
+# --- Compose BOM ---
+compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+compose-ui = { group = "androidx.compose.ui", name = "ui" }
+compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+compose-animation = { group = "androidx.compose.animation", name = "animation" }
+navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+
+# --- Coil 3.x (группа io.coil-kt.coil3) ---
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
+
+# --- Haze ---
+haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
+haze-materials = { module = "dev.chrisbanes.haze:haze-materials", version.ref = "haze" }
+
+# --- Dropbox ---
+dropbox-core = { module = "com.dropbox.core:dropbox-core-sdk", version.ref = "dropbox" }
+dropbox-android = { module = "com.dropbox.core:dropbox-android-sdk", version.ref = "dropbox" }
+
+# --- DataStore & Work ---
+datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workManager" }
+
+# --- OkHttp ---
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+
+# --- SQLDelight ---
 sqldelight-android-driver = { group = "app.cash.sqldelight", name = "android-driver", version.ref = "sqldelight" }
 sqldelight-coroutines = { group = "app.cash.sqldelight", name = "coroutines-extensions", version.ref = "sqldelight" }
-kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serializationJson" }
 
+# --- Kotlin Serialization (обязательно для Navigation Compose 2.8+ type-safe) ---
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+
+# --- Kotlinx Immutable Collections ---
+kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinx-immutable" }
+
+# --- Ktor ---
 ktor-bom = { group = "io.ktor", name = "ktor-bom", version.ref = "ktor" }
 ktor-client-core = { group = "io.ktor", name = "ktor-client-core" }
 ktor-client-cio = { group = "io.ktor", name = "ktor-client-cio" }
@@ -40,6 +92,19 @@ ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-conte
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json" }
 ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging" }
 ktor-client-auth = { group = "io.ktor", name = "ktor-client-auth" }
+
+# --- Apollo ---
+apollo-runtime = { module = "com.apollographql.apollo:apollo-runtime", version.ref = "apollo" }
+
+# --- Activity ---
+activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
+
+# --- Test ---
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

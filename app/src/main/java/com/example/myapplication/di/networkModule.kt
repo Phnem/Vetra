@@ -2,12 +2,11 @@ package com.example.myapplication.di
 
 import android.util.Log
 import com.apollographql.apollo.ApolloClient
-import com.apollographql.apollo.network.http.KtorHttpEngine
 import com.example.myapplication.data.repository.AnimeRepository
 import com.example.myapplication.network.AniListRemoteDataSource
 import com.example.myapplication.network.ApiService
-import com.example.myapplication.network.VetroApiService
 import com.example.myapplication.network.ShikimoriRemoteDataSource
+import com.example.myapplication.network.VetroApiService
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
@@ -19,8 +18,6 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.dsl.module
-import org.koin.core.module.dsl.singleOf
-import org.koin.core.qualifier.named
 
 val networkModule = module {
     single {
@@ -49,7 +46,8 @@ val networkModule = module {
     single {
         ApolloClient.Builder()
             .serverUrl("https://graphql.anilist.co")
-            .httpEngine(KtorHttpEngine(get<HttpClient>()))
+            .addHttpHeader("Accept", "application/json")
+            .addHttpHeader("Content-Type", "application/json")
             .build()
     }
     single { ShikimoriRemoteDataSource(get<HttpClient>()) }

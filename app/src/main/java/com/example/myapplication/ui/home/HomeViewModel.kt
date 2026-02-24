@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -37,16 +39,16 @@ class HomeViewModel(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    /** Реактивный список; при reconnectDatabase() переподписывается на новое подключение (hot swap). */
-    val animeListFlow: StateFlow<List<Anime>> = repository.observeAnimeList(
+    /** Реактивный список (ImmutableList для Zero Jank); при reconnectDatabase() переподписывается на новое подключение (hot swap). */
+    val animeListFlow: StateFlow<kotlinx.collections.immutable.ImmutableList<Anime>> = repository.observeAnimeList(
         searchQuery = _uiState.map { it.searchQuery },
         sortOption = _uiState.map { it.sortOption },
         sortAscending = _uiState.map { it.sortAscending },
         filterTags = _uiState.map { it.filterTags }
-    ).stateIn(
+    ).map { it.toImmutableList() }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
+        initialValue = persistentListOf()
     )
 
     private val ROOT = "Vetro"
@@ -57,7 +59,7 @@ class HomeViewModel(
     init {
         viewModelScope.launch {
             ignoredUpdatesMap.putAll(localDataSource.getIgnoredMap())
-            _uiState.update { it.copy(updates = localDataSource.getUpdates()) }
+            _uiState.update { it.copy(updates = localDataSource.getUpdates().toImmutableList()) }
             if (_uiState.value.updates.isEmpty()) {
                 needsUpdateCheck = true
                 checkForUpdates()
@@ -131,7 +133,7 @@ class HomeViewModel(
 
     fun updateFilterTags(tags: List<String>, category: String) {
         _uiState.update {
-            it.copy(filterTags = tags, filterCategory = category)
+            it.copy(filterTags = tags.toImmutableList(), filterCategory = category)
         }
     }
 
@@ -171,7 +173,7 @@ class HomeViewModel(
     fun checkForUpdates(force: Boolean = false) {
         if (!force && !needsUpdateCheck && _uiState.value.updates.isEmpty()) return
         if (_uiState.value.isCheckingUpdates) return
-        _uiState.update { it.copy(isCheckingUpdates = true, updates = emptyList()) }
+        _uiState.update { it.copy(isCheckingUpdates = true, updates = persistentListOf()) }
         viewModelScope.launch {
             try {
                 val appContentType = AppContentType.ANIME
@@ -187,7 +189,7 @@ class HomeViewModel(
                         }
                     }
                 }
-                _uiState.update { it.copy(updates = newUpdates, isCheckingUpdates = false) }
+                _uiState.update { it.copy(updates = newUpdates.toImmutableList(), isCheckingUpdates = false) }
                 if (newUpdates.isEmpty()) needsUpdateCheck = false
                 localDataSource.setUpdates(newUpdates)
             } catch (e: Exception) {
@@ -203,7 +205,7 @@ class HomeViewModel(
             localDataSource.updateAnime(anime.copy(episodes = update.newEpisodes))
             localDataSource.removeUpdate(update.animeId)
             _uiState.update { state ->
-                state.copy(updates = state.updates.filter { it.animeId != update.animeId })
+                state.copy(updates = state.updates.filter { it.animeId != update.animeId }.toImmutableList())
             }
         }
     }
@@ -214,7 +216,7 @@ class HomeViewModel(
             ignoredUpdatesMap[update.animeId] = update.newEpisodes
             localDataSource.removeUpdate(update.animeId)
             _uiState.update { state ->
-                state.copy(updates = state.updates.filter { it.animeId != update.animeId })
+                state.copy(updates = state.updates.filter { it.animeId != update.animeId }.toImmutableList())
             }
             if (_uiState.value.updates.isEmpty()) needsUpdateCheck = false
         }
@@ -233,7 +235,7 @@ class HomeViewModel(
 
     fun loadStatsAnimeList() {
         viewModelScope.launch {
-            _uiState.update { it.copy(statsAnimeList = localDataSource.getAllAnimeList()) }
+            _uiState.update { it.copy(statsAnimeList = localDataSource.getAllAnimeList().toImmutableList()) }
         }
     }
 }

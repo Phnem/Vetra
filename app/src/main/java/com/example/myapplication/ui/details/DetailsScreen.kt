@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import org.koin.androidx.compose.koinViewModel
 import com.example.myapplication.data.models.Anime
 import com.example.myapplication.network.AppLanguage
@@ -44,13 +44,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 
-@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailsScreen(
     animeId: String,
     navController: NavController,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
+    onBackClick: () -> Unit = { navController.popBackStack() },
     viewModel: DetailsViewModel = koinViewModel()
 ) {
     val anime by viewModel.currentAnime.collectAsStateWithLifecycle()
@@ -59,33 +58,18 @@ fun DetailsScreen(
     val isDark = isAppInDarkTheme()
     val screenBg = if (isDark) Color(0xFF141419) else Color(0xFFF2F2F7)
 
-    BackHandler { navController.popBackStack() }
-
-    val cornerSize by animatedVisibilityScope.transition.animateDp(
-        label = "DetailsCornerSize"
-    ) { state ->
-        if (state == EnterExitState.Visible) 0.dp else 24.dp
-    }
-
     anime?.let { currentAnime ->
-        with(sharedTransitionScope) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .sharedBounds(
-                        sharedContentState = rememberSharedContentState(key = "anime_${animeId}_bounds"),
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
-                        clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(cornerSize))
-                    )
-                    .clip(RoundedCornerShape(cornerSize))
-                    .background(screenBg)
-            ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(24.dp))
+                .background(screenBg)
+        ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     TopAppBar(
                         title = { },
                         navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
+                            IconButton(onClick = onBackClick) {
                                 Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                             }
                         },
@@ -99,14 +83,13 @@ fun DetailsScreen(
                         anime = currentAnime,
                         language = language,
                         getImgPath = { viewModel.getImgPath(it) },
-                        onDismiss = { navController.popBackStack() },
+                        onDismiss = onBackClick,
                         embedded = true
                     )
                 }
-            }
         }
     } ?: run {
-        LaunchedEffect(Unit) { navController.popBackStack() }
+        LaunchedEffect(Unit) { onBackClick() }
     }
 }
 
@@ -316,14 +299,14 @@ private fun DetailsSheetBody(
                                     .padding(12.dp)
                                     .size(36.dp)
                                     .clip(androidx.compose.foundation.shape.CircleShape)
-                                    .background(Color.Black.copy(alpha = 0.4f))
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
                                     .clickable { onDismiss() },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     Icons.Default.Close,
                                     contentDescription = "Close",
-                                    tint = Color.White,
+                                    tint = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }

@@ -12,8 +12,8 @@
       "filters": [],
       "attributes": [],
       "versionCode": 1,
-      "versionName": "v3.0.2-Beta",
-      "outputFile": "Vetro-release.apk"
+      "versionName": "v3.0.3-Beta",
+      "outputFile": "app-release.apk"
     }
   ],
   "elementType": "File",

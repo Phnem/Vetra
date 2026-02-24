@@ -63,6 +63,7 @@ import com.example.myapplication.ui.shared.theme.*
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlin.math.roundToInt
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -242,7 +243,7 @@ fun HomeScreen(
 
             Column(modifier = Modifier.fillMaxSize().blur(blurAmount)) {
                 Box(modifier = Modifier.fillMaxSize().weight(1f).background(bgColor)) {
-                    val list by viewModel.animeListFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+                    val list by viewModel.animeListFlow.collectAsStateWithLifecycle(initialValue = persistentListOf())
                     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
 
                     CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
@@ -291,7 +292,8 @@ fun HomeScreen(
                                     } else {
                                         items(
                                             items = list,
-                                            key = { it.id }
+                                            key = { it.id },
+                                            contentType = { "anime_card" }
                                         ) { anime ->
                                             val dismissState = rememberSwipeToDismissBoxState(
                                                 confirmValueChange = {
@@ -322,8 +324,6 @@ fun HomeScreen(
                                                     anime = anime,
                                                     getImgPath = { name -> viewModel.getImgPath(name) },
                                                     getGenreName = { genreId -> genreRepository.getLabel(genreId, currentLanguage) },
-                                                    sharedTransitionScope = sharedTransitionScope,
-                                                    animatedVisibilityScope = animatedVisibilityScope,
                                                     onClick = { navController.navigateToAddEdit(anime.id) },
                                                     onDetailsClick = {
                                                         performHaptic(view, "light")

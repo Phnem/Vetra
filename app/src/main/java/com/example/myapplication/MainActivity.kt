@@ -12,7 +12,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication.data.models.AppTheme
 import com.example.myapplication.ui.navigation.AppNavGraph
-import com.example.myapplication.ui.navigation.AppRoute
 import com.example.myapplication.ui.shared.theme.OneUiTheme
 import com.example.myapplication.ui.settings.SettingsViewModel
 import org.koin.androidx.compose.koinViewModel
@@ -39,12 +38,7 @@ class MainActivity : ComponentActivity() {
 
             OneUiTheme(darkTheme = useDarkTheme) {
                 val navController = rememberNavController()
-                val startDestination = AppRoute.Splash.route
-
-                AppNavGraph(
-                    navController = navController,
-                    startDestination = startDestination
-                )
+                AppNavGraph(navController = navController)
             }
         }
     }

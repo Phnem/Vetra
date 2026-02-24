@@ -1,7 +1,6 @@
 plugins {
     id("vetro.android.library")
     id("vetro.compose")
-    id("vetro.kotlin.serialization")
 }
 
 android {
@@ -9,6 +8,13 @@ android {
 }
 
 dependencies {
-    // Haze library for glassmorphism
-    implementation("dev.chrisbanes.haze:haze:0.7.3")
+    implementation(platform(libs.compose.bom))
+    implementation(libs.compose.ui)
+    implementation(libs.compose.ui.graphics)
+    implementation(libs.compose.material3)
+    implementation(libs.compose.ui.tooling.preview)
+    debugImplementation(libs.compose.ui.tooling)
+
+    implementation(libs.haze)
+    implementation(libs.haze.materials)
 }

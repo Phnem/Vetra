@@ -25,6 +25,5 @@ dependencies {
     api(libs.ktor.client.content.negotiation)
     api(libs.ktor.serialization.kotlinx.json)
     api(libs.kotlinx.serialization.json)
-    api("com.apollographql.apollo:apollo-runtime:4.0.0")
-    api("com.apollographql.apollo:apollo-engine-ktor:4.0.0")
+    api(libs.apollo.runtime)
 }
