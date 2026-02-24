@@ -27,10 +27,14 @@ android {
         versionCode = 1
         versionName = "v3.0.2-Beta"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "GITHUB_OWNER", "\"Phnem\"")
+        buildConfigField("String", "GITHUB_REPO", "\"Vetra\"")
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     compileOptions {

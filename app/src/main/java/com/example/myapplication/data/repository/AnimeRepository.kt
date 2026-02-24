@@ -83,7 +83,7 @@ class AnimeRepository(
         return apiService.findTotalEpisodes(title, categoryType, appContentType)
     }
 
-    suspend fun checkGithubUpdate(): Result<GithubReleaseInfo?> {
-        return apiService.checkGithubUpdate()
+    suspend fun checkGithubUpdate(owner: String, repo: String): Result<GithubReleaseInfo?> {
+        return apiService.checkGithubUpdate(owner, repo)
     }
 }

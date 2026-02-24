@@ -10,5 +10,5 @@ interface ApiService {
         categoryType: String,
         appContentType: AppContentType
     ): Result<Pair<Int, String>?>
-    suspend fun checkGithubUpdate(): Result<GithubReleaseInfo?>
+    suspend fun checkGithubUpdate(owner: String, repo: String): Result<GithubReleaseInfo?>
 }

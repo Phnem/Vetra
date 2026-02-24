@@ -12,6 +12,7 @@ import com.example.myapplication.network.AppLanguage
 import com.example.myapplication.data.models.AppTheme
 import com.example.myapplication.data.models.AppUpdateStatus
 import com.example.myapplication.data.models.SemanticVersion
+import com.example.myapplication.BuildConfig
 import com.example.myapplication.data.repository.AnimeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -80,7 +81,10 @@ class SettingsViewModel(
                 }
             }
             val localVer = _uiState.value.currentVersion
-            repository.checkGithubUpdate()
+            repository.checkGithubUpdate(
+                    owner = BuildConfig.GITHUB_OWNER,
+                    repo = BuildConfig.GITHUB_REPO
+                )
                 .fold(
                     onSuccess = { release ->
                         if (release != null && isNewerVersion(localVer, release.tagName)) {
