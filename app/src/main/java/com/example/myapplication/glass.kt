@@ -367,7 +367,8 @@ fun GlassBottomNavigation(
                                     .sharedBounds(
                                         rememberSharedContentState(key = "fab_container"),
                                         animatedVisibilityScope = animatedVisibilityScope,
-                                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
+                                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                                        clipInOverlayDuringTransition = OverlayClip(CircleShape)
                                     )
                                     .background(Color.Transparent),
                                 contentAlignment = Alignment.Center

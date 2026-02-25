@@ -63,7 +63,6 @@ import com.example.myapplication.ui.shared.theme.*
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlin.math.roundToInt
-import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -243,7 +242,7 @@ fun HomeScreen(
 
             Column(modifier = Modifier.fillMaxSize().blur(blurAmount)) {
                 Box(modifier = Modifier.fillMaxSize().weight(1f).background(bgColor)) {
-                    val list by viewModel.animeListFlow.collectAsStateWithLifecycle(initialValue = persistentListOf())
+                    val list by viewModel.animeListFlow.collectAsStateWithLifecycle()
                     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
 
                     CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
@@ -316,20 +315,21 @@ fun HomeScreen(
                                             SwipeToDismissBox(
                                                 state = dismissState,
                                                 backgroundContent = { SwipeBackground(dismissState) },
-                                                modifier = Modifier
-                                                    .padding(horizontal = 16.dp)
-                                                    .animateItem()
+                                                modifier = Modifier.padding(horizontal = 16.dp) // .animateItem() убран: конфликт с SharedTransition при возврате
                                             ) {
-                                                OneUiAnimeCard(
-                                                    anime = anime,
-                                                    getImgPath = { name -> viewModel.getImgPath(name) },
-                                                    getGenreName = { genreId -> genreRepository.getLabel(genreId, currentLanguage) },
-                                                    onClick = { navController.navigateToAddEdit(anime.id) },
-                                                    onDetailsClick = {
-                                                        performHaptic(view, "light")
-                                                        navController.navigateToDetails(anime.id)
-                                                    }
-                                                )
+                                                with(sharedTransitionScope) {
+                                                    OneUiAnimeCard(
+                                                        anime = anime,
+                                                        animatedVisibilityScope = animatedVisibilityScope,
+                                                        getImgPath = { name -> viewModel.getImgPath(name) },
+                                                        getGenreName = { genreId -> genreRepository.getLabel(genreId, currentLanguage) },
+                                                        onClick = { navController.navigateToAddEdit(anime.id) },
+                                                        onDetailsClick = {
+                                                            performHaptic(view, "light")
+                                                            navController.navigateToDetails(anime.id)
+                                                        }
+                                                    )
+                                                }
                                             }
                                         }
                                     }

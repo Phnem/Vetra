@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -53,16 +54,21 @@ fun AnimatedSaveFab(isEnabled: Boolean, onClick: () -> Unit) {
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "fabScale"
     )
-    if (scale > 0f) {
-        FloatingActionButton(
-            onClick = onClick,
-            shape = CircleShape,
-            containerColor = BrandBlue,
-            contentColor = Color.White,
-            modifier = Modifier.size((56 * scale).dp)
-        ) {
-            Icon(Icons.Default.Check, contentDescription = "Save")
-        }
+    // Кнопка всегда в дереве — Scaffold не дергает innerPadding (Zero Layout Shift для Shared Transition).
+    FloatingActionButton(
+        onClick = { if (isEnabled) onClick() },
+        shape = CircleShape,
+        containerColor = BrandBlue,
+        contentColor = Color.White,
+        modifier = Modifier
+            .size(56.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                alpha = if (scale < 0.05f) 0f else 1f
+            }
+    ) {
+        Icon(Icons.Default.Check, contentDescription = "Save")
     }
 }
 

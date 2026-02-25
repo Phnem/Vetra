@@ -39,7 +39,8 @@ class HomeViewModel(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    /** Реактивный список (ImmutableList для Zero Jank); при reconnectDatabase() переподписывается на новое подключение (hot swap). */
+    /** Реактивный список (ImmutableList для Zero Jank); при reconnectDatabase() переподписывается на новое подключение (hot swap).
+     * WhileSubscribed(5000): данные живут в памяти 5 сек после отписки — при возврате с AddEdit список есть в кадре 0, Shared Transition не сбрасывается. */
     val animeListFlow: StateFlow<kotlinx.collections.immutable.ImmutableList<Anime>> = repository.observeAnimeList(
         searchQuery = _uiState.map { it.searchQuery },
         sortOption = _uiState.map { it.sortOption },

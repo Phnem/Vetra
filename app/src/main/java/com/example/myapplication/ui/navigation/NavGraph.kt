@@ -1,17 +1,22 @@
 package com.example.myapplication.ui.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -27,9 +32,51 @@ import com.example.myapplication.ui.settings.SettingsScreen
 import com.example.myapplication.ui.settings.SettingsViewModel
 import com.example.myapplication.ui.splash.SplashViewModel
 import com.example.myapplication.ui.splash.VetroSplashScreen
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
+
+/** Spring-based spatial transitions для премиального UX (Details и др.). */
+private object PremiumTransitions {
+    val detailsEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> androidx.compose.animation.EnterTransition = {
+        slideIntoContainer(
+            towards = AnimatedContentTransitionScope.SlideDirection.Up,
+            animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)
+        ) + fadeIn(animationSpec = tween(durationMillis = 300))
+    }
+    val detailsExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> androidx.compose.animation.ExitTransition = {
+        scaleOut(
+            targetScale = 0.95f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessMediumLow
+            )
+        ) + fadeOut(animationSpec = tween(durationMillis = 300))
+    }
+    val detailsPopEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> androidx.compose.animation.EnterTransition = {
+        scaleIn(
+            initialScale = 0.95f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioLowBouncy,
+                stiffness = Spring.StiffnessMediumLow
+            )
+        ) + fadeIn(animationSpec = tween(durationMillis = 300))
+    }
+    val detailsPopExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> androidx.compose.animation.ExitTransition = {
+        slideOutOfContainer(
+            towards = AnimatedContentTransitionScope.SlideDirection.Down,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessMediumLow
+            )
+        ) + scaleOut(
+            targetScale = 0.85f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessMediumLow
+            )
+        ) + fadeOut(animationSpec = tween(durationMillis = 250))
+    }
+}
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -102,18 +149,10 @@ fun AppNavGraph(
             }
 
             composable<DetailsRoute>(
-                enterTransition = {
-                    slideInHorizontally(animationSpec = tween(350)) { it } + fadeIn(tween(350))
-                },
-                exitTransition = {
-                    slideOutHorizontally(animationSpec = tween(350)) { -it / 3 } + fadeOut(tween(350))
-                },
-                popEnterTransition = {
-                    slideInHorizontally(animationSpec = tween(350)) { -it / 3 } + fadeIn(tween(350))
-                },
-                popExitTransition = {
-                    slideOutHorizontally(animationSpec = tween(350)) { it } + fadeOut(tween(350))
-                }
+                enterTransition = PremiumTransitions.detailsEnter,
+                exitTransition = PremiumTransitions.detailsExit,
+                popEnterTransition = PremiumTransitions.detailsPopEnter,
+                popExitTransition = PremiumTransitions.detailsPopExit
             ) { backStackEntry ->
                 val route = backStackEntry.toRoute<DetailsRoute>()
                 DetailsScreen(
