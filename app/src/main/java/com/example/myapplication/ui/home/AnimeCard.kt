@@ -39,6 +39,7 @@ import coil3.request.crossfade
 import com.example.myapplication.data.models.Anime
 import com.example.myapplication.isAppInDarkTheme
 import com.example.myapplication.ui.shared.fluidClickable
+import com.example.myapplication.ui.shared.gradientHighlightBorder
 import com.example.myapplication.ui.shared.theme.SnProFamily
 import com.example.myapplication.ui.shared.theme.getRatingColor
 
@@ -60,6 +61,8 @@ fun SharedTransitionScope.OneUiAnimeCard(
     val cardShadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color.Black.copy(alpha = 0.08f)
     val subtitleColor = if (isDark) Color(0xFF9898A0) else Color(0xFF8E8E93)
     val chipBg = if (isDark) Color.Black.copy(alpha = 0.35f) else Color.Black.copy(alpha = 0.08f)
+    // Фон чипа рейтинга: в светлой теме светлый, чтобы не оставаться тёмным
+    val ratingChipBg = if (isDark) Color.Black.copy(alpha = 0.35f) else Color(0xFFEBEBEB)
 
     Box(
         modifier = modifier
@@ -171,11 +174,15 @@ fun SharedTransitionScope.OneUiAnimeCard(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .hazeEffect(
-                                    state = localHazeState,
-                                    style = CupertinoMaterials.thin()
+                                .background(ratingChipBg)
+                                .then(
+                                    if (isDark) Modifier.hazeEffect(
+                                        state = localHazeState,
+                                        style = CupertinoMaterials.thin()
+                                    )
+                                    else Modifier
                                 )
-                                .border(0.5.dp, borderStroke, RoundedCornerShape(8.dp))
+                                .border(0.5.dp, if (isDark) borderStroke else Color.Black.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Row(
@@ -253,6 +260,7 @@ fun SharedTransitionScope.OneUiAnimeCard(
                         .fluidClickable(scaleDown = 0.92f, onClick = onDetailsClick)
                         .clip(RoundedCornerShape(100))
                         .background(MaterialTheme.colorScheme.primary)
+                        .gradientHighlightBorder(100.dp, isDark)
                         .padding(horizontal = 14.dp, vertical = 6.dp),
                     contentAlignment = Alignment.Center
                 ) {

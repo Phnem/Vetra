@@ -10,6 +10,7 @@ import com.example.myapplication.data.models.AnimeUpdate
 import com.example.myapplication.network.AppContentType
 import com.example.myapplication.data.models.SortOption
 import com.example.myapplication.data.repository.AnimeRepository
+import com.example.myapplication.notifications.AnimeNotifier
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,7 +31,8 @@ import com.example.myapplication.worker.AnimeUpdateWorker
 
 class HomeViewModel(
     private val repository: AnimeRepository,
-    private val localDataSource: AnimeLocalDataSource
+    private val localDataSource: AnimeLocalDataSource,
+    private val notifier: AnimeNotifier
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -55,16 +57,13 @@ class HomeViewModel(
     private val ROOT = "Vetro"
     private val IMG_DIR = "collection"
     private var ignoredUpdatesMap = mutableMapOf<String, Int>()
-    private var needsUpdateCheck = true
+    private var hasCheckedForUpdatesThisSession = false
 
     init {
         viewModelScope.launch {
             ignoredUpdatesMap.putAll(localDataSource.getIgnoredMap())
             _uiState.update { it.copy(updates = localDataSource.getUpdates().toImmutableList()) }
-            if (_uiState.value.updates.isEmpty()) {
-                needsUpdateCheck = true
-                checkForUpdates()
-            }
+            checkForUpdates()
         }
         viewModelScope.launch {
             try {
@@ -153,7 +152,6 @@ class HomeViewModel(
                 val imgDir = File(getRoot(), IMG_DIR)
                 anime.imageFileName?.let { File(imgDir, it).delete() }
                 localDataSource.deleteAnime(id)
-                needsUpdateCheck = true
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -172,9 +170,10 @@ class HomeViewModel(
     }
 
     fun checkForUpdates(force: Boolean = false) {
-        if (!force && !needsUpdateCheck && _uiState.value.updates.isEmpty()) return
+        if (!force && hasCheckedForUpdatesThisSession) return
         if (_uiState.value.isCheckingUpdates) return
-        _uiState.update { it.copy(isCheckingUpdates = true, updates = persistentListOf()) }
+        hasCheckedForUpdatesThisSession = true
+        _uiState.update { it.copy(isCheckingUpdates = true) }
         viewModelScope.launch {
             try {
                 val appContentType = AppContentType.ANIME
@@ -191,8 +190,10 @@ class HomeViewModel(
                     }
                 }
                 _uiState.update { it.copy(updates = newUpdates.toImmutableList(), isCheckingUpdates = false) }
-                if (newUpdates.isEmpty()) needsUpdateCheck = false
                 localDataSource.setUpdates(newUpdates)
+                if (newUpdates.isNotEmpty()) {
+                    newUpdates.forEach { update -> notifier.showUpdateNotification(update) }
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
                 _uiState.update { it.copy(isCheckingUpdates = false) }
@@ -219,7 +220,6 @@ class HomeViewModel(
             _uiState.update { state ->
                 state.copy(updates = state.updates.filter { it.animeId != update.animeId }.toImmutableList())
             }
-            if (_uiState.value.updates.isEmpty()) needsUpdateCheck = false
         }
     }
 

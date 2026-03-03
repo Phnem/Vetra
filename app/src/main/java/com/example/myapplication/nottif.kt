@@ -3,6 +3,9 @@ package com.example.myapplication
 import com.example.myapplication.data.models.*
 import com.example.myapplication.ui.shared.theme.BrandBlue
 import com.example.myapplication.ui.shared.theme.BrandRed
+import com.example.myapplication.ui.shared.CollisionDirection
+import com.example.myapplication.ui.shared.inertialCollision
+import com.example.myapplication.ui.shared.rememberInertialCollisionState
 import com.example.myapplication.utils.performHaptic
 import android.text.format.DateFormat
 import androidx.activity.compose.BackHandler
@@ -63,8 +66,10 @@ fun NotificationSyncOverlay(
     visibleState: MutableTransitionState<Boolean>,
     strings: UiStrings,
     updates: List<AnimeUpdate>,
+    isCheckingUpdates: Boolean,
     onDismiss: () -> Unit,
     onLogout: () -> Unit,
+    onCheckUpdates: () -> Unit,
     onAcceptUpdate: (AnimeUpdate) -> Unit = {},
     onDismissUpdate: (AnimeUpdate) -> Unit = {}
 ) {
@@ -78,6 +83,18 @@ fun NotificationSyncOverlay(
     val panelBgColor = if (isDark) CustomDarkSurface else MaterialTheme.colorScheme.surface
     val itemCardColor = if (isDark) CustomDarkCard else MaterialTheme.colorScheme.surfaceVariant
     val itemBorderColor = if (isDark) CustomDarkBorder else MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+
+    val collisionState = rememberInertialCollisionState()
+
+    LaunchedEffect(visibleState.targetState) {
+        if (visibleState.targetState) {
+            collisionState.triggerCollision(
+                impactForce = 40f,
+                stiffness = 250f,
+                dampingRatio = 0.5f
+            )
+        }
+    }
 
     BackHandler { onDismiss() }
 
@@ -141,7 +158,13 @@ fun NotificationSyncOverlay(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = if (isDark) Color.White else Color.Black,
-                            modifier = Modifier.padding(bottom = 20.dp, start = 8.dp, top = 4.dp)
+                            modifier = Modifier
+                                .padding(bottom = 20.dp, start = 8.dp, top = 4.dp)
+                                .inertialCollision(
+                                    state = collisionState,
+                                    index = 0,
+                                    direction = CollisionDirection.TopDown
+                                )
                         )
 
                         // Карточка 1: Время
@@ -162,6 +185,11 @@ fun NotificationSyncOverlay(
                             borderColor = itemBorderColor,
                             iconBgColor = IconTimeColor.copy(alpha = 0.15f),
                             iconTintColor = IconTimeColor,
+                            modifier = Modifier.inertialCollision(
+                                state = collisionState,
+                                index = 1,
+                                direction = CollisionDirection.TopDown
+                            ),
                             contentEnd = {
                                 Box(
                                     modifier = Modifier
@@ -190,6 +218,11 @@ fun NotificationSyncOverlay(
                             borderColor = itemBorderColor,
                             iconBgColor = IconStatusColor.copy(alpha = 0.15f),
                             iconTintColor = IconStatusColor,
+                            modifier = Modifier.inertialCollision(
+                                state = collisionState,
+                                index = 2,
+                                direction = CollisionDirection.TopDown
+                            ),
                             contentEnd = { StatusIcon(syncState) }
                         )
 
@@ -206,13 +239,18 @@ fun NotificationSyncOverlay(
                             borderColor = itemBorderColor,
                             iconBgColor = IconAccountColor.copy(alpha = 0.15f),
                             iconTintColor = IconAccountColor,
+                            modifier = Modifier.inertialCollision(
+                                state = collisionState,
+                                index = 3,
+                                direction = CollisionDirection.TopDown
+                            ),
                             contentEnd = {
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     IconButton(
-                                        onClick = { DropboxSyncManager.scheduleAutoSync() },
+                                        onClick = onCheckUpdates,
                                         modifier = Modifier
                                             .size(44.dp)
                                             .background(
@@ -220,11 +258,25 @@ fun NotificationSyncOverlay(
                                                 CircleShape
                                             )
                                     ) {
+                                        val infiniteTransition = rememberInfiniteTransition(label = "spinApi")
+                                        val angle by infiniteTransition.animateFloat(
+                                            initialValue = 0f,
+                                            targetValue = 360f,
+                                            animationSpec = infiniteRepeatable(
+                                                animation = tween(1000, easing = LinearEasing),
+                                                repeatMode = RepeatMode.Restart
+                                            ),
+                                            label = "spinApi"
+                                        )
                                         Icon(
                                             Icons.Default.Sync,
                                             null,
                                             tint = IconAccountColor,
-                                            modifier = Modifier.size(22.dp)
+                                            modifier = Modifier
+                                                .size(22.dp)
+                                                .graphicsLayer {
+                                                    if (isCheckingUpdates) rotationZ = angle
+                                                }
                                         )
                                     }
 
@@ -258,10 +310,16 @@ fun NotificationSyncOverlay(
                                 text = strings.updatesTitle,
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier.padding(bottom = 12.dp, start = 8.dp)
+                                modifier = Modifier
+                                    .padding(bottom = 12.dp, start = 8.dp)
+                                    .inertialCollision(
+                                        state = collisionState,
+                                        index = 4,
+                                        direction = CollisionDirection.TopDown
+                                    )
                             )
 
-                            updates.forEach { update ->
+                            updates.forEachIndexed { updateIndex, update ->
                                 Spacer(Modifier.height(8.dp))
                                 PillCard(
                                     icon = Icons.Outlined.Movie,
@@ -271,6 +329,11 @@ fun NotificationSyncOverlay(
                                     borderColor = itemBorderColor,
                                     iconBgColor = IconUpdateColor.copy(alpha = 0.15f),
                                     iconTintColor = IconUpdateColor,
+                                    modifier = Modifier.inertialCollision(
+                                        state = collisionState,
+                                        index = 5 + updateIndex,
+                                        direction = CollisionDirection.TopDown
+                                    ),
                                     onClick = { onAcceptUpdate(update) },
                                     contentEnd = {
                                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

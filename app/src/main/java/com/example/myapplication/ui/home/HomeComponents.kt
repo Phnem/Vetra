@@ -4,8 +4,11 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +27,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -31,9 +35,210 @@ import coil3.compose.AsyncImage
 import com.example.myapplication.data.models.Anime
 import com.example.myapplication.data.models.UiStrings
 import com.example.myapplication.isAppInDarkTheme
+import com.example.myapplication.ui.shared.gradientHighlightBorder
+import com.example.myapplication.ui.shared.inertialCollision
+import com.example.myapplication.ui.shared.rememberInertialCollisionState
 import com.example.myapplication.ui.shared.theme.*
 import java.io.File
 import androidx.compose.ui.graphics.graphicsLayer
+
+// ==========================================
+// AnimeListActionMenu — Material 3 bottom sheet content (UDF)
+// ==========================================
+
+/** Режим подтверждения: удаление или добавление в избранное. */
+enum class AnimeMenuConfirmMode { DELETE, ADD_TO_FAVORITE }
+
+/** MVI State for the anime list action menu. */
+data class AnimeMenuState(
+    val title: String,
+    val imageUrl: String,
+    val statusText: String,
+    val confirmMode: AnimeMenuConfirmMode
+)
+
+/** Isolated events (Sealed Interface — Kotlin 2.x). */
+sealed interface AnimeMenuEvent {
+    data object OnConfirm : AnimeMenuEvent
+    data object OnCancel : AnimeMenuEvent
+}
+
+@Composable
+fun AnimeListActionMenu(
+    state: AnimeMenuState,
+    onEvent: (AnimeMenuEvent) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        // --- БЛОК 1: УВЕЛИЧЕННОЕ ПРЕВЬЮ И ИНФО ---
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            AsyncImage(
+                model = state.imageUrl,
+                contentDescription = "Anime Poster",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .width(120.dp)
+                    .aspectRatio(0.7f)
+                    .clip(MaterialTheme.shapes.medium)
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = state.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = state.statusText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+
+        // --- БЛОК 2: ДВЕ КНОПКИ — подтверждение + отмена (только обводка) ---
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            when (state.confirmMode) {
+                AnimeMenuConfirmMode.DELETE -> {
+                    Button(
+                        onClick = { onEvent(AnimeMenuEvent.OnConfirm) },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandRed)
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Удалить")
+                    }
+                }
+                AnimeMenuConfirmMode.ADD_TO_FAVORITE -> {
+                    Button(
+                        onClick = { onEvent(AnimeMenuEvent.OnConfirm) },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = RateColor4)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Добавить")
+                    }
+                }
+            }
+            OutlinedButton(
+                onClick = { onEvent(AnimeMenuEvent.OnCancel) },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                )
+            ) {
+                Text("Отмена")
+            }
+        }
+    }
+}
+
+/** Bottom sheet wrapper for [AnimeListActionMenu] — overlay, card, spring animation, dismiss. */
+@Composable
+fun AnimeListMenuSheet(
+    anime: Anime,
+    confirmMode: AnimeMenuConfirmMode,
+    getImgPath: (String?) -> File?,
+    onEvent: (AnimeMenuEvent) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+
+    fun dismiss() {
+        visible = false
+    }
+
+    LaunchedEffect(visible) {
+        if (!visible) {
+            kotlinx.coroutines.delay(250)
+            onDismiss()
+        }
+    }
+
+    BackHandler { dismiss() }
+
+    val isDark = isAppInDarkTheme()
+    val panelBg = if (isDark) Color(0xFF1F222B) else MaterialTheme.colorScheme.surface
+    val menuState = remember(anime, confirmMode) {
+        AnimeMenuState(
+            title = anime.title,
+            imageUrl = getImgPath(anime.imageFileName)?.absolutePath ?: "",
+            statusText = if (anime.rating > 0) "${anime.rating}/10" else "${anime.episodes} эп.",
+            confirmMode = confirmMode
+        )
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize().zIndex(10f),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn(tween(200)),
+            exit = fadeOut(tween(150))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { dismiss() }
+            )
+        }
+        AnimatedVisibility(
+            visible = visible,
+            enter = slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = spring(dampingRatio = 0.75f, stiffness = 400f)
+            ) + fadeIn(),
+            exit = slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMedium)
+            ) + fadeOut()
+        ) {
+            Card(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .navigationBarsPadding()
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = panelBg),
+                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+            ) {
+                AnimeListActionMenu(
+                    state = menuState,
+                    onEvent = { event ->
+                        onEvent(event)
+                        dismiss()
+                    }
+                )
+            }
+        }
+    }
+}
 
 // ==========================================
 // MalistWorkspaceTopBar — clean, minimal
@@ -451,6 +656,13 @@ fun StatsOverlay(
     val totalEpisodes = animeList.sumOf { it.episodes }
     val favorites = animeList.count { it.isFavorite }
 
+    val collisionState = rememberInertialCollisionState()
+    LaunchedEffect(visible) {
+        if (visible) {
+            collisionState.triggerCollision(impactForce = 55f, stiffness = 180f, dampingRatio = 0.5f)
+        }
+    }
+
     val panelBg = if (isDark) Color(0xFF1F222B) else MaterialTheme.colorScheme.surface
 
     Box(
@@ -499,52 +711,84 @@ fun StatsOverlay(
                     modifier = Modifier.padding(28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = strings.statsTitle,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = SnProFamily
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .inertialCollision(state = collisionState, index = 0, baseMultiplier = 3f)
+                    ) {
+                        Text(
+                            text = strings.statsTitle,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = SnProFamily
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
 
                     Spacer(Modifier.height(8.dp))
 
-                    Text(
-                        text = strings.statsSubtitle,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontFamily = SnProFamily
-                        ),
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-
-                    Spacer(Modifier.height(28.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .inertialCollision(state = collisionState, index = 1, baseMultiplier = 3f)
                     ) {
-                        StatItem(value = totalAnime.toString(), label = "Total", color = BrandBlue)
-                        StatItem(value = String.format("%.1f", avgRating), label = strings.avgRating, color = RatingColor)
-                        StatItem(value = totalEpisodes.toString(), label = strings.episodesWatched, color = EpisodesColor)
-                        StatItem(value = favorites.toString(), label = strings.favorites, color = BrandRed)
+                        Text(
+                            text = strings.statsSubtitle,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontFamily = SnProFamily
+                            ),
+                            color = MaterialTheme.colorScheme.secondary
+                        )
                     }
 
                     Spacer(Modifier.height(28.dp))
 
-                    Button(
-                        onClick = { triggerDismiss() },
-                        modifier = Modifier.height(48.dp),
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = BrandBlue)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .inertialCollision(state = collisionState, index = 2, baseMultiplier = 3f)
                     ) {
-                        Text(
-                            "OK",
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            fontFamily = SnProFamily,
-                            modifier = Modifier.padding(horizontal = 24.dp)
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            StatItem(value = totalAnime.toString(), label = "Total", color = BrandBlue)
+                            StatItem(value = String.format("%.1f", avgRating), label = strings.avgRating, color = RatingColor)
+                            StatItem(value = totalEpisodes.toString(), label = strings.episodesWatched, color = EpisodesColor)
+                            StatItem(value = favorites.toString(), label = strings.favorites, color = BrandRed)
+                        }
+                    }
+
+                    Spacer(Modifier.height(28.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .inertialCollision(state = collisionState, index = 3, baseMultiplier = 3f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier.gradientHighlightBorder(24.dp, isDark)
+                        ) {
+                            Button(
+                                onClick = { triggerDismiss() },
+                                modifier = Modifier.height(48.dp),
+                                shape = RoundedCornerShape(24.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = ExpressivePrimary,
+                                    contentColor = ExpressiveOnPrimary
+                                ),
+                                border = null
+                            ) {
+                            Text(
+                                "OK",
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = SnProFamily,
+                                modifier = Modifier.padding(horizontal = 24.dp)
+                            )
+                        }
+                        }
                     }
                 }
             }

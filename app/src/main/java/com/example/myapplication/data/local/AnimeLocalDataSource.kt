@@ -6,10 +6,12 @@ import com.example.myapplication.data.local.AnimeDatabase
 import com.example.myapplication.data.models.Anime
 import com.example.myapplication.data.models.AnimeUpdate
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class AnimeLocalDataSource(
     private val factory: SQLDelightDatabaseFactory
 ) {

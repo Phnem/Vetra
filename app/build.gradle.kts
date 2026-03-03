@@ -24,7 +24,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "v3.0.4-Stable"
+        versionName = "v3.0.5-Beta"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "GITHUB_OWNER", "\"Phnem\"")
@@ -48,7 +48,8 @@ kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         freeCompilerArgs.addAll(
-            "-Xcontext-receivers"
+            "-Xcontext-receivers",
+            "-opt-in=dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi"
         )
     }
 }

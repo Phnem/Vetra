@@ -33,6 +33,8 @@ import com.example.myapplication.data.repository.GenreRepository
 import com.example.myapplication.utils.getStrings
 import com.example.myapplication.utils.performHaptic
 import com.example.myapplication.ui.shared.components.*
+import com.example.myapplication.ui.shared.inertialCollision
+import com.example.myapplication.ui.shared.rememberInertialCollisionState
 import com.example.myapplication.ui.shared.theme.*
 import com.example.myapplication.ui.home.HomeViewModel
 import com.example.myapplication.ui.addedit.CommentMorphingContainer
@@ -63,9 +65,15 @@ fun AddEditScreen(
     val bg = MaterialTheme.colorScheme.background
     val textC = MaterialTheme.colorScheme.onBackground
     val scope = rememberCoroutineScope()
+    val collisionState = rememberInertialCollisionState()
 
     LaunchedEffect(animeId) {
         viewModel.loadAnime(animeId)
+        collisionState.triggerCollision(
+            impactForce = 55f,
+            stiffness = 200f,
+            dampingRatio = 0.45f
+        )
     }
 
     val anime = remember(animeId) {
@@ -149,145 +157,194 @@ fun AddEditScreen(
                     .hazeSource(commentHazeState)
                     .background(bg)
             ) {
+                val scrollState = rememberScrollState()
+
+                // Декларативный список блоков формы — индексы для физики считаются автоматически.
+                val formBlocks = remember(uiState.title, uiState.episodes, uiState.rating, uiState.selectedTags, uiState.categoryType, uiState.commentMode) {
+                    listOf<@Composable () -> Unit>(
+                        {
+                            Spacer(Modifier.height(16.dp))
+                        },
+                        {
+                            Box(
+                                modifier = Modifier
+                                    .width(180.dp)
+                                    .aspectRatio(0.7f)
+                                    .background(
+                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        RoundedCornerShape(32.dp)
+                                    )
+                                    .clickable {
+                                        performHaptic(view, "light")
+                                        launcher.launch("image/*")
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val imageModifier = if (animeId != null) Modifier.sharedElement(
+                                    rememberSharedContentState(key = "anime_${animeId}"),
+                                    animatedVisibilityScope = animatedVisibilityScope
+                                ) else Modifier
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .then(imageModifier)
+                                        .clip(RoundedCornerShape(32.dp))
+                                ) {
+                                    if (uiState.imageUri != null) {
+                                        AsyncImage(
+                                            uiState.imageUri,
+                                            null,
+                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    } else if (anime?.imageFileName != null) {
+                                        AsyncImage(
+                                            homeViewModel.getImgPath(anime.imageFileName),
+                                            null,
+                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    } else {
+                                        Column(
+                                            modifier = Modifier.fillMaxSize(),
+                                            verticalArrangement = Arrangement.Center,
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Icon(
+                                                Icons.Default.AddPhotoAlternate,
+                                                null,
+                                                modifier = Modifier.size(40.dp),
+                                                tint = MaterialTheme.colorScheme.secondary
+                                            )
+                                            Text("Add photo", color = MaterialTheme.colorScheme.secondary)
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            Spacer(Modifier.height(32.dp))
+                        },
+                        {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    AnimatedOneUiTextField(
+                                        value = uiState.title,
+                                        onValueChange = viewModel::updateTitle,
+                                        placeholder = "Anime title",
+                                        singleLine = false,
+                                        maxLines = 4
+                                    )
+                                }
+                                if (uiState.title.isNotEmpty()) {
+                                    Spacer(Modifier.width(8.dp))
+                                    AnimatedCopyButton(textToCopy = uiState.title)
+                                }
+                            }
+                        },
+                        {
+                            Spacer(Modifier.height(24.dp))
+                        },
+                        {
+                            AnimatedOneUiTextField(
+                                value = uiState.episodes,
+                                onValueChange = viewModel::updateEpisodes,
+                                placeholder = "Episodes watched",
+                                keyboardType = KeyboardType.Number
+                            )
+                        },
+                        {
+                            Spacer(Modifier.height(12.dp))
+                        },
+                        {
+                            EpisodeSuggestions { selectedEp ->
+                                performHaptic(view, "light")
+                                viewModel.updateEpisodes(selectedEp)
+                            }
+                        },
+                        {
+                            Spacer(Modifier.height(32.dp))
+                        },
+                        {
+                            Text(
+                                text = "Category & Genres",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 12.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Start
+                            )
+                        },
+                        {
+                            GenreSelectionSection(
+                                strings = getStrings(currentLanguage),
+                                currentLanguage = currentLanguage,
+                                selectedTags = uiState.selectedTags,
+                                activeCategory = uiState.categoryType,
+                                onTagToggle = { tag, categoryType ->
+                                    val currentTags = uiState.selectedTags.toMutableList()
+                                    if (currentTags.contains(tag)) {
+                                        currentTags.remove(tag)
+                                        if (currentTags.isEmpty()) {
+                                            viewModel.updateTags(emptyList(), "")
+                                        } else {
+                                            viewModel.updateTags(currentTags, uiState.categoryType)
+                                        }
+                                    } else {
+                                        if (currentTags.size < 3 && (uiState.categoryType.isEmpty() || uiState.categoryType == categoryType)) {
+                                            currentTags.add(tag)
+                                            viewModel.updateTags(currentTags, categoryType)
+                                        }
+                                    }
+                                    performHaptic(view, "light")
+                                }
+                            )
+                        },
+                        {
+                            Spacer(Modifier.height(32.dp))
+                        },
+                        {
+                            StarRatingBar(rating = uiState.rating) { newRate ->
+                                performHaptic(view, "light")
+                                viewModel.updateRating(newRate)
+                            }
+                        },
+                        {
+                            Spacer(Modifier.height(24.dp))
+                        },
+                        {
+                            CommentMorphingContainer(
+                                state = uiState,
+                                hazeState = commentHazeState,
+                                onModeChange = viewModel::updateCommentMode,
+                                onSaveComment = viewModel::saveComment,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    )
+                }
+
                 Column(
                     modifier = Modifier
                         .padding(innerPadding)
                         .imePadding()
                         .padding(horizontal = 24.dp)
                         .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
+                        .verticalScroll(scrollState),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Spacer(Modifier.height(16.dp))
-                    Box(
-                        modifier = Modifier
-                            .width(180.dp)
-                            .aspectRatio(0.7f)
-                            .background(
-                                MaterialTheme.colorScheme.surfaceVariant,
-                                RoundedCornerShape(32.dp)
-                            )
-                            .clickable {
-                                performHaptic(view, "light")
-                                launcher.launch("image/*")
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        val imageModifier = if (animeId != null) Modifier.sharedElement(
-                            rememberSharedContentState(key = "anime_${animeId}"),
-                            animatedVisibilityScope = animatedVisibilityScope
-                        ) else Modifier
+                    formBlocks.forEachIndexed { index, block ->
                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .then(imageModifier)
-                                .clip(RoundedCornerShape(32.dp))
-                        ) {
-                            if (uiState.imageUri != null) {
-                                AsyncImage(
-                                    uiState.imageUri,
-                                    null,
-                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            } else if (anime?.imageFileName != null) {
-                                AsyncImage(
-                                    homeViewModel.getImgPath(anime.imageFileName),
-                                    null,
-                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            } else {
-                                Column(
-                                    modifier = Modifier.fillMaxSize(),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(
-                                        Icons.Default.AddPhotoAlternate,
-                                        null,
-                                        modifier = Modifier.size(40.dp),
-                                        tint = MaterialTheme.colorScheme.secondary
-                                    )
-                                    Text("Add photo", color = MaterialTheme.colorScheme.secondary)
-                                }
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(32.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            AnimatedOneUiTextField(
-                                value = uiState.title,
-                                onValueChange = viewModel::updateTitle,
-                                placeholder = "Anime title",
-                                singleLine = false,
-                                maxLines = 4
+                            modifier = Modifier.inertialCollision(
+                                state = collisionState,
+                                index = index,
+                                baseMultiplier = 4.5f
                             )
-                        }
-                        if (uiState.title.isNotEmpty()) {
-                            Spacer(Modifier.width(8.dp))
-                            AnimatedCopyButton(textToCopy = uiState.title)
+                        ) {
+                            block()
                         }
                     }
-                    Spacer(Modifier.height(24.dp))
-                    AnimatedOneUiTextField(
-                        value = uiState.episodes,
-                        onValueChange = viewModel::updateEpisodes,
-                        placeholder = "Episodes watched",
-                        keyboardType = KeyboardType.Number
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    EpisodeSuggestions { selectedEp ->
-                        performHaptic(view, "light")
-                        viewModel.updateEpisodes(selectedEp)
-                    }
-                    Spacer(Modifier.height(32.dp))
-                    Text(
-                        text = "Category & Genres",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 12.dp),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Start
-                    )
-                    GenreSelectionSection(
-                        strings = getStrings(currentLanguage),
-                        currentLanguage = currentLanguage,
-                        selectedTags = uiState.selectedTags,
-                        activeCategory = uiState.categoryType,
-                        onTagToggle = { tag, categoryType ->
-                            val currentTags = uiState.selectedTags.toMutableList()
-                            if (currentTags.contains(tag)) {
-                                currentTags.remove(tag)
-                                if (currentTags.isEmpty()) {
-                                    viewModel.updateTags(emptyList(), "")
-                                } else {
-                                    viewModel.updateTags(currentTags, uiState.categoryType)
-                                }
-                            } else {
-                                if (currentTags.size < 3 && (uiState.categoryType.isEmpty() || uiState.categoryType == categoryType)) {
-                                    currentTags.add(tag)
-                                    viewModel.updateTags(currentTags, categoryType)
-                                }
-                            }
-                            performHaptic(view, "light")
-                        }
-                    )
-                    Spacer(Modifier.height(32.dp))
-                    StarRatingBar(rating = uiState.rating) { newRate ->
-                        performHaptic(view, "light")
-                        viewModel.updateRating(newRate)
-                    }
-                    Spacer(Modifier.height(24.dp))
-                    CommentMorphingContainer(
-                        state = uiState,
-                        hazeState = commentHazeState,
-                        onModeChange = viewModel::updateCommentMode,
-                        onSaveComment = viewModel::saveComment,
-                        modifier = Modifier.fillMaxWidth()
-                    )
                     Spacer(Modifier.height(120.dp))
                 }
             }

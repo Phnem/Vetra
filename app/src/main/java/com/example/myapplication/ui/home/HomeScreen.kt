@@ -1,6 +1,12 @@
 package com.example.myapplication.ui.home
 
+import android.app.Activity
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -24,7 +30,7 @@ import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.foundation.LocalOverscrollConfiguration
+import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.focus.FocusRequester
@@ -32,6 +38,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
@@ -82,6 +89,7 @@ fun HomeScreen(
     val kbd = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val view = LocalView.current
+    val ctx = LocalContext.current
     val hazeState = remember { HazeState() }
 
     var showCSheet by remember { mutableStateOf(false) }
@@ -101,6 +109,19 @@ fun HomeScreen(
     var animeToDelete by remember { mutableStateOf<Anime?>(null) }
     var animeToFavorite by remember { mutableStateOf<Anime?>(null) }
     val scope = rememberCoroutineScope()
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { }
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val activity = ctx as? Activity ?: return@LaunchedEffect
+            if (ContextCompat.checkSelfPermission(activity, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.checkForUpdates()
@@ -143,6 +164,13 @@ fun HomeScreen(
             uiState.isGenreFilterVisible || showNotificationsOverlay || showSortOverlay
     val blurAmount by animateDpAsState(targetValue = if (shouldBlur) 10.dp else 0.dp, label = "blur")
 
+    // Кнопка «вверх» опускается к низу, когда док скрыт (как кнопка поиска), и поднимается вместе с доком
+    val scrollToTopBottomPadding by animateDpAsState(
+        targetValue = if (finalDockVisible) 160.dp else 88.dp,
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium),
+        label = "scrollToTopBottom"
+    )
+
     Scaffold(containerColor = Color.Transparent, bottomBar = {}, floatingActionButton = {}) { _ ->
         Box(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.fillMaxSize().background(bgColor))
@@ -180,10 +208,23 @@ fun HomeScreen(
                         visibleState = notifVisibleState,
                         strings = getStrings(currentLanguage),
                         updates = uiState.updates,
+                        isCheckingUpdates = uiState.isCheckingUpdates,
                         onDismiss = { showNotificationsOverlay = false },
                         onLogout = {
                             DropboxSyncManager.logout()
                             navController.navigateToWelcome()
+                        },
+                        onCheckUpdates = {
+                            performHaptic(view, "light")
+                            viewModel.checkForUpdates(force = true)
+                        },
+                        onAcceptUpdate = { update ->
+                            performHaptic(view, "success")
+                            viewModel.acceptUpdate(update, ctx)
+                        },
+                        onDismissUpdate = { update ->
+                            performHaptic(view, "light")
+                            viewModel.dismissUpdate(update)
                         }
                     )
                 }
@@ -245,7 +286,7 @@ fun HomeScreen(
                     val list by viewModel.animeListFlow.collectAsStateWithLifecycle()
                     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
 
-                    CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
+                    CompositionLocalProvider(LocalOverscrollFactory provides null) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -295,23 +336,23 @@ fun HomeScreen(
                                             contentType = { "anime_card" }
                                         ) { anime ->
                                             val dismissState = rememberSwipeToDismissBoxState(
-                                                confirmValueChange = {
-                                                    when(it) {
-                                                        SwipeToDismissBoxValue.StartToEnd -> {
-                                                            performHaptic(view, "success")
-                                                            animeToFavorite = anime
-                                                            false
-                                                        }
-                                                        SwipeToDismissBoxValue.EndToStart -> {
-                                                            performHaptic(view, "warning")
-                                                            animeToDelete = anime
-                                                            false
-                                                        }
-                                                        else -> false
-                                                    }
-                                                },
                                                 positionalThreshold = { totalDistance -> totalDistance * 0.4f }
                                             )
+                                            LaunchedEffect(dismissState.currentValue) {
+                                                when (dismissState.currentValue) {
+                                                    SwipeToDismissBoxValue.StartToEnd -> {
+                                                        performHaptic(view, "success")
+                                                        animeToFavorite = anime
+                                                        dismissState.reset()
+                                                    }
+                                                    SwipeToDismissBoxValue.EndToStart -> {
+                                                        performHaptic(view, "warning")
+                                                        animeToDelete = anime
+                                                        dismissState.reset()
+                                                    }
+                                                    SwipeToDismissBoxValue.Settled -> Unit
+                                                }
+                                            }
                                             SwipeToDismissBox(
                                                 state = dismissState,
                                                 backgroundContent = { SwipeBackground(dismissState) },
@@ -428,35 +469,31 @@ fun HomeScreen(
             }
 
             if (animeToDelete != null) {
-                SpringBottomDialog(
-                    title = "Delete title?",
-                    subtitle = "This action cannot be undone.",
-                    confirmText = "Delete",
-                    cancelText = "Cancel",
-                    icon = Icons.Default.Delete,
-                    accentColor = BrandRed,
-                    imageFile = viewModel.getImgPath(animeToDelete?.imageFileName),
-                    onConfirm = {
-                        viewModel.deleteAnime(animeToDelete!!.id)
-                        animeToDelete = null
+                AnimeListMenuSheet(
+                    anime = animeToDelete!!,
+                    confirmMode = AnimeMenuConfirmMode.DELETE,
+                    getImgPath = { viewModel.getImgPath(it) },
+                    onEvent = { event ->
+                        when (event) {
+                            is AnimeMenuEvent.OnConfirm -> viewModel.deleteAnime(animeToDelete!!.id)
+                            is AnimeMenuEvent.OnCancel -> { }
+                        }
                     },
-                    onCancel = { animeToDelete = null }
+                    onDismiss = { animeToDelete = null }
                 )
             }
             if (animeToFavorite != null) {
-                SpringBottomDialog(
-                    title = "Add to favorites?",
-                    subtitle = "Future you will thank you :)",
-                    confirmText = "Add to favorites",
-                    cancelText = "Cancel",
-                    icon = Icons.Rounded.Star,
-                    accentColor = RateColor3,
-                    imageFile = viewModel.getImgPath(animeToFavorite?.imageFileName),
-                    onConfirm = {
-                        viewModel.toggleFavorite(animeToFavorite!!.id)
-                        animeToFavorite = null
+                AnimeListMenuSheet(
+                    anime = animeToFavorite!!,
+                    confirmMode = AnimeMenuConfirmMode.ADD_TO_FAVORITE,
+                    getImgPath = { viewModel.getImgPath(it) },
+                    onEvent = { event ->
+                        when (event) {
+                            is AnimeMenuEvent.OnConfirm -> viewModel.toggleFavorite(animeToFavorite!!.id)
+                            is AnimeMenuEvent.OnCancel -> { }
+                        }
                     },
-                    onCancel = { animeToFavorite = null }
+                    onDismiss = { animeToFavorite = null }
                 )
             }
 
@@ -464,7 +501,11 @@ fun HomeScreen(
                 visible = showScrollToTop && !isSearchVisible && animeToDelete == null && animeToFavorite == null,
                 enter = fadeIn() + scaleIn(),
                 exit = fadeOut() + scaleOut(),
-                modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 160.dp, end = 24.dp).zIndex(1f)
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(bottom = scrollToTopBottomPadding, end = 24.dp)
+                    .zIndex(1f)
             ) {
                 SimpGlassCard(
                     hazeState = hazeState,

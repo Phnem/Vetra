@@ -125,6 +125,7 @@ fun AnimatedOneUiTextField(
 // AnimatedCopyButton
 // ==========================================
 @Composable
+@Suppress("DEPRECATION")
 fun AnimatedCopyButton(textToCopy: String) {
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
@@ -219,25 +220,26 @@ fun GenreSelectionSection(
         "Series" to Color(0xFFFFCC00)
     )
 
-    categories.forEach { (categoryType, label, genres) ->
-        val isActive = activeCategory.isEmpty() || activeCategory == categoryType
-        val hasSelectedTags = selectedTags.any { tag -> genres.any { it.id == tag } }
-        val isExpanded = expandedCategory == categoryType
+    Column(modifier = Modifier.fillMaxWidth()) {
+        categories.forEach { (categoryType, label, genres) ->
+            val isActive = activeCategory.isEmpty() || activeCategory == categoryType
+            val hasSelectedTags = selectedTags.any { tag -> genres.any { it.id == tag } }
+            val isExpanded = expandedCategory == categoryType
 
-        if (isActive || hasSelectedTags) {
-            val accentColor = categoryColors[categoryType] ?: BrandBlue
-            val catIcon = categoryIcons[categoryType] ?: Icons.Outlined.Animation
+            if (isActive || hasSelectedTags) {
+                val accentColor = categoryColors[categoryType] ?: BrandBlue
+                val catIcon = categoryIcons[categoryType] ?: Icons.Outlined.Animation
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable {
-                        expandedCategory = if (isExpanded) null else categoryType
-                    }
-                    .padding(vertical = 12.dp, horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            expandedCategory = if (isExpanded) null else categoryType
+                        }
+                        .padding(vertical = 12.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                 Icon(
                     catIcon,
                     contentDescription = null,
@@ -277,29 +279,32 @@ fun GenreSelectionSection(
                 )
             }
 
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
-                exit = shrinkVertically(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeOut()
-            ) {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 12.dp)
+                AnimatedVisibility(
+                    visible = isExpanded,
+                    enter = expandVertically(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
+                    exit = shrinkVertically(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeOut()
                 ) {
-                    genres.forEach { genreDef ->
-                        val isSelected = selectedTags.contains(genreDef.id)
-                        val displayName = if (currentLanguage == AppLanguage.RU) genreDef.ru else genreDef.en
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { onTagToggle(genreDef.id, categoryType) },
-                            label = { Text(displayName, fontSize = 13.sp) },
-                            enabled = isActive,
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = accentColor.copy(alpha = 0.15f),
-                                selectedLabelColor = accentColor
+                    FlowRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 4.dp, end = 4.dp, bottom = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        genres.forEach { genreDef ->
+                            val isSelected = selectedTags.contains(genreDef.id)
+                            val displayName = if (currentLanguage == AppLanguage.RU) genreDef.ru else genreDef.en
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onTagToggle(genreDef.id, categoryType) },
+                                label = { Text(displayName, fontSize = 13.sp) },
+                                enabled = isActive,
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = accentColor.copy(alpha = 0.15f),
+                                    selectedLabelColor = accentColor
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }

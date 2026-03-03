@@ -14,6 +14,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -45,8 +46,13 @@ import com.example.myapplication.network.AppLanguage
 import com.example.myapplication.utils.getStrings
 import com.example.myapplication.utils.performHaptic
 import com.example.myapplication.ui.shared.theme.*
+import com.example.myapplication.ui.shared.inertialCollision
+import com.example.myapplication.ui.shared.rememberInertialCollisionState
 import com.example.myapplication.ui.navigation.navigateToWelcome
 import com.example.myapplication.R
+import com.example.myapplication.SyncState
+import androidx.compose.foundation.lazy.itemsIndexed
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -70,6 +76,16 @@ fun SettingsScreen(
     var expandedType by remember { mutableStateOf(false) }
 
     val strings = getStrings(uiState.language)
+    val collisionState = rememberInertialCollisionState()
+
+    // Усиленный «punch»-эффект: мощнее удар, мягче пружина, чуть более упругий отскок.
+    LaunchedEffect(Unit) {
+        collisionState.triggerCollision(
+            impactForce = 55f,
+            stiffness = 200f,
+            dampingRatio = 0.45f
+        )
+    }
 
     with(sharedTransitionScope) {
         Box(
@@ -116,12 +132,18 @@ fun SettingsScreen(
 
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(bottom = 32.dp)
                 ) {
-                    item {
-                        val accentTint = EpisodesColor
-                        SettingsPill(
+                    itemsIndexed(
+                        items = listOf(0, 1, 2, 3, 4, 5),
+                        key = { _, i -> i }
+                    ) { index, _ ->
+                        Box(modifier = Modifier.inertialCollision(collisionState, index, 1.2f)) {
+                            when (index) {
+                                0 -> {
+                                    val accentTint = EpisodesColor
+                                    SettingsPill(
                             title = strings.languageCardTitle,
                             icon = Icons.Outlined.Language,
                             iconTint = accentTint,
@@ -151,12 +173,12 @@ fun SettingsScreen(
                                 ) { Text(strings.langRu, fontFamily = SnProFamily, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                             }
                         }
-                    }
+                                    }
 
-                    item {
-                        val accentTint = Color(0xFF00BFA6)
-                        SettingsPill(
-                            title = strings.themeTitle,
+                                1 -> {
+                                    val accentTint = Color(0xFF00BFA6)
+                                    SettingsPill(
+                                        title = strings.themeTitle,
                             icon = Icons.Outlined.Palette,
                             iconTint = accentTint,
                             isExpanded = expandedTheme,
@@ -175,25 +197,25 @@ fun SettingsScreen(
                                     AppTheme.DARK to strings.themeDark,
                                     AppTheme.SYSTEM to strings.themeSystem
                                 )
-                                themeOptions.forEachIndexed { index, (theme, label) ->
+                                themeOptions.forEachIndexed { themeIndex, (theme, label) ->
                                     SegmentedButton(
                                         selected = uiState.theme == theme,
                                         onClick = {
                                             performHaptic(view, "light")
                                             viewModel.setTheme(theme)
                                         },
-                                        shape = SegmentedButtonDefaults.itemShape(index = index, count = themeOptions.size),
+                                        shape = SegmentedButtonDefaults.itemShape(index = themeIndex, count = themeOptions.size),
                                         colors = colors
                                     ) { Text(label, fontFamily = SnProFamily, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                                 }
                             }
-                        }
-                    }
+                                        }
+                                    }
 
-                    item {
-                        val accentTint = Color(0xFFFF9500)
-                        SettingsPill(
-                            title = strings.contentTypeTitle,
+                                2 -> {
+                                    val accentTint = Color(0xFFFF9500)
+                                    SettingsPill(
+                                        title = strings.contentTypeTitle,
                             icon = Icons.Outlined.Category,
                             iconTint = accentTint,
                             isExpanded = expandedType,
@@ -221,12 +243,12 @@ fun SettingsScreen(
                                     colors = colors
                                 ) { Text(strings.typeMovies, fontFamily = SnProFamily, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                             }
-                        }
-                    }
+                                        }
+                                    }
 
-                    item {
-                        SettingsPill(
-                            title = if (uiState.language == AppLanguage.RU) "Облачные настройки" else "Cloud Settings",
+                                3 -> {
+                                    SettingsPill(
+                                        title = if (uiState.language == AppLanguage.RU) "Облачные настройки" else "Cloud Settings",
                             icon = Icons.Outlined.Cloud,
                             iconTint = BrandBlue,
                             isExpanded = expandedCloud,
@@ -234,6 +256,8 @@ fun SettingsScreen(
                         ) {
                             Box(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 4.dp)) {
                                 val lastSyncTimestamp = remember { context.getSharedPreferences("dropbox_prefs", Context.MODE_PRIVATE).getLong("last_sync_time", 0L) }
+                                val syncState by DropboxSyncManager.syncState.collectAsStateWithLifecycle()
+                                val scope = rememberCoroutineScope()
                                 CloudSettingsSection(
                                     strings = CloudStrings(
                                         title = if (uiState.language == AppLanguage.RU) "Синхронизация с облаком" else "Cloud Sync",
@@ -243,16 +267,17 @@ fun SettingsScreen(
                                         logout = if (uiState.language == AppLanguage.RU) "Выйти" else "Logout"
                                     ),
                                     lastSyncTime = lastSyncTimestamp,
-                                    onSyncClick = { com.example.myapplication.worker.SyncWorker.enqueue(context) },
+                                    isSyncing = syncState == SyncState.SYNCING,
+                                    onSyncClick = { scope.launch { DropboxSyncManager.syncNow() } },
                                     onLogout = { DropboxSyncManager.logout(); navController.navigateToWelcome() }
                                 )
                             }
-                        }
-                    }
+                                        }
+                                    }
 
-                    item {
-                        SettingsPill(
-                            title = strings.checkForUpdateTitle,
+                                4 -> {
+                                    SettingsPill(
+                                        title = strings.checkForUpdateTitle,
                             icon = Icons.Outlined.SystemUpdate,
                             iconTint = RateColor4,
                             isExpanded = expandedUpdate,
@@ -270,12 +295,12 @@ fun SettingsScreen(
                                     })
                                 }
                             }
-                        }
-                    }
+                                        }
+                                    }
 
-                    item {
-                        SettingsPill(
-                            title = strings.contactTitle,
+                                5 -> {
+                                    SettingsPill(
+                                        title = strings.contactTitle,
                             icon = Icons.Outlined.Person,
                             iconTint = Color(0xFF3DDC84),
                             isExpanded = expandedContact,
@@ -292,6 +317,9 @@ fun SettingsScreen(
                                         Image(painter = painterResource(id = R.drawable.tg), contentDescription = "Telegram", modifier = Modifier.size(56.dp), contentScale = ContentScale.Fit)
                                     }
                                 }
+                                            }
+                                        }
+                                    }
                             }
                         }
                     }
@@ -382,6 +410,7 @@ data class CloudStrings(
 fun CloudSettingsSection(
     strings: CloudStrings,
     lastSyncTime: Long,
+    isSyncing: Boolean,
     onSyncClick: () -> Unit,
     onLogout: () -> Unit
 ) {
@@ -399,8 +428,20 @@ fun CloudSettingsSection(
             modifier = Modifier.padding(bottom = 16.dp)
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = onSyncClick, modifier = Modifier.weight(1f)) {
-                Text(strings.syncNow, fontFamily = SnProFamily)
+            Button(
+                onClick = onSyncClick,
+                modifier = Modifier.weight(1f),
+                enabled = !isSyncing
+            ) {
+                if (isSyncing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(strings.syncNow, fontFamily = SnProFamily)
+                }
             }
             OutlinedButton(onClick = onLogout) {
                 Text(strings.logout, fontFamily = SnProFamily)

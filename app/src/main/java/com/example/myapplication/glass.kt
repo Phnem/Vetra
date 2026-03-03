@@ -18,6 +18,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -65,11 +66,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
@@ -97,11 +102,18 @@ import com.example.myapplication.ui.navigation.navigateToAddEdit
 import com.example.myapplication.ui.navigation.navigateToSettings
 import com.example.myapplication.ui.shared.components.GenreSelectionSection
 import com.example.myapplication.ui.shared.fluidClickable
+import com.example.myapplication.ui.shared.gradientHighlightBorder
 import com.example.myapplication.ui.shared.theme.BrandBlue
 import com.example.myapplication.ui.shared.theme.BrandRed
+import com.example.myapplication.ui.shared.theme.ExpressiveOnPrimary
+import com.example.myapplication.ui.shared.theme.ExpressivePrimary
 import com.example.myapplication.ui.shared.theme.SnProFamily
+import com.example.myapplication.ui.shared.CollisionDirection
+import com.example.myapplication.ui.shared.inertialCollision
+import com.example.myapplication.ui.shared.rememberInertialCollisionState
 import com.example.myapplication.utils.performHaptic
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.CupertinoMaterials
 
@@ -109,6 +121,47 @@ import dev.chrisbanes.haze.materials.CupertinoMaterials
 fun isAppInDarkTheme(): Boolean {
     return MaterialTheme.colorScheme.background.toArgb() == Color(0xFF111318).toArgb()
 }
+
+/** Стиль haze без подкрашивания и шума: только размытие (tint = transparent, noiseFactor = 0). */
+private val cleanHazeStyle = HazeStyle(tints = emptyList(), noiseFactor = 0f)
+
+/** Стиль haze для панелей/меню: сильное размытие (40.dp), лёгкий шум (0.1), без tint. */
+internal val panelGlassHazeStyle = HazeStyle(
+    tints = emptyList(),
+    noiseFactor = 0.1f,
+    blurRadius = 40.dp
+)
+
+/** Градиентная обводка панели: белая как блик в тёмной теме, тёмная как тень в светлой. */
+internal fun Modifier.panelGradientBorder(cornerRadiusDp: androidx.compose.ui.unit.Dp, isDark: Boolean): Modifier =
+    drawWithContent {
+        drawContent()
+        val strokeWidth = 1.5.dp.toPx()
+        val cornerRadius = (cornerRadiusDp.toPx() - strokeWidth / 2f).coerceAtLeast(0f)
+        val topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f)
+        val rectSize = Size(size.width - strokeWidth, size.height - strokeWidth)
+        val gradientBrush = if (isDark) Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.38f),
+                Color.White.copy(alpha = 0.18f),
+                Color.White.copy(alpha = 0.1f)
+            )
+        ) else Brush.verticalGradient(
+            colors = listOf(
+                Color.Black.copy(alpha = 0.06f),
+                Color.Black.copy(alpha = 0.12f),
+                Color.Black.copy(alpha = 0.08f)
+            )
+        )
+        drawRoundRect(
+            brush = gradientBrush,
+            topLeft = topLeft,
+            size = rectSize,
+            cornerRadius = CornerRadius(cornerRadius),
+            style = Stroke(width = strokeWidth)
+        )
+    }
+
 // ==========================================
 // КОМПОНЕНТ "СИМП-СТЕКЛО"
 // ==========================================
@@ -128,7 +181,7 @@ fun SimpGlassCard(
             .clip(shape)
             .hazeEffect(
                 state = hazeState,
-                style = CupertinoMaterials.ultraThin()
+                style = cleanHazeStyle
             )
             .border(0.5.dp, borderStroke, shape),
         contentAlignment = Alignment.Center
@@ -206,7 +259,7 @@ fun GlassActionDock(
             .clip(RoundedCornerShape(32.dp))
             .hazeEffect(
                 state = hazeState,
-                style = CupertinoMaterials.ultraThin()
+                style = cleanHazeStyle
             ) {
                 alpha = effectAlpha
             }
@@ -309,12 +362,12 @@ fun GlassBottomNavigation(
                 .align(Alignment.BottomCenter)
                 .height(64.dp)
                 .wrapContentWidth()
-                .clip(CircleShape)
+                .clip(RoundedCornerShape(32.dp))
                 .hazeEffect(
                     state = hazeState,
-                    style = CupertinoMaterials.ultraThin()
+                    style = cleanHazeStyle
                 )
-                .border(0.5.dp, borderStroke, CircleShape)
+                .border(0.5.dp, borderStroke, RoundedCornerShape(32.dp))
         ) {
             Row(
                 modifier = Modifier
@@ -645,6 +698,18 @@ fun SortFilterOverlay(
     val itemCardColor = if (isDark) CustomDarkCard else MaterialTheme.colorScheme.surfaceVariant
     val itemBorderColor = if (isDark) CustomDarkBorder else MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
 
+    val collisionState = rememberInertialCollisionState()
+
+    LaunchedEffect(visibleState.targetState) {
+        if (visibleState.targetState) {
+            collisionState.triggerCollision(
+                impactForce = 45f,
+                stiffness = 220f,
+                dampingRatio = 0.45f
+            )
+        }
+    }
+
     BackHandler { onDismiss() }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -694,10 +759,16 @@ fun SortFilterOverlay(
                             text = "Sort by",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
+                            modifier = Modifier
+                                .padding(bottom = 12.dp, start = 4.dp)
+                                .inertialCollision(
+                                    state = collisionState,
+                                    index = 0,
+                                    direction = CollisionDirection.TopDown
+                                )
                         )
 
-                        SortOption.entries.forEach { option ->
+                        SortOption.entries.forEachIndexed { sortIndex, option ->
                             val isSelected = sortOption == option
                             val accentColor = option.getAccentColor()
                             val directionIcon = if (isSelected) {
@@ -712,6 +783,12 @@ fun SortFilterOverlay(
                                 borderColor = if (isSelected) accentColor.copy(alpha = 0.4f) else itemBorderColor,
                                 iconBgColor = if (isSelected) accentColor else accentColor.copy(alpha = 0.12f),
                                 iconTintColor = if (isSelected) Color.White else accentColor,
+                                modifier = Modifier.inertialCollision(
+                                    state = collisionState,
+                                    index = sortIndex + 1,
+                                    baseMultiplier = 4.5f,
+                                    direction = CollisionDirection.TopDown
+                                ),
                                 onClick = {
                                     onSortSelected(option)
                                     onDismiss()
@@ -736,6 +813,7 @@ fun SortFilterOverlay(
                         )
 
                         val activeFiltersCount = filterSelectedTags.size
+                        val filterIndex = SortOption.entries.size + 1
                         SortPillCard(
                             icon = Icons.Outlined.FilterList,
                             title = strings.filterByGenre,
@@ -744,6 +822,12 @@ fun SortFilterOverlay(
                             borderColor = itemBorderColor,
                             iconBgColor = IconFilterColor.copy(alpha = 0.12f),
                             iconTintColor = IconFilterColor,
+                            modifier = Modifier.inertialCollision(
+                                state = collisionState,
+                                index = filterIndex,
+                                baseMultiplier = 4.5f,
+                                direction = CollisionDirection.TopDown
+                            ),
                             onClick = {
                                 onOpenGenreFilter()
                                 onDismiss()
@@ -862,7 +946,14 @@ fun GenreFilterOverlay(
     val isDark = isAppInDarkTheme()
     val panelBg = if (isDark) Color(0xFF1F222B) else MaterialTheme.colorScheme.surface
     val borderColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
-    
+
+    val collisionState = rememberInertialCollisionState()
+    LaunchedEffect(visibleState.targetState) {
+        if (visibleState.targetState) {
+            collisionState.triggerCollision(impactForce = 35f, stiffness = 200f, dampingRatio = 0.5f)
+        }
+    }
+
     BackHandler { onDismiss() }
     
     Box(modifier = Modifier.fillMaxSize()) {
@@ -899,7 +990,7 @@ fun GenreFilterOverlay(
                     .fillMaxWidth()
                     .navigationBarsPadding()
                     .padding(16.dp),
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 28.dp, bottomEnd = 28.dp),
                 colors = CardDefaults.cardColors(containerColor = panelBg),
                 elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
                 border = if (isDark) BorderStroke(1.dp, borderColor) else null
@@ -909,38 +1000,60 @@ fun GenreFilterOverlay(
                         .padding(24.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
-                    Text(
-                        text = strings.filterByGenre,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(bottom = 20.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .inertialCollision(state = collisionState, index = 0, baseMultiplier = 2.5f)
+                    ) {
+                        Text(
+                            text = strings.filterByGenre,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(bottom = 20.dp)
+                        )
+                    }
                     
-                    GenreSelectionSection(
-                        strings = strings,
-                        currentLanguage = currentLanguage,
-                        selectedTags = filterSelectedTags,
-                        activeCategory = filterCategoryType,
-                        onTagToggle = onTagToggle
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .inertialCollision(state = collisionState, index = 1, baseMultiplier = 2.5f)
+                    ) {
+                        GenreSelectionSection(
+                            strings = strings,
+                            currentLanguage = currentLanguage,
+                            selectedTags = filterSelectedTags,
+                            activeCategory = filterCategoryType,
+                            onTagToggle = onTagToggle
+                        )
+                    }
                     
                     Spacer(Modifier.height(20.dp))
                     
-                    Button(
-                        onClick = onDismiss,
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = BrandBlue)
+                            .inertialCollision(state = collisionState, index = 2, baseMultiplier = 2.5f)
+                            .gradientHighlightBorder(24.dp, isDark)
                     ) {
-                        Text(
-                            "Done",
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            fontFamily = SnProFamily
-                        )
+                        Button(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(24.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = ExpressivePrimary,
+                                contentColor = ExpressiveOnPrimary
+                            ),
+                            border = null
+                        ) {
+                            Text(
+                                "Done",
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = SnProFamily
+                            )
+                        }
                     }
                 }
             }
