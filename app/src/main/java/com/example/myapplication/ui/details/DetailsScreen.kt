@@ -31,11 +31,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import org.koin.androidx.compose.koinViewModel
 import com.example.myapplication.data.models.Anime
 import com.example.myapplication.network.AppLanguage
@@ -43,7 +46,6 @@ import com.example.myapplication.isAppInDarkTheme
 import com.example.myapplication.ui.shared.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,7 +101,7 @@ fun AnimeDetailsSheet(
     viewModel: DetailsViewModel,
     anime: Anime,
     language: AppLanguage,
-    getImgPath: (String?) -> File?,
+    getImgPath: (String?) -> String?,
     onDismiss: () -> Unit,
     embedded: Boolean = false
 ) {
@@ -241,7 +243,7 @@ private fun DetailsSheetBody(
     isDark: Boolean,
     panelBg: Color,
     subtitleColor: Color,
-    getImgPath: (String?) -> File?,
+    getImgPath: (String?) -> String?,
     contentAlpha: Animatable<Float, *>,
     contentOffsetY: Animatable<Float, *>,
     showCloseButton: Boolean,
@@ -254,10 +256,14 @@ private fun DetailsSheetBody(
                             .height(200.dp)
                             .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                     ) {
-                        val imgFile = getImgPath(anime.imageFileName)
-                        if (imgFile != null && imgFile.exists()) {
+                        val imgPath = getImgPath(anime.imageFileName)
+                        if (imgPath != null) {
+                            val context = LocalContext.current
                             AsyncImage(
-                                model = imgFile,
+                                model = ImageRequest.Builder(context)
+                                    .data(imgPath)
+                                    .crossfade(true)
+                                    .build(),
                                 contentDescription = anime.title,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()

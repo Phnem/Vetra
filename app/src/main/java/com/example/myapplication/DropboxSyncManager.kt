@@ -77,7 +77,6 @@ class DropboxSyncManager(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     init {
-        companionInstance = this
         appContext = context.applicationContext
         prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         rootDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "Vetro")
@@ -95,23 +94,10 @@ class DropboxSyncManager(
         }
     }
 
-    companion object {
-        @Volatile
-        private var companionInstance: DropboxSyncManager? = null
-        private fun instance(): DropboxSyncManager = companionInstance ?: error("DropboxSyncManager not initialized")
-        fun hasToken(): Boolean = companionInstance?.hasToken() ?: false
-        fun logout() = companionInstance?.logout()
-        fun setSyncMode(mode: SyncMode) = companionInstance?.setSyncMode(mode)
-        fun setNetworkMode(mode: NetworkMode) = companionInstance?.setNetworkMode(mode)
-        val syncMode: StateFlow<SyncMode> get() = instance()._syncMode.asStateFlow()
-        val networkMode: StateFlow<NetworkMode> get() = instance()._networkMode.asStateFlow()
-        val syncState: StateFlow<SyncState> get() = instance()._syncState.asStateFlow()
-        val hasTokenFlow: StateFlow<Boolean> get() = instance()._hasTokenFlow.asStateFlow()
-        suspend fun calculateStorageStats(): StorageStats = instance().calculateStorageStats()
-        fun scheduleAutoSync() = companionInstance?.scheduleAutoSync()
-        suspend fun syncNow(): SyncResult = instance().syncNow()
-        fun onOAuthResult() = companionInstance?.onOAuthResult()
-    }
+    val syncMode: StateFlow<SyncMode> get() = _syncMode.asStateFlow()
+    val networkMode: StateFlow<NetworkMode> get() = _networkMode.asStateFlow()
+    val syncState: StateFlow<SyncState> get() = _syncState.asStateFlow()
+    val hasTokenFlow: StateFlow<Boolean> get() = _hasTokenFlow.asStateFlow()
 
     data class StorageStats(
         val fileCount: Int,

@@ -5,10 +5,19 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.myapplication.data.local.AnimeLocalDataSource
+import com.example.myapplication.data.local.ImageStorageRepositoryImpl
 import com.example.myapplication.data.local.LegacyMigrationRepositoryImpl
 import com.example.myapplication.data.local.MigrationManager
 import com.example.myapplication.data.local.SQLDelightDatabaseFactory
+import com.example.myapplication.data.repository.ImageStorageRepository
 import com.example.myapplication.data.repository.LegacyMigrationRepository
+import com.example.myapplication.data.local.AndroidPermissionChecker
+import com.example.myapplication.domain.IdGenerator
+import com.example.myapplication.domain.PermissionChecker
+import com.example.myapplication.domain.RealIdGenerator
+import com.example.myapplication.domain.addedit.GetAnimeForEditUseCase
+import com.example.myapplication.domain.addedit.SaveAnimeUseCase
+import com.example.myapplication.domain.addedit.UpdateCommentUseCase
 import com.example.myapplication.DropboxSyncManager
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.qualifier.named
@@ -21,6 +30,12 @@ private val Context.settingsDataStore: DataStore<Preferences> by preferencesData
 val databaseModule = module {
     single { SQLDelightDatabaseFactory(androidContext()) }
     single { AnimeLocalDataSource(get()) }
+    single<ImageStorageRepository> { ImageStorageRepositoryImpl(context = androidContext()) }
+    single<PermissionChecker> { AndroidPermissionChecker(androidContext()) }
+    single<IdGenerator> { RealIdGenerator() }
+    single { GetAnimeForEditUseCase(get()) }
+    single { SaveAnimeUseCase(get(), get(), get()) }
+    single { UpdateCommentUseCase(get()) }
     single<LegacyMigrationRepository> {
         LegacyMigrationRepositoryImpl(context = androidContext())
     }

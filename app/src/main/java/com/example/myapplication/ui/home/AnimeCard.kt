@@ -10,8 +10,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
+import com.example.myapplication.safeHaze
 import dev.chrisbanes.haze.materials.CupertinoMaterials
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,7 +26,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.style.LineBreak
@@ -36,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import androidx.compose.ui.platform.LocalContext
 import com.example.myapplication.data.models.Anime
 import com.example.myapplication.isAppInDarkTheme
 import com.example.myapplication.ui.shared.fluidClickable
@@ -48,7 +48,7 @@ import com.example.myapplication.ui.shared.theme.getRatingColor
 fun SharedTransitionScope.OneUiAnimeCard(
     anime: Anime,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    getImgPath: (String?) -> java.io.File?,
+    getImgPath: (String?) -> String?,
     getGenreName: (String) -> String,
     onClick: () -> Unit,
     onDetailsClick: () -> Unit,
@@ -103,6 +103,7 @@ fun SharedTransitionScope.OneUiAnimeCard(
                         sharedContentState = rememberSharedContentState(key = "anime_${anime.id}"),
                         animatedVisibilityScope = animatedVisibilityScope
                     )
+                    .skipToLookaheadSize()
                     .clip(RoundedCornerShape(16.dp))
                     .hazeSource(state = localHazeState)
                     .background(if (isDark) Color(0xFF2C2C34) else Color(0xFFE8E8ED)),
@@ -118,20 +119,14 @@ fun SharedTransitionScope.OneUiAnimeCard(
                     fontFamily = SnProFamily
                 )
 
-                val imgFile = remember(anime.imageFileName) { getImgPath(anime.imageFileName) }
-                if (imgFile != null) {
+                val imgPath = remember(anime.imageFileName) { getImgPath(anime.imageFileName) }
+                if (imgPath != null) {
                     val context = LocalContext.current
-                    val filePath = imgFile.absolutePath
-                    val imageRequest = remember(filePath) {
-                        ImageRequest.Builder(context)
-                            .data(imgFile)
-                            .crossfade(true)
-                            .memoryCacheKey(filePath)
-                            .diskCacheKey(filePath)
-                            .build()
-                    }
                     AsyncImage(
-                        model = imageRequest,
+                        model = ImageRequest.Builder(context)
+                            .data(imgPath)
+                            .crossfade(true)
+                            .build(),
                         contentDescription = anime.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
@@ -176,7 +171,7 @@ fun SharedTransitionScope.OneUiAnimeCard(
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(ratingChipBg)
                                 .then(
-                                    if (isDark) Modifier.hazeEffect(
+                                    if (isDark) Modifier.safeHaze(
                                         state = localHazeState,
                                         style = CupertinoMaterials.thin()
                                     )

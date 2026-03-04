@@ -39,7 +39,6 @@ import com.example.myapplication.ui.shared.gradientHighlightBorder
 import com.example.myapplication.ui.shared.inertialCollision
 import com.example.myapplication.ui.shared.rememberInertialCollisionState
 import com.example.myapplication.ui.shared.theme.*
-import java.io.File
 import androidx.compose.ui.graphics.graphicsLayer
 
 // ==========================================
@@ -158,7 +157,7 @@ fun AnimeListActionMenu(
 fun AnimeListMenuSheet(
     anime: Anime,
     confirmMode: AnimeMenuConfirmMode,
-    getImgPath: (String?) -> File?,
+    getImgPath: (String?) -> String?,
     onEvent: (AnimeMenuEvent) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -183,7 +182,7 @@ fun AnimeListMenuSheet(
     val menuState = remember(anime, confirmMode) {
         AnimeMenuState(
             title = anime.title,
-            imageUrl = getImgPath(anime.imageFileName)?.absolutePath ?: "",
+            imageUrl = getImgPath(anime.imageFileName) ?: "",
             statusText = if (anime.rating > 0) "${anime.rating}/10" else "${anime.episodes} эп.",
             confirmMode = confirmMode
         )
@@ -475,7 +474,7 @@ fun SpringBottomDialog(
     cancelText: String,
     icon: ImageVector,
     accentColor: Color,
-    imageFile: File? = null,
+    imagePath: String? = null,
     onConfirm: () -> Unit,
     onCancel: () -> Unit
 ) {
@@ -547,9 +546,9 @@ fun SpringBottomDialog(
                     modifier = Modifier.padding(28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    if (imageFile != null && imageFile.exists()) {
+                    if (imagePath != null) {
                         AsyncImage(
-                            model = imageFile,
+                            model = imagePath,
                             contentDescription = null,
                             modifier = Modifier
                                 .size(72.dp)

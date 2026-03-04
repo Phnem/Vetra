@@ -37,7 +37,6 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -63,6 +62,7 @@ private val IconUpdateColor = Color(0xFFFF9F0A)
 
 @Composable
 fun NotificationSyncOverlay(
+    syncManager: DropboxSyncManager,
     visibleState: MutableTransitionState<Boolean>,
     strings: UiStrings,
     updates: List<AnimeUpdate>,
@@ -73,7 +73,7 @@ fun NotificationSyncOverlay(
     onAcceptUpdate: (AnimeUpdate) -> Unit = {},
     onDismissUpdate: (AnimeUpdate) -> Unit = {}
 ) {
-    val syncState by DropboxSyncManager.syncState.collectAsStateWithLifecycle()
+    val syncState by syncManager.syncState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     // Вместо .luminance() < 0.5f
@@ -477,9 +477,9 @@ private fun StatusIcon(state: SyncState) {
         SyncState.DONE, SyncState.IDLE -> {
             Box(modifier = Modifier.size(36.dp), contentAlignment = Alignment.Center) {
                 Icon(
-                    painter = painterResource(id = R.drawable.gal),
+                    imageVector = SyncIcons.Check,
                     contentDescription = "Synced",
-                    tint = Color.Unspecified,
+                    tint = Color(0xFF4CAF50),
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -511,9 +511,9 @@ private fun StatusIcon(state: SyncState) {
         SyncState.AUTH_REQUIRED, SyncState.ERROR, SyncState.CONFLICT -> {
             Box(modifier = Modifier.size(36.dp), contentAlignment = Alignment.Center) {
                 Icon(
-                    painter = painterResource(id = R.drawable.krestic),
+                    imageVector = SyncIcons.Close,
                     contentDescription = "Error",
-                    tint = Color.Unspecified,
+                    tint = Color(0xFFF44336),
                     modifier = Modifier.fillMaxSize()
                 )
             }

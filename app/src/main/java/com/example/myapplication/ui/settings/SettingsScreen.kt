@@ -59,6 +59,7 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(
     navController: NavController,
     viewModel: SettingsViewModel,
+    dropboxSyncManager: DropboxSyncManager,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
@@ -256,7 +257,7 @@ fun SettingsScreen(
                         ) {
                             Box(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 4.dp)) {
                                 val lastSyncTimestamp = remember { context.getSharedPreferences("dropbox_prefs", Context.MODE_PRIVATE).getLong("last_sync_time", 0L) }
-                                val syncState by DropboxSyncManager.syncState.collectAsStateWithLifecycle()
+                                val syncState by dropboxSyncManager.syncState.collectAsStateWithLifecycle()
                                 val scope = rememberCoroutineScope()
                                 CloudSettingsSection(
                                     strings = CloudStrings(
@@ -268,8 +269,8 @@ fun SettingsScreen(
                                     ),
                                     lastSyncTime = lastSyncTimestamp,
                                     isSyncing = syncState == SyncState.SYNCING,
-                                    onSyncClick = { scope.launch { DropboxSyncManager.syncNow() } },
-                                    onLogout = { DropboxSyncManager.logout(); navController.navigateToWelcome() }
+                                    onSyncClick = { scope.launch { dropboxSyncManager.syncNow() } },
+                                    onLogout = { dropboxSyncManager.logout(); navController.navigateToWelcome() }
                                 )
                             }
                                         }

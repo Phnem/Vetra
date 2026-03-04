@@ -1,12 +1,11 @@
 package com.example.myapplication.ui.splash
 
-import android.os.Build
-import android.os.Environment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.DropboxSyncManager
 import com.example.myapplication.data.local.MigrationManager
 import com.example.myapplication.data.repository.LegacyMigrationRepository
+import com.example.myapplication.domain.PermissionChecker
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,7 +21,8 @@ sealed interface SplashState {
 class SplashViewModel(
     private val legacyMigrationRepository: LegacyMigrationRepository,
     private val migrationManager: MigrationManager,
-    private val dropboxSyncManager: DropboxSyncManager
+    private val dropboxSyncManager: DropboxSyncManager,
+    private val permissionChecker: PermissionChecker
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<SplashState>(SplashState.Loading)
@@ -35,10 +35,8 @@ class SplashViewModel(
     private fun startAppInitialization() {
         viewModelScope.launch {
             // 1. Ждем разрешения к файлам
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                while (!Environment.isExternalStorageManager()) {
-                    delay(500)
-                }
+            while (!permissionChecker.isExternalStorageManager()) {
+                delay(500)
             }
 
             // 2. Проверяем старую папку MyAnimeList

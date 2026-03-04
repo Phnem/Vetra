@@ -143,6 +143,7 @@ fun AppNavGraph(
                 HomeScreen(
                     navController = navController,
                     viewModel = homeViewModel,
+                    dropboxSyncManager = dropboxSyncManager,
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this
                 )
@@ -167,7 +168,6 @@ fun AppNavGraph(
                 AddEditScreen(
                     navController = navController,
                     viewModel = addEditViewModel,
-                    homeViewModel = homeViewModel,
                     animeId = route.animeId,
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this
@@ -178,6 +178,7 @@ fun AppNavGraph(
                 SettingsScreen(
                     navController = navController,
                     viewModel = settingsViewModel,
+                    dropboxSyncManager = dropboxSyncManager,
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this
                 )

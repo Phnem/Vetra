@@ -1,14 +1,16 @@
 package com.example.myapplication.ui.details
 
-import android.content.Context
-import android.os.Environment
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.models.Anime
-import com.example.myapplication.network.AppLanguage
 import com.example.myapplication.data.repository.AnimeRepository
+import com.example.myapplication.data.repository.ImageStorageRepository
+import com.example.myapplication.network.AppLanguage
 import com.example.myapplication.ui.navigation.DetailsRoute
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.navigation.toRoute
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,16 +18,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.stringPreferencesKey
-import java.io.File
 
 class DetailsViewModel(
     savedStateHandle: SavedStateHandle,
-    private val context: Context,
     private val repository: AnimeRepository,
-    private val settingsDataStore: DataStore<Preferences>
+    private val settingsDataStore: DataStore<Preferences>,
+    private val imageStorage: ImageStorageRepository
 ) : ViewModel() {
 
     private val animeId: String = savedStateHandle.toRoute<DetailsRoute>().animeId
@@ -49,11 +47,9 @@ class DetailsViewModel(
         }
     }
 
-    fun getImgPath(name: String?): File? {
+    fun getImgPath(name: String?): String? {
         if (name == null) return null
-        val root = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "Vetro")
-        val imgDir = File(root, "collection")
-        return File(imgDir, name)
+        return imageStorage.getImageFilePath(name)
     }
 
     private fun loadDetails(anime: Anime, language: AppLanguage) {

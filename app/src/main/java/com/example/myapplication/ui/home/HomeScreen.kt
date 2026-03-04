@@ -78,6 +78,7 @@ import org.koin.compose.koinInject
 fun HomeScreen(
     navController: NavController,
     viewModel: HomeViewModel,
+    dropboxSyncManager: DropboxSyncManager,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
@@ -205,13 +206,14 @@ fun HomeScreen(
             if (notifVisibleState.currentState || notifVisibleState.targetState) {
                 Box(modifier = Modifier.zIndex(5f).fillMaxSize()) {
                     NotificationSyncOverlay(
+                        syncManager = dropboxSyncManager,
                         visibleState = notifVisibleState,
                         strings = getStrings(currentLanguage),
                         updates = uiState.updates,
                         isCheckingUpdates = uiState.isCheckingUpdates,
                         onDismiss = { showNotificationsOverlay = false },
                         onLogout = {
-                            DropboxSyncManager.logout()
+                            dropboxSyncManager.logout()
                             navController.navigateToWelcome()
                         },
                         onCheckUpdates = {

@@ -73,6 +73,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Offset
@@ -91,6 +92,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import android.os.Build
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.data.models.AnimeUpdate
@@ -123,13 +125,22 @@ fun isAppInDarkTheme(): Boolean {
 }
 
 /** Стиль haze без подкрашивания и шума: только размытие (tint = transparent, noiseFactor = 0). */
-private val cleanHazeStyle = HazeStyle(tints = emptyList(), noiseFactor = 0f)
+private val cleanHazeStyle = HazeStyle(tints = emptyList(), noiseFactor = 0f, blurRadius = 20.dp)
 
-/** Стиль haze для панелей/меню: сильное размытие (40.dp), лёгкий шум (0.1), без tint. */
+/** Безопасный Haze: на Android 12+ (API 31) — аппаратный RenderEffect; на старых — полупрозрачный фон (без тормозящего блюра). */
+fun Modifier.safeHaze(state: HazeState, style: HazeStyle = panelGlassHazeStyle): Modifier {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        this.hazeEffect(state = state, style = style)
+    } else {
+        this.background(Color.Black.copy(alpha = 0.6f))
+    }
+}
+
+/** Стиль haze для панелей/меню: размытие 20.dp (баланс красоты и производительности), лёгкий шум (0.1), без tint. */
 internal val panelGlassHazeStyle = HazeStyle(
     tints = emptyList(),
     noiseFactor = 0.1f,
-    blurRadius = 40.dp
+    blurRadius = 20.dp
 )
 
 /** Градиентная обводка панели: белая как блик в тёмной теме, тёмная как тень в светлой. */
@@ -179,10 +190,7 @@ fun SimpGlassCard(
     Box(
         modifier = modifier
             .clip(shape)
-            .hazeEffect(
-                state = hazeState,
-                style = cleanHazeStyle
-            )
+            .safeHaze(state = hazeState, style = cleanHazeStyle)
             .border(0.5.dp, borderStroke, shape),
         contentAlignment = Alignment.Center
     ) {
@@ -257,12 +265,8 @@ fun GlassActionDock(
             .padding(top = topPadding)
             .statusBarsPadding()
             .clip(RoundedCornerShape(32.dp))
-            .hazeEffect(
-                state = hazeState,
-                style = cleanHazeStyle
-            ) {
-                alpha = effectAlpha
-            }
+            .safeHaze(state = hazeState, style = cleanHazeStyle)
+            .graphicsLayer { alpha = effectAlpha }
             .border(0.5.dp, borderColor, RoundedCornerShape(32.dp))
     ) {
         if (shineAlpha > 0f) {
@@ -363,10 +367,7 @@ fun GlassBottomNavigation(
                 .height(64.dp)
                 .wrapContentWidth()
                 .clip(RoundedCornerShape(32.dp))
-                .hazeEffect(
-                    state = hazeState,
-                    style = cleanHazeStyle
-                )
+                .safeHaze(state = hazeState, style = cleanHazeStyle)
                 .border(0.5.dp, borderStroke, RoundedCornerShape(32.dp))
         ) {
             Row(

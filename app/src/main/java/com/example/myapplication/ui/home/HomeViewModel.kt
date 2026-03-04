@@ -1,16 +1,18 @@
 package com.example.myapplication.ui.home
 
 import android.content.Context
-import android.os.Environment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.local.AnimeLocalDataSource
 import com.example.myapplication.data.models.Anime
 import com.example.myapplication.data.models.AnimeUpdate
+import com.example.myapplication.data.repository.AnimeRepository
+import com.example.myapplication.data.repository.ImageStorageRepository
 import com.example.myapplication.network.AppContentType
 import com.example.myapplication.data.models.SortOption
-import com.example.myapplication.data.repository.AnimeRepository
 import com.example.myapplication.notifications.AnimeNotifier
+import com.example.myapplication.DropboxSyncManager
+import com.example.myapplication.SyncState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,9 +24,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import com.example.myapplication.DropboxSyncManager
-import com.example.myapplication.SyncState
-import java.io.File
 import java.util.concurrent.TimeUnit
 import androidx.work.*
 import com.example.myapplication.worker.AnimeUpdateWorker
@@ -32,7 +31,9 @@ import com.example.myapplication.worker.AnimeUpdateWorker
 class HomeViewModel(
     private val repository: AnimeRepository,
     private val localDataSource: AnimeLocalDataSource,
-    private val notifier: AnimeNotifier
+    private val notifier: AnimeNotifier,
+    private val dropboxSyncManager: DropboxSyncManager,
+    private val imageStorage: ImageStorageRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -54,8 +55,6 @@ class HomeViewModel(
         initialValue = persistentListOf()
     )
 
-    private val ROOT = "Vetro"
-    private val IMG_DIR = "collection"
     private var ignoredUpdatesMap = mutableMapOf<String, Int>()
     private var hasCheckedForUpdatesThisSession = false
 
@@ -67,18 +66,11 @@ class HomeViewModel(
         }
         viewModelScope.launch {
             try {
-                DropboxSyncManager.syncState.collect { state ->
+                dropboxSyncManager.syncState.collect { state ->
                     _uiState.update { it.copy(isRestoringFromCloud = state == SyncState.SYNCING) }
                 }
             } catch (_: Exception) { }
         }
-    }
-
-    private fun getRoot(): File {
-        val d = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-        val f = File(d, ROOT)
-        if (!f.exists()) f.mkdirs()
-        return f
     }
 
     fun loadAnime() {}
@@ -147,25 +139,20 @@ class HomeViewModel(
 
     fun deleteAnime(id: String) {
         viewModelScope.launch {
-            try {
+            runCatching {
                 val anime = localDataSource.getAnimeById(id) ?: return@launch
-                val imgDir = File(getRoot(), IMG_DIR)
-                anime.imageFileName?.let { File(imgDir, it).delete() }
+                anime.imageFileName?.let { imageStorage.deleteImage(it) }
                 localDataSource.deleteAnime(id)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            }.onFailure { it.printStackTrace() }
         }
     }
 
     fun toggleFavorite(id: String) {
         viewModelScope.launch {
-            try {
+            runCatching {
                 val anime = localDataSource.getAnimeById(id) ?: return@launch
                 localDataSource.updateAnime(anime.copy(isFavorite = !anime.isFavorite))
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            }.onFailure { it.printStackTrace() }
         }
     }
 
@@ -175,7 +162,7 @@ class HomeViewModel(
         hasCheckedForUpdatesThisSession = true
         _uiState.update { it.copy(isCheckingUpdates = true) }
         viewModelScope.launch {
-            try {
+            runCatching {
                 val appContentType = AppContentType.ANIME
                 val newUpdates = mutableListOf<AnimeUpdate>()
                 localDataSource.getAllAnimeList().forEach { anime ->
@@ -194,8 +181,8 @@ class HomeViewModel(
                 if (newUpdates.isNotEmpty()) {
                     newUpdates.forEach { update -> notifier.showUpdateNotification(update) }
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            }.onFailure {
+                it.printStackTrace()
                 _uiState.update { it.copy(isCheckingUpdates = false) }
             }
         }
@@ -227,11 +214,9 @@ class HomeViewModel(
         return localDataSource.getAnimeById(id)
     }
 
-    fun getImgPath(name: String?): File? {
+    fun getImgPath(name: String?): String? {
         if (name == null) return null
-        val imgDir = File(getRoot(), IMG_DIR)
-        val file = File(imgDir, name)
-        return if (file.exists()) file else null
+        return imageStorage.getImageFilePath(name)
     }
 
     fun loadStatsAnimeList() {
