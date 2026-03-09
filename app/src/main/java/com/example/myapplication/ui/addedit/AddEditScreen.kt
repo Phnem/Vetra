@@ -4,6 +4,8 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,6 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
@@ -149,17 +152,35 @@ fun AddEditScreen(
                 }
             },
             floatingActionButton = {
-                AnimatedSaveFab(
-                    isEnabled = uiState.hasChanges && !uiState.isLoading,
-                    onClick = {
-                        performHaptic(view, "success")
-                        if (uiState.title.isNotEmpty()) {
-                            viewModel.onEvent(AddEditEvent.OnSave)
-                        } else {
-                            android.widget.Toast.makeText(ctx, "Enter title", android.widget.Toast.LENGTH_SHORT).show()
-                        }
-                    }
+                val fabAlpha by animateFloatAsState(
+                    targetValue = if (uiState.isValid && !uiState.isLoading) 1f else 0.5f,
+                    animationSpec = spring(dampingRatio = 0.7f),
+                    label = "fabAlpha"
                 )
+                Box(
+                    modifier = Modifier
+                        .inertialCollision(collisionState, index = 15, baseMultiplier = 2.5f)
+                        .graphicsLayer { alpha = fabAlpha }
+                ) {
+                    GlassIconButton(
+                        icon = Icons.Default.Check,
+                        onClick = {
+                            if (uiState.isLoading) return@GlassIconButton
+                            performHaptic(view, "success")
+                            if (uiState.isValid) {
+                                viewModel.onEvent(AddEditEvent.OnSave)
+                            } else {
+                                android.widget.Toast.makeText(ctx, "Enter title", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        hazeState = commentHazeState,
+                        size = 67.dp,
+                        iconSize = 34.dp,
+                        backgroundColor = Color.Transparent,
+                        contentDescription = "Save",
+                        tint = Color.White
+                    )
+                }
             }
         ) { innerPadding ->
             Box(

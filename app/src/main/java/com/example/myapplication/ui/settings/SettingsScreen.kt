@@ -46,9 +46,12 @@ import com.example.myapplication.network.AppLanguage
 import com.example.myapplication.utils.getStrings
 import com.example.myapplication.utils.performHaptic
 import com.example.myapplication.ui.shared.theme.*
+import com.example.myapplication.ui.shared.components.GlassIconButton
 import com.example.myapplication.ui.shared.inertialCollision
 import com.example.myapplication.ui.shared.rememberInertialCollisionState
 import com.example.myapplication.ui.navigation.navigateToWelcome
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.example.myapplication.R
 import com.example.myapplication.SyncState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -78,6 +81,7 @@ fun SettingsScreen(
 
     val strings = getStrings(uiState.language)
     val collisionState = rememberInertialCollisionState()
+    val settingsHazeState = remember { HazeState() }
 
     // Усиленный «punch»-эффект: мощнее удар, мягче пружина, чуть более упругий отскок.
     LaunchedEffect(Unit) {
@@ -99,6 +103,7 @@ fun SettingsScreen(
                     clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(32.dp))
                 )
                 .clip(RoundedCornerShape(32.dp))
+                .hazeSource(settingsHazeState)
                 .background(bg)
         ) {
             Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
@@ -127,7 +132,8 @@ fun SettingsScreen(
                         text = strings.settingsScreenTitle,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color = textC
+                        color = textC,
+                        modifier = Modifier.weight(1f)
                     )
                 }
 
@@ -325,6 +331,34 @@ fun SettingsScreen(
                         }
                     }
                 }
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 24.dp, end = 24.dp)
+                    .inertialCollision(collisionState, index = 6, baseMultiplier = 2.5f)
+            ) {
+                GlassIconButton(
+                icon = Icons.Default.Share,
+                onClick = {
+                    performHaptic(view, "light")
+                    val sendIntent = Intent().apply {
+                        action = Intent.ACTION_SEND
+                        putExtra(Intent.EXTRA_TEXT, "Check out Vetro — anime list manager: https://github.com/Phnem/Vetra")
+                        type = "text/plain"
+                    }
+                    val shareIntent = Intent.createChooser(sendIntent, null)
+                    context.startActivity(shareIntent)
+                },
+                modifier = Modifier,
+                hazeState = settingsHazeState,
+                size = 58.dp,
+                iconSize = 29.dp,
+                backgroundColor = Color.Transparent,
+                contentDescription = "Share",
+                tint = textC,
+                iconOffsetX = (-2).dp
+            )
             }
         }
     }

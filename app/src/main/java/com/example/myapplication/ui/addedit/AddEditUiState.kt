@@ -37,9 +37,9 @@ data class AddEditUiState(
         }
     
     /**
-     * Валидация формы
+     * Валидация формы. Пустое episodes трактуется как 0.
      */
     val isValid: Boolean
-        get() = title.isNotBlank() && 
-                episodes.toIntOrNull()?.let { it >= 0 } ?: false
+        get() = title.isNotBlank() &&
+                (episodes.isBlank() || (episodes.toIntOrNull()?.let { it >= 0 } ?: false))
 }

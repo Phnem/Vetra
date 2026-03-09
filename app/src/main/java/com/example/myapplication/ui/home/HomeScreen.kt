@@ -313,7 +313,25 @@ fun HomeScreen(
                                         MalistWorkspaceTopBar(
                                             strings = getStrings(currentLanguage),
                                             userAvatarPath = null,
-                                            onSaveUserAvatar = { uri -> /* TODO */ }
+                                            onSaveUserAvatar = { uri -> /* TODO */ },
+                                            onOpenSort = {
+                                                performHaptic(view, "light")
+                                                showSortOverlay = !showSortOverlay
+                                                if (showSortOverlay) {
+                                                    showNotificationsOverlay = false
+                                                    viewModel.setGenreFilterVisible(false)
+                                                }
+                                            },
+                                            onOpenNotifications = {
+                                                performHaptic(view, "light")
+                                                showNotificationsOverlay = !showNotificationsOverlay
+                                                if (showNotificationsOverlay) {
+                                                    showSortOverlay = false
+                                                    viewModel.setGenreFilterVisible(false)
+                                                }
+                                            },
+                                            filterSelectedTags = uiState.filterTags,
+                                            updatesCount = uiState.updates.size
                                         )
                                     }
 
@@ -381,7 +399,7 @@ fun HomeScreen(
                         }
                     }
                     CloudRestoreIndicator(
-                        isRestoring = uiState.isRestoringFromCloud,
+                        isRestoring = uiState.isRestoringFromCloud && list.isEmpty(),
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }

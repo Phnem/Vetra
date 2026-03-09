@@ -103,6 +103,7 @@ import com.example.myapplication.network.AppLanguage
 import com.example.myapplication.ui.navigation.navigateToAddEdit
 import com.example.myapplication.ui.navigation.navigateToSettings
 import com.example.myapplication.ui.shared.components.GenreSelectionSection
+import com.example.myapplication.ui.shared.components.GlassIconButton
 import com.example.myapplication.ui.shared.fluidClickable
 import com.example.myapplication.ui.shared.gradientHighlightBorder
 import com.example.myapplication.ui.shared.theme.BrandBlue
@@ -484,25 +485,22 @@ fun GlassBottomNavigation(
             }
         }
 
-        SimpGlassCard(
-            hazeState = hazeState,
-            shape = CircleShape,
+        GlassIconButton(
+            icon = Icons.Default.Search,
+            onClick = {
+                performHaptic(view, "light")
+                onSearchClick()
+            },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 24.dp)
-                .size(64.dp)
-                .clickable {
-                    performHaptic(view, "light")
-                    onSearchClick()
-                }
-        ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = if (isSearchActive) BrandBlue else currentThemeColor,
-                modifier = Modifier.size(32.dp)
-            )
-        }
+                .padding(end = 24.dp),
+            size = 64.dp,
+            iconSize = 32.dp,
+            hazeState = hazeState,
+            backgroundColor = Color.Transparent,
+            contentDescription = "Search",
+            tint = if (isSearchActive) BrandBlue else currentThemeColor
+        )
     }
 }
 

@@ -49,24 +49,20 @@ import org.koin.compose.koinInject
 // ==========================================
 @Composable
 fun AnimatedSaveFab(isEnabled: Boolean, onClick: () -> Unit) {
-    val scale by animateFloatAsState(
-        targetValue = if (isEnabled) 1f else 0f,
+    val alpha by animateFloatAsState(
+        targetValue = if (isEnabled) 1f else 0.5f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "fabScale"
+        label = "fabAlpha"
     )
-    // Кнопка всегда в дереве — Scaffold не дергает innerPadding (Zero Layout Shift для Shared Transition).
+    // Кнопка всегда в дереве и кликабельна — Scaffold не дергает innerPadding (Zero Layout Shift для Shared Transition).
     FloatingActionButton(
-        onClick = { if (isEnabled) onClick() },
+        onClick = onClick,
         shape = CircleShape,
         containerColor = BrandBlue,
         contentColor = Color.White,
         modifier = Modifier
             .size(56.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-                alpha = if (scale < 0.05f) 0f else 1f
-            }
+            .graphicsLayer { this.alpha = alpha }
     ) {
         Icon(Icons.Default.Check, contentDescription = "Save")
     }
