@@ -24,7 +24,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "v3.0.6-Beta"
+        versionName = "v3.0.7-Beta"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "GITHUB_OWNER", "\"Phnem\"")
