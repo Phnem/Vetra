@@ -94,22 +94,68 @@ class SettingsViewModel(
                 )
                 .fold(
                     onSuccess = { release ->
-                        if (release != null && isNewerVersion(localVer, release.tagName)) {
+                        if (release != null) {
                             _uiState.update {
                                 it.copy(
-                                    updateStatus = AppUpdateStatus.UPDATE_AVAILABLE,
+                                    updateStatus = if (isNewerVersion(localVer, release.tagName)) {
+                                        AppUpdateStatus.UPDATE_AVAILABLE
+                                    } else {
+                                        AppUpdateStatus.NO_UPDATE
+                                    },
                                     latestVersion = release.tagName,
-                                    latestDownloadUrl = release.downloadUrl
+                                    latestDownloadUrl = release.downloadUrl,
+                                    updateChangelogMarkdown = release.body
                                 )
                             }
                         } else {
-                            _uiState.update { it.copy(updateStatus = AppUpdateStatus.NO_UPDATE) }
+                            _uiState.update {
+                                it.copy(
+                                    updateStatus = AppUpdateStatus.NO_UPDATE,
+                                    updateChangelogMarkdown = null
+                                )
+                            }
                         }
                     },
                     onFailure = {
                         _uiState.update { it.copy(updateStatus = AppUpdateStatus.ERROR) }
                     }
                 )
+        }
+    }
+
+    fun loadUpdateChangelog() {
+        if (_uiState.value.isUpdateChangelogLoading) return
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isUpdateChangelogLoading = true,
+                    updateChangelogError = null
+                )
+            }
+            repository.checkGithubUpdate(
+                owner = BuildConfig.GITHUB_OWNER,
+                repo = BuildConfig.GITHUB_REPO
+            ).fold(
+                onSuccess = { release ->
+                    _uiState.update {
+                        it.copy(
+                            isUpdateChangelogLoading = false,
+                            updateChangelogMarkdown = release?.body,
+                            updateChangelogError = null,
+                            latestVersion = release?.tagName ?: it.latestVersion,
+                            latestDownloadUrl = release?.downloadUrl ?: it.latestDownloadUrl
+                        )
+                    }
+                },
+                onFailure = { e ->
+                    _uiState.update {
+                        it.copy(
+                            isUpdateChangelogLoading = false,
+                            updateChangelogError = e.message ?: "Failed to load changelog"
+                        )
+                    }
+                }
+            )
         }
     }
 

@@ -290,6 +290,7 @@ fun HomeScreen(
                 Box(modifier = Modifier.fillMaxSize().weight(1f).background(bgColor)) {
                     val list by viewModel.animeListFlow.collectAsStateWithLifecycle()
                     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+                    val apiSearchModels by viewModel.apiSearchWithStatus.collectAsStateWithLifecycle()
 
                     CompositionLocalProvider(LocalOverscrollFactory provides null) {
                         Box(
@@ -368,7 +369,7 @@ fun HomeScreen(
                                                         color = MaterialTheme.colorScheme.onSurface
                                                     )
                                                     Text(
-                                                        text = "${uiState.apiSearchResults.size} ${strings.viaApi}",
+                                                        text = "${apiSearchModels.size} ${strings.viaApi}",
                                                         style = MaterialTheme.typography.bodySmall.copy(
                                                             fontFamily = SnProFamily
                                                         ),
@@ -403,16 +404,16 @@ fun HomeScreen(
                                             }
                                         }
                                         items(
-                                            items = uiState.apiSearchResults,
-                                            key = { "${it.source}_${it.externalId ?: it.title}" },
+                                            items = apiSearchModels,
+                                            key = { "${it.result.source}_${it.result.externalId ?: it.result.title}" },
                                             contentType = { "api_card" }
-                                        ) { result ->
-                                            val isAdded = viewModel.isAddedFromApi(result)
+                                        ) { uiModel ->
+                                            val result = uiModel.result
                                             val key = "${result.source}_${result.externalId ?: result.title}"
                                             val isLoading = uiState.addingFromApiId == key
                                             ApiSearchResultCard(
                                                 result = result,
-                                                isAdded = isAdded,
+                                                isAdded = uiModel.isAdded,
                                                 isLoading = isLoading,
                                                 addLabel = strings.addButton,
                                                 addedLabel = strings.addedButton,
@@ -521,7 +522,7 @@ fun HomeScreen(
                                                             color = MaterialTheme.colorScheme.onSurface
                                                         )
                                                         Text(
-                                                            text = "${uiState.apiSearchResults.size} ${strings.viaApi}",
+                                                            text = "${apiSearchModels.size} ${strings.viaApi}",
                                                             style = MaterialTheme.typography.bodySmall.copy(
                                                                 fontFamily = SnProFamily
                                                             ),
@@ -556,16 +557,16 @@ fun HomeScreen(
                                                 }
                                             }
                                             items(
-                                                items = uiState.apiSearchResults,
-                                                key = { "${it.source}_${it.externalId ?: it.title}" },
+                                                items = apiSearchModels,
+                                                key = { "${it.result.source}_${it.result.externalId ?: it.result.title}" },
                                                 contentType = { "api_card" }
-                                            ) { result ->
-                                                val isAdded = viewModel.isAddedFromApi(result)
+                                            ) { uiModel ->
+                                                val result = uiModel.result
                                                 val key = "${result.source}_${result.externalId ?: result.title}"
                                                 val isLoading = uiState.addingFromApiId == key
                                                 ApiSearchResultCard(
                                                     result = result,
-                                                    isAdded = isAdded,
+                                                    isAdded = uiModel.isAdded,
                                                     isLoading = isLoading,
                                                     addLabel = strings.addButton,
                                                     addedLabel = strings.addedButton,

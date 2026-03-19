@@ -16,5 +16,8 @@ data class SettingsUiState(
     val currentVersion: String = "",
     val latestVersion: String? = null,
     val latestDownloadUrl: String? = null,
+    val updateChangelogMarkdown: String? = null,
+    val isUpdateChangelogLoading: Boolean = false,
+    val updateChangelogError: String? = null,
     val isLoading: Boolean = false
 )

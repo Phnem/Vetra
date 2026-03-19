@@ -263,7 +263,10 @@ fun ApiSearchResultCard(
                                     fontSize = 13.sp
                                 ),
                                 color = if (state.isAdded) MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onPrimary,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }

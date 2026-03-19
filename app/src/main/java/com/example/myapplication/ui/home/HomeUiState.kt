@@ -1,11 +1,18 @@
 package com.example.myapplication.ui.home
 
+import androidx.compose.runtime.Immutable
 import com.example.myapplication.data.models.Anime
 import com.example.myapplication.data.models.AnimeUpdate
 import com.example.myapplication.data.models.SortOption
 import com.example.myapplication.network.ApiSearchResult
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
+
+@Immutable
+data class ApiSearchUiModel(
+    val result: ApiSearchResult,
+    val isAdded: Boolean
+)
 
 /**
  * Immutable UI state для HomeScreen.

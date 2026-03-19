@@ -26,10 +26,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import java.util.concurrent.TimeUnit
@@ -38,6 +39,10 @@ import com.example.myapplication.worker.AnimeUpdateWorker
 
 private val KEY_CONTENT_TYPE = stringPreferencesKey("contentType")
 private val KEY_LANG = stringPreferencesKey("lang")
+private val SEARCH_NORMALIZE_REGEX = Regex("[^\\p{L}\\p{N}]")
+
+private fun String.normalizeForSearch(): String =
+    lowercase().replace(SEARCH_NORMALIZE_REGEX, "")
 
 class HomeViewModel(
     private val repository: AnimeRepository,
@@ -57,8 +62,20 @@ class HomeViewModel(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    /** Реактивный список (ImmutableList для Zero Jank); при reconnectDatabase() переподписывается на новое подключение (hot swap).
-     * WhileSubscribed(5000): данные живут в памяти 5 сек после отписки — при возврате с AddEdit список есть в кадре 0, Shared Transition не сбрасывается. */
+    private val settingsContentType: StateFlow<AppContentType> = settingsDataStore.data
+        .map { prefs ->
+            runCatching { AppContentType.valueOf(prefs[KEY_CONTENT_TYPE] ?: "ANIME") }
+                .getOrElse { AppContentType.ANIME }
+        }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AppContentType.ANIME)
+
+    private val settingsLanguage: StateFlow<AppLanguage> = settingsDataStore.data
+        .map { prefs ->
+            runCatching { AppLanguage.valueOf(prefs[KEY_LANG] ?: "EN") }
+                .getOrElse { AppLanguage.EN }
+        }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AppLanguage.EN)
+
     val animeListFlow: StateFlow<kotlinx.collections.immutable.ImmutableList<Anime>> = repository.observeAnimeList(
         searchQuery = _uiState.map { it.searchQuery },
         sortOption = _uiState.map { it.sortOption },
@@ -69,6 +86,18 @@ class HomeViewModel(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = persistentListOf()
     )
+
+    val apiSearchWithStatus: StateFlow<kotlinx.collections.immutable.ImmutableList<ApiSearchUiModel>> = combine(
+        _uiState.map { it.apiSearchResults }.distinctUntilChanged(),
+        animeListFlow
+    ) { apiResults, localList ->
+        apiResults.map { result ->
+            ApiSearchUiModel(
+                result = result,
+                isAdded = isAddedInMemory(result, localList)
+            )
+        }.toImmutableList()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), persistentListOf())
 
     private var ignoredUpdatesMap = mutableMapOf<String, Int>()
     private var hasCheckedForUpdatesThisSession = false
@@ -134,12 +163,8 @@ class HomeViewModel(
             kotlinx.coroutines.delay(400)
             if (_uiState.value.searchQuery.trim() != trimmed) return@launch
             _uiState.update { it.copy(apiSearchLoading = true, apiSearchError = null) }
-            val contentType = runCatching {
-                AppContentType.valueOf(settingsDataStore.data.first()[KEY_CONTENT_TYPE] ?: "ANIME")
-            }.getOrElse { AppContentType.ANIME }
-            val language = runCatching {
-                AppLanguage.valueOf(settingsDataStore.data.first()[KEY_LANG] ?: "EN")
-            }.getOrElse { AppLanguage.EN }
+            val contentType = settingsContentType.value
+            val language = settingsLanguage.value
             repository.searchApi(trimmed, contentType, language)
                 .fold(
                     onSuccess = { results ->
@@ -167,12 +192,14 @@ class HomeViewModel(
         }
     }
 
-    fun isAddedFromApi(result: ApiSearchResult): Boolean {
-        val localList = localDataSource.getAllAnimeList()
-        val q = result.title.lowercase().replace(Regex("[^\\p{L}\\p{N}]"), "")
+    private fun isAddedInMemory(
+        result: ApiSearchResult,
+        localList: List<Anime>
+    ): Boolean {
+        val q = result.title.normalizeForSearch()
         if (q.isEmpty()) return false
         return localList.any { anime ->
-            val t = anime.title.lowercase().replace(Regex("[^\\p{L}\\p{N}]"), "")
+            val t = anime.title.normalizeForSearch()
             t.isNotEmpty() && (t.contains(q) || q.contains(t))
         }
     }

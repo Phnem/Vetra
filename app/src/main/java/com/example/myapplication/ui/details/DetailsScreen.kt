@@ -37,9 +37,13 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.example.myapplication.data.models.Anime
+import com.example.myapplication.safeHaze
 import com.example.myapplication.isAppInDarkTheme
 import com.example.myapplication.network.AppLanguage
 import com.example.myapplication.ui.shared.theme.*
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.hazeSource
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -203,6 +207,15 @@ private fun DetailsBody(
     val details = (uiState as? DetailsUiState.Success)?.details
     val glassBg = Color.Black.copy(alpha = if (isDark) 0.55f else 0.45f)
     val chipBg = Color.Black.copy(alpha = if (isDark) 0.50f else 0.40f)
+    val hazeState = remember { HazeState() }
+    // Более "матовый" haze: меньше шума и немного меньше blur, чем дефолтные panel-стили.
+    val matteHazeStyle = remember {
+        HazeStyle(
+            tints = emptyList(),
+            noiseFactor = 0.05f,
+            blurRadius = 18.dp
+        )
+    }
 
     var descriptionExpanded by remember { mutableStateOf(false) }
 
@@ -217,13 +230,16 @@ private fun DetailsBody(
                     .build(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource(state = hazeState)
             )
         } else {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(if (isDark) Color(0xFF1A1A2E) else Color(0xFFD8D8E0))
+                    .hazeSource(state = hazeState)
             )
         }
 
@@ -231,6 +247,7 @@ private fun DetailsBody(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = if (isDark) 0.25f else 0.10f))
+                .hazeSource(state = hazeState)
         )
 
         Column(
@@ -267,6 +284,7 @@ private fun DetailsBody(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .clip(RoundedCornerShape(24.dp))
+                    .safeHaze(state = hazeState, style = matteHazeStyle)
                     .background(glassBg)
                     .padding(20.dp)
             ) {
@@ -375,6 +393,7 @@ private fun DetailsBody(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
                             .clip(RoundedCornerShape(24.dp))
+                            .safeHaze(state = hazeState, style = matteHazeStyle)
                             .background(glassBg)
                             .padding(24.dp),
                         contentAlignment = Alignment.Center
@@ -403,6 +422,7 @@ private fun DetailsBody(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
                             .clip(RoundedCornerShape(24.dp))
+                            .safeHaze(state = hazeState, style = matteHazeStyle)
                             .background(BrandRed.copy(alpha = 0.35f))
                             .padding(20.dp),
                         contentAlignment = Alignment.Center
@@ -434,6 +454,7 @@ private fun DetailsBody(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
                                 .clip(RoundedCornerShape(24.dp))
+                                .safeHaze(state = hazeState, style = matteHazeStyle)
                                 .background(glassBg)
                                 .clickable { descriptionExpanded = !descriptionExpanded }
                                 .padding(20.dp)

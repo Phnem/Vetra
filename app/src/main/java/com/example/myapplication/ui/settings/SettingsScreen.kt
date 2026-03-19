@@ -85,6 +85,7 @@ fun SettingsScreen(
     val strings = getStrings(uiState.language)
     var showCloudSheet by remember { mutableStateOf(false) }
     var showContactSheet by remember { mutableStateOf(false) }
+    var showUpdateChangelogSheet by remember { mutableStateOf(false) }
     val tiles = rememberSettingsTiles(
         uiState = uiState,
         strings = strings,
@@ -96,13 +97,14 @@ fun SettingsScreen(
     val collisionState = rememberInertialCollisionState()
     val settingsHazeState = remember { HazeState() }
 
-    BackHandler(enabled = showCloudSheet || showContactSheet) {
+    BackHandler(enabled = showCloudSheet || showContactSheet || showUpdateChangelogSheet) {
         showCloudSheet = false
         showContactSheet = false
+        showUpdateChangelogSheet = false
     }
 
     val blurRadius by animateDpAsState(
-        targetValue = if (showCloudSheet || showContactSheet) 16.dp else 0.dp,
+        targetValue = if (showCloudSheet || showContactSheet || showUpdateChangelogSheet) 16.dp else 0.dp,
         animationSpec = tween(300),
         label = "backgroundBlur"
     )
@@ -198,71 +200,97 @@ fun SettingsScreen(
                                         updateState is UpdateTileState.Error
                                     BaseTile(
                                         tile = tile,
-                                        modifier = Modifier.clickable(
-                                            enabled = isUpdateClickable,
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null
-                                        ) {
-                                            when (updateState) {
-                                                is UpdateTileState.Idle, is UpdateTileState.Error -> {
-                                                    performHaptic(view, "light")
-                                                    viewModel.checkAppUpdate(context)
-                                                }
-                                                is UpdateTileState.UpdateAvailable -> {
-                                                    performHaptic(view, "light")
-                                                    uiState.latestDownloadUrl?.let { url ->
-                                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                                                    }
-                                                }
-                                                else -> {}
-                                            }
-                                        }
+                                        modifier = Modifier
                                     ) {
                                         Column(modifier = Modifier.fillMaxSize()) {
-                                            Box(
+                                            Column(
                                                 modifier = Modifier
-                                                    .size(40.dp)
-                                                    .clip(RoundedCornerShape(10.dp))
-                                                    .background(tile.accentColor.copy(alpha = 0.2f)),
-                                                contentAlignment = Alignment.Center
+                                                    .fillMaxWidth()
+                                                    .clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null
+                                                    ) {
+                                                        performHaptic(view, "light")
+                                                        showUpdateChangelogSheet = true
+                                                        if (uiState.updateChangelogMarkdown.isNullOrBlank() && !uiState.isUpdateChangelogLoading) {
+                                                            viewModel.loadUpdateChangelog()
+                                                        }
+                                                    }
                                             ) {
-                                                Icon(
-                                                    tile.icon,
-                                                    contentDescription = null,
-                                                    tint = tile.accentColor,
-                                                    modifier = Modifier.size(22.dp)
-                                                )
-                                            }
-                                            Spacer(Modifier.height(8.dp))
-                                            Text(
-                                                text = tile.title,
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                fontFamily = SnProFamily,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            tile.subtitle?.let {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(40.dp)
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                        .background(tile.accentColor.copy(alpha = 0.2f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        tile.icon,
+                                                        contentDescription = null,
+                                                        tint = tile.accentColor,
+                                                        modifier = Modifier.size(22.dp)
+                                                    )
+                                                }
+                                                Spacer(Modifier.height(8.dp))
                                                 Text(
-                                                    text = it,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    text = tile.title,
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = MaterialTheme.colorScheme.onSurface,
                                                     fontFamily = SnProFamily,
-                                                    modifier = Modifier.padding(top = 2.dp),
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis
                                                 )
+                                                tile.subtitle?.let {
+                                                    Text(
+                                                        text = it,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        fontFamily = SnProFamily,
+                                                        modifier = Modifier.padding(top = 2.dp),
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
                                             }
                                             Spacer(Modifier.weight(1f))
-                                            UpdateTile(
-                                                state = updateState,
-                                                checkButtonText = strings.checkButtonText,
-                                                checkingText = strings.updateTileChecking,
-                                                availableText = strings.updateTileAvailable,
-                                                upToDateText = strings.updateTileUpToDate,
-                                                versionLabel = strings.updateTileVersionLabel
-                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable(
+                                                        enabled = isUpdateClickable,
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null
+                                                    ) {
+                                                        when (updateState) {
+                                                            is UpdateTileState.Idle, is UpdateTileState.Error -> {
+                                                                performHaptic(view, "light")
+                                                                viewModel.checkAppUpdate(context)
+                                                            }
+                                                            is UpdateTileState.UpdateAvailable -> {
+                                                                performHaptic(view, "light")
+                                                                uiState.latestDownloadUrl?.let { url ->
+                                                                    context.startActivity(
+                                                                        Intent(
+                                                                            Intent.ACTION_VIEW,
+                                                                            Uri.parse(url)
+                                                                        )
+                                                                    )
+                                                                }
+                                                            }
+                                                            else -> {}
+                                                        }
+                                                    }
+                                            ) {
+                                                UpdateTile(
+                                                    state = updateState,
+                                                    checkButtonText = strings.checkButtonText,
+                                                    checkingText = strings.updateTileChecking,
+                                                    availableText = strings.updateTileAvailable,
+                                                    upToDateText = strings.updateTileUpToDate,
+                                                    versionLabel = strings.updateTileVersionLabel
+                                                )
+                                            }
                                         }
                                     }
                                 } else {
@@ -327,10 +355,11 @@ fun SettingsScreen(
     var lastSheetKey by remember { mutableStateOf("card_cloud") }
     if (showCloudSheet) lastSheetKey = "card_cloud"
     if (showContactSheet) lastSheetKey = "card_contact"
+    if (showUpdateChangelogSheet) lastSheetKey = "card_update_changelog"
 
     AnimatedVisibility(
         modifier = Modifier.fillMaxSize(),
-        visible = showCloudSheet || showContactSheet,
+        visible = showCloudSheet || showContactSheet || showUpdateChangelogSheet,
         enter = fadeIn(animationSpec = tween(300)),
         exit = fadeOut(animationSpec = tween(250))
     ) {
@@ -355,6 +384,7 @@ fun SettingsScreen(
                         ) {
                             showCloudSheet = false
                             showContactSheet = false
+                            showUpdateChangelogSheet = false
                         }
                 )
                 Box(
@@ -378,6 +408,11 @@ fun SettingsScreen(
                         )
                         "card_contact" -> ContactSheet(
                             onDismiss = { showContactSheet = false },
+                            sharedModifier = sharedModifier
+                        )
+                        "card_update_changelog" -> UpdateChangelogSheet(
+                            viewModel = viewModel,
+                            onDismiss = { showUpdateChangelogSheet = false },
                             sharedModifier = sharedModifier
                         )
                     }

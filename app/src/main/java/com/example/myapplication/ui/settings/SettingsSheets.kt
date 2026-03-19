@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -40,6 +42,9 @@ import com.example.myapplication.ui.shared.theme.SnProFamily
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
+
+import com.mikepenz.markdown.m3.Markdown
+import com.mikepenz.markdown.m3.markdownTypography
 
 @Composable
 fun CloudSettingsSheet(
@@ -170,6 +175,89 @@ fun ContactSheet(
                     onDismiss()
                 },
                 modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+fun UpdateChangelogSheet(
+    viewModel: SettingsViewModel,
+    onDismiss: () -> Unit,
+    sharedModifier: Modifier = Modifier
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val strings = getStrings(uiState.language)
+    val changelog = uiState.updateChangelogMarkdown
+
+    val uriHandler = LocalUriHandler.current
+
+    Column(
+        modifier = sharedModifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Text(
+                text = "Changelog",
+                style = MaterialTheme.typography.titleLarge,
+                fontFamily = SnProFamily,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        if (uiState.isUpdateChangelogLoading) {
+            Box(modifier = Modifier.fillMaxWidth().padding(top = 24.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (uiState.updateChangelogError != null) {
+            Text(
+                text = uiState.updateChangelogError ?: "",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        } else if (!changelog.isNullOrBlank()) {
+            CompositionLocalProvider(LocalUriHandler provides uriHandler) {
+                Markdown(
+                    content = changelog,
+                    typography = markdownTypography(
+                        h1 = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        h2 = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        h3 = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                        h4 = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        h5 = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                        h6 = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                        text = MaterialTheme.typography.bodySmall,
+                        paragraph = MaterialTheme.typography.bodySmall,
+                        bullet = MaterialTheme.typography.bodySmall,
+                        ordered = MaterialTheme.typography.bodySmall,
+                        list = MaterialTheme.typography.bodySmall
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        } else {
+            Text(
+                text = "Changelog is empty",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 16.dp)
             )
         }
     }

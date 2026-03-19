@@ -24,7 +24,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "v3.1.1-alpha"
+        versionName = "v3.1.2-Beta"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "GITHUB_OWNER", "\"Phnem\"")
@@ -51,6 +51,16 @@ kotlin {
             "-Xcontext-receivers",
             "-opt-in=dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi"
         )
+    }
+}
+
+configurations.all {
+    resolutionStrategy {
+        // Some libraries may bring Kotlin stdlib 2.x with a higher version.
+        // This project uses Kotlin 2.1.0, so we force stdlib artifacts to match it.
+        force("org.jetbrains.kotlin:kotlin-stdlib:2.1.0")
+        force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.1.0")
+        force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.0")
     }
 }
 
@@ -113,6 +123,11 @@ dependencies {
     // 11. Apollo (core:network; по умолчанию Apollo 4 использует OkHttp на Android)
     implementation(project(":core:network"))
     implementation(libs.apollo.runtime)
+
+    // 12. Markdown renderer (GitHub changelog)
+    implementation(libs.markdown.renderer)
+    implementation(libs.markdown.renderer.m3)
+    implementation(libs.markdown.renderer.coil3)
 
     // Test
     testImplementation(libs.junit)
