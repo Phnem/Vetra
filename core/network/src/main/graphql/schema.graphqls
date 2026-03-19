@@ -26,6 +26,13 @@ type Media {
   averageScore: Int
   genres: [String]
   coverImage: MediaCoverImage
+  startDate: FuzzyDate
+}
+
+type FuzzyDate {
+  year: Int
+  month: Int
+  day: Int
 }
 
 type MediaCoverImage {

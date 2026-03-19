@@ -97,7 +97,8 @@ class ShikimoriRemoteDataSource(
             genres = genres?.mapNotNull { it.russian ?: it.name } ?: emptyList(),
             rating = score?.toFloatOrNull()?.toInt(),
             posterUrl = posterUrl,
-            source = "Shikimori"
+            source = "Shikimori",
+            airedOn = airedOn
         )
     }
 

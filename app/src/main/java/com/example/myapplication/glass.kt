@@ -108,8 +108,6 @@ import com.example.myapplication.ui.shared.fluidClickable
 import com.example.myapplication.ui.shared.gradientHighlightBorder
 import com.example.myapplication.ui.shared.theme.BrandBlue
 import com.example.myapplication.ui.shared.theme.BrandRed
-import com.example.myapplication.ui.shared.theme.ExpressiveOnPrimary
-import com.example.myapplication.ui.shared.theme.ExpressivePrimary
 import com.example.myapplication.ui.shared.theme.SnProFamily
 import com.example.myapplication.ui.shared.CollisionDirection
 import com.example.myapplication.ui.shared.inertialCollision
@@ -1042,8 +1040,8 @@ fun GenreFilterOverlay(
                                 .height(52.dp),
                             shape = RoundedCornerShape(24.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = ExpressivePrimary,
-                                contentColor = ExpressiveOnPrimary
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
                             ),
                             border = null
                         ) {

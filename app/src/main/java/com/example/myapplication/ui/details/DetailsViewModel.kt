@@ -52,6 +52,12 @@ class DetailsViewModel(
         return imageStorage.getImageFilePath(name)
     }
 
+    fun toggleFavorite() {
+        viewModelScope.launch {
+            repository.toggleFavorite(animeId)?.let { _currentAnime.value = it }
+        }
+    }
+
     private fun loadDetails(anime: Anime, language: AppLanguage) {
         viewModelScope.launch {
             _uiState.value = DetailsUiState.Loading

@@ -15,7 +15,8 @@ data class ShikimoriSearchItemDto(
     val score: String? = null,
     val description: String? = null,
     val image: ShikimoriImageDto? = null,
-    val genres: List<ShikimoriGenreDto>? = null
+    val genres: List<ShikimoriGenreDto>? = null,
+    @SerialName("aired_on") val airedOn: String? = null
 )
 
 @Serializable

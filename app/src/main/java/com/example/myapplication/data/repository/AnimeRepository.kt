@@ -72,6 +72,13 @@ class AnimeRepository(
 
     fun getAnimeById(id: String): Anime? = localDataSource.getAnimeById(id)
 
+    suspend fun toggleFavorite(id: String): Anime? {
+        val anime = getAnimeById(id) ?: return null
+        val updated = anime.copy(isFavorite = !anime.isFavorite)
+        localDataSource.updateAnime(updated)
+        return updated
+    }
+
     suspend fun fetchDetails(title: String, language: AppLanguage): Result<AnimeDetails?> {
         return apiService.fetchDetails(title, language)
     }

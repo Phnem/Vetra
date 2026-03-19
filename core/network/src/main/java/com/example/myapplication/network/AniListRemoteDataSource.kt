@@ -30,6 +30,15 @@ class AniListRemoteDataSource(
             val genres = media.genres?.filterNotNull() ?: emptyList()
             val rating = media.averageScore
 
+            val startDate = media.startDate
+            val airedOn = if (startDate?.year != null) {
+                buildString {
+                    append(startDate.year)
+                    if (startDate.month != null) append("-${startDate.month.toString().padStart(2, '0')}")
+                    if (startDate.day != null) append("-${startDate.day.toString().padStart(2, '0')}")
+                }
+            } else null
+
             AnimeDetails(
                 title = romaji.ifEmpty { english }.ifEmpty { query },
                 altTitle = if (english.isNotEmpty() && english != romaji) english else null,
@@ -42,7 +51,8 @@ class AniListRemoteDataSource(
                 genres = genres,
                 rating = rating,
                 posterUrl = null,
-                source = "AniList"
+                source = "AniList",
+                airedOn = airedOn
             )
         }
     }

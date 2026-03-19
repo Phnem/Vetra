@@ -14,5 +14,10 @@ query SearchMedia($q: String) {
     }
     averageScore
     genres
+    startDate {
+      year
+      month
+      day
+    }
   }
 }

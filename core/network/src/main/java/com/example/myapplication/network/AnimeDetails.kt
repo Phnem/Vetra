@@ -12,5 +12,6 @@ data class AnimeDetails(
     val genres: List<String>,
     val rating: Int?,
     val posterUrl: String?,
-    val source: String
+    val source: String,
+    val airedOn: String? = null
 )

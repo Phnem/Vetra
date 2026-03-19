@@ -6,10 +6,11 @@ val BrandBlue = Color(0xFF007AFF)
 val BrandBlueSoft = Color(0xFF5AC8FA)
 val BrandRed = Color(0xFFFF3B30)
 
-// M3 Expressive Contrast — насыщенные акцентные цвета (fallback при выключенном Monet)
-val ExpressivePrimary = Color(0xFFFF6D00)
-val ExpressiveOnPrimary = Color(0xFF1F1F1F)
-val ExpressivePrimaryPressed = Color(0xFFE65100)
+// M3 Accent — серо-фиолетовый (mauve), как у FilledTonalButton / secondaryContainer
+val AccentMauveDark = Color(0xFF4A4458)
+val AccentOnMauveDark = Color(0xFFE8DEF8)
+val AccentMauveLight = Color(0xFFE8DEF8)
+val AccentOnMauveLight = Color(0xFF1D192B)
 
 // Updated Rating Colors
 val RateColor1 = Color(0xFFFF3B30) // Red

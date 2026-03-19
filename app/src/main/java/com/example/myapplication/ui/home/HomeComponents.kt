@@ -807,8 +807,8 @@ fun StatsOverlay(
                                 modifier = Modifier.height(48.dp),
                                 shape = RoundedCornerShape(24.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = ExpressivePrimary,
-                                    contentColor = ExpressiveOnPrimary
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
                                 ),
                                 border = null
                             ) {
