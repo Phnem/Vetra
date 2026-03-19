@@ -14,6 +14,7 @@ data class SettingsUiState(
     val contentType: AppContentType = AppContentType.ANIME,
     val updateStatus: AppUpdateStatus = AppUpdateStatus.IDLE,
     val currentVersion: String = "",
+    val latestVersion: String? = null,
     val latestDownloadUrl: String? = null,
     val isLoading: Boolean = false
 )

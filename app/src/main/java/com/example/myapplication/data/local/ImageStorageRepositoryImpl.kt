@@ -4,6 +4,9 @@ import android.content.Context
 import android.net.Uri
 import android.os.Environment
 import com.example.myapplication.data.repository.ImageStorageRepository
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsBytes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -13,7 +16,8 @@ private const val ROOT = "Vetro"
 private const val IMG_DIR = "collection"
 
 class ImageStorageRepositoryImpl(
-    private val context: Context
+    private val context: Context,
+    private val httpClient: HttpClient
 ) : ImageStorageRepository {
 
     private fun getImgDir(): File {
@@ -49,5 +53,15 @@ class ImageStorageRepositoryImpl(
     override fun deleteImage(fileName: String): Boolean {
         val file = File(getImgDir(), fileName)
         return file.exists() && file.delete()
+    }
+
+    override suspend fun saveImageFromUrl(url: String, animeId: String): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            if (!url.startsWith("http")) error("Invalid URL: $url")
+            val name = "img_${animeId}_${System.currentTimeMillis()}.jpg"
+            val bytes = httpClient.get(url).bodyAsBytes()
+            File(getImgDir(), name).writeBytes(bytes)
+            name
+        }
     }
 }

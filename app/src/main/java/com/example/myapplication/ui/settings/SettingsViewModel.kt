@@ -1,6 +1,8 @@
 package com.example.myapplication.ui.settings
 
 import android.content.Context
+import android.content.Intent
+import androidx.core.content.FileProvider
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -13,6 +15,7 @@ import com.example.myapplication.data.models.AppTheme
 import com.example.myapplication.data.models.AppUpdateStatus
 import com.example.myapplication.data.models.SemanticVersion
 import com.example.myapplication.BuildConfig
+import com.example.myapplication.data.local.SQLDelightDatabaseFactory
 import com.example.myapplication.data.repository.AnimeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +23,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import java.io.File
 
 private val KEY_LANG = stringPreferencesKey("lang")
 private val KEY_THEME = stringPreferencesKey("theme")
@@ -27,7 +33,8 @@ private val KEY_CONTENT_TYPE = stringPreferencesKey("contentType")
 
 class SettingsViewModel(
     private val repository: AnimeRepository,
-    private val settingsDataStore: DataStore<Preferences>
+    private val settingsDataStore: DataStore<Preferences>,
+    private val databaseFactory: SQLDelightDatabaseFactory
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -91,6 +98,7 @@ class SettingsViewModel(
                             _uiState.update {
                                 it.copy(
                                     updateStatus = AppUpdateStatus.UPDATE_AVAILABLE,
+                                    latestVersion = release.tagName,
                                     latestDownloadUrl = release.downloadUrl
                                 )
                             }
@@ -108,6 +116,42 @@ class SettingsViewModel(
     private fun isNewerVersion(local: String, remote: String): Boolean = runCatching {
         parseVersion(remote) > parseVersion(local)
     }.getOrElse { false }
+
+    fun shareWithDb(context: Context) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                val dbFile = context.getDatabasePath("anime.db")
+                val shareText = "Check out Vetro — media list manager: https://github.com/Phnem/Vetra"
+                val sendIntent = if (dbFile.exists()) {
+                    databaseFactory.checkpoint()
+                    val exportDir = File(context.cacheDir, "share").apply { mkdirs() }
+                    val exportFile = File(exportDir, "vetro_list.db")
+                    dbFile.copyTo(exportFile, overwrite = true)
+                    val uri = FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        exportFile
+                    )
+                    Intent().apply {
+                        action = Intent.ACTION_SEND
+                        putExtra(Intent.EXTRA_TEXT, shareText)
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        type = "text/plain"
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                } else {
+                    Intent().apply {
+                        action = Intent.ACTION_SEND
+                        putExtra(Intent.EXTRA_TEXT, shareText)
+                        type = "text/plain"
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    context.startActivity(Intent.createChooser(sendIntent, null))
+                }
+            }
+        }
+    }
 
     private fun parseVersion(versionStr: String): SemanticVersion {
         val clean = versionStr.removePrefix("v").trim()

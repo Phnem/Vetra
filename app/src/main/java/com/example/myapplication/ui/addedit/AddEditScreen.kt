@@ -338,7 +338,9 @@ fun AddEditScreen(
                                         viewModel.onEvent(AddEditEvent.OnTagsChanged(currentTags, uiState.categoryType))
                                     }
                                 } else {
-                                    if (currentTags.size < 3 && (uiState.categoryType.isEmpty() || uiState.categoryType == categoryType)) {
+                                    val categoryMatches = uiState.categoryType.isEmpty() ||
+                                        uiState.categoryType.equals(categoryType, ignoreCase = true)
+                                    if (currentTags.size < 5 && categoryMatches) {
                                         currentTags.add(tag)
                                         viewModel.onEvent(AddEditEvent.OnTagsChanged(currentTags, categoryType))
                                     }

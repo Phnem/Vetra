@@ -19,4 +19,10 @@ interface ImageStorageRepository {
      * Удаляет файл изображения из коллекции. Возвращает true при успехе.
      */
     fun deleteImage(fileName: String): Boolean
+
+    /**
+     * Скачивает изображение по HTTP URL и сохраняет в коллекцию.
+     * @return Result с именем файла при успехе или ошибкой при неудаче.
+     */
+    suspend fun saveImageFromUrl(url: String, animeId: String): Result<String>
 }

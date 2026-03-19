@@ -32,6 +32,14 @@ class ShikimoriRemoteDataSource(
         full.toDomain()
     }
 
+    suspend fun searchAnime(query: String, limit: Int = 20, language: AppLanguage = AppLanguage.EN): Result<List<ApiSearchResult>> = runCatching {
+        val searchResponse = client.get("https://shikimori.one/api/animes") {
+            parameter("search", query.trim())
+            parameter("limit", limit)
+        }.body<List<ShikimoriSearchItemDto>>()
+        searchResponse.map { it.toApiSearchResult(language) }
+    }
+
     suspend fun findTotalEpisodes(query: String): Result<Pair<Int, String>?> = runCatching {
         val searchResponse = client.get("https://shikimori.one/api/animes") {
             parameter("search", query.trim())
@@ -42,6 +50,33 @@ class ShikimoriRemoteDataSource(
         if (!isTitleSimilar(query, first.name, first.russian)) return@runCatching null
         val episodes = first.episodesAired ?: first.episodes ?: 0
         if (episodes > 0) episodes to "Shikimori" else null
+    }
+
+    private fun ShikimoriSearchItemDto.toApiSearchResult(language: AppLanguage): ApiSearchResult {
+        val desc = description
+            ?.replace(Regex("\\[.*?\\]"), "")
+            ?.replace(Regex("<[^>]+>"), "")
+            ?.trim() ?: ""
+        val posterUrl = image?.original?.let { if (it.startsWith("http")) it else "https://shikimori.one$it" }
+        val nameVal = name ?: "Unknown"
+        val russianVal = russian?.takeIf { it.isNotBlank() }
+        val (title, altTitle) = when (language) {
+            AppLanguage.RU -> (russianVal ?: nameVal) to (if (russianVal != null) nameVal else null)
+            AppLanguage.EN -> nameVal to russianVal
+        }
+        return ApiSearchResult(
+            title = title,
+            altTitle = altTitle,
+            posterUrl = posterUrl,
+            episodes = episodesAired ?: episodes ?: 0,
+            description = desc,
+            type = kind ?: "",
+            genres = genres?.mapNotNull { it.russian ?: it.name } ?: emptyList(),
+            rating = score?.toFloatOrNull()?.toInt(),
+            source = "Shikimori",
+            categoryType = "ANIME",
+            externalId = id.toString()
+        )
     }
 
     private fun ShikimoriSearchItemDto.toDomain(): AnimeDetails {

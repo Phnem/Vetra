@@ -2,6 +2,7 @@ package com.example.myapplication.network
 
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.api.Optional
+import com.example.myapplication.network.anilist.SearchMediaPageQuery
 import com.example.myapplication.network.anilist.SearchMediaQuery
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -43,6 +44,41 @@ class AniListRemoteDataSource(
                 posterUrl = null,
                 source = "AniList"
             )
+        }
+    }
+
+    suspend fun searchAnime(query: String, limit: Int = 20, language: AppLanguage = AppLanguage.EN): Result<List<ApiSearchResult>> = runCatching {
+        withContext(Dispatchers.IO) {
+            val response = apolloClient.query(
+                SearchMediaPageQuery(
+                    q = Optional.presentIfNotNull(query.takeIf { it.isNotBlank() }),
+                    page = Optional.present(1),
+                    perPage = Optional.present(limit)
+                )
+            ).execute()
+            val page = response.data?.Page ?: return@withContext emptyList()
+            val mediaList = page.media?.filterNotNull() ?: return@withContext emptyList()
+            mediaList.mapNotNull { media ->
+                val title = media.title
+                val romaji = title?.romaji?.orEmpty() ?: ""
+                val english = title?.english?.orEmpty() ?: ""
+                val displayTitle = english.ifEmpty { romaji }.ifEmpty { return@mapNotNull null }
+                val desc = media.description?.replace(Regex("<[^>]+>"), "")?.trim() ?: ""
+                val posterUrl = media.coverImage?.large
+                ApiSearchResult(
+                    title = displayTitle,
+                    altTitle = if (romaji.isNotEmpty() && romaji != displayTitle) romaji else null,
+                    posterUrl = posterUrl,
+                    episodes = media.episodes ?: 0,
+                    description = desc,
+                    type = media.type?.name ?: "ANIME",
+                    genres = media.genres?.filterNotNull() ?: emptyList(),
+                    rating = media.averageScore,
+                    source = "AniList",
+                    categoryType = "ANIME",
+                    externalId = media.id?.toString()
+                )
+            }
         }
     }
 

@@ -3,6 +3,11 @@
 
 type Query {
   Media(search: String, type: MediaType): Media
+  Page(page: Int, perPage: Int): Page
+}
+
+type Page {
+  media(search: String, type: MediaType): [Media]
 }
 
 enum MediaType {
@@ -11,6 +16,7 @@ enum MediaType {
 }
 
 type Media {
+  id: Int
   title: MediaTitle
   description: String
   type: MediaType
@@ -19,6 +25,11 @@ type Media {
   nextAiringEpisode: AiringSchedule
   averageScore: Int
   genres: [String]
+  coverImage: MediaCoverImage
+}
+
+type MediaCoverImage {
+  large: String
 }
 
 type MediaTitle {

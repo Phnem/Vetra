@@ -228,8 +228,6 @@ class AnimeLocalDataSource(
     }
 
     private fun getTagsForAnime(animeId: String): List<String> {
-        return db().animeQueries
-            .getAnimeTags(animeId)
-            .executeAsList()
+        return db().animeQueries.getAnimeTags(animeId).executeAsList()
     }
 }

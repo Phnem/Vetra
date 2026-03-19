@@ -183,6 +183,7 @@ fun AppNavGraph(
                     animatedVisibilityScope = this
                 )
             }
+
         }
     }
 }

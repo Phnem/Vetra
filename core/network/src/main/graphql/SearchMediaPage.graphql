@@ -1,0 +1,20 @@
+query SearchMediaPage($q: String, $page: Int, $perPage: Int) {
+  Page(page: $page, perPage: $perPage) {
+    media(search: $q, type: ANIME) {
+      id
+      title {
+        romaji
+        english
+      }
+      description
+      type
+      status
+      episodes
+      coverImage {
+        large
+      }
+      averageScore
+      genres
+    }
+  }
+}

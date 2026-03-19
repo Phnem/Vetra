@@ -7,6 +7,7 @@ import com.example.myapplication.network.ApiService
 import com.example.myapplication.network.AnimeDetails
 import com.example.myapplication.network.AppContentType
 import com.example.myapplication.network.AppLanguage
+import com.example.myapplication.network.ApiSearchResult
 import com.example.myapplication.network.GithubReleaseInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -85,5 +86,9 @@ class AnimeRepository(
 
     suspend fun checkGithubUpdate(owner: String, repo: String): Result<GithubReleaseInfo?> {
         return apiService.checkGithubUpdate(owner, repo)
+    }
+
+    suspend fun searchApi(query: String, contentType: AppContentType, language: AppLanguage): Result<List<ApiSearchResult>> {
+        return apiService.searchApi(query, contentType, language)
     }
 }

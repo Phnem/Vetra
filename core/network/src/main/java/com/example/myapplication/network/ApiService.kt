@@ -11,4 +11,6 @@ interface ApiService {
         appContentType: AppContentType
     ): Result<Pair<Int, String>?>
     suspend fun checkGithubUpdate(owner: String, repo: String): Result<GithubReleaseInfo?>
+
+    suspend fun searchApi(query: String, contentType: AppContentType, language: AppLanguage): Result<List<ApiSearchResult>>
 }

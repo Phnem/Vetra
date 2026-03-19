@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -70,6 +71,7 @@ import com.example.myapplication.ui.shared.theme.*
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlin.math.roundToInt
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -86,6 +88,7 @@ fun HomeScreen(
     val settingsVm: com.example.myapplication.ui.settings.SettingsViewModel = org.koin.androidx.compose.koinViewModel()
     val settingsState by settingsVm.uiState.collectAsStateWithLifecycle()
     val currentLanguage = settingsState.language
+    val strings = getStrings(currentLanguage)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val kbd = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -335,21 +338,105 @@ fun HomeScreen(
                                         )
                                     }
 
-                                    if (list.isEmpty()) {
+                                    val showApiFirst = list.isEmpty() && uiState.searchQuery.isNotEmpty()
+
+                                    if (showApiFirst) {
                                         item {
-                                            Box(
+                                            Column(
                                                 modifier = Modifier
-                                                    .fillParentMaxSize()
-                                                    .padding(bottom = 120.dp),
-                                                contentAlignment = Alignment.Center
+                                                    .fillMaxWidth()
+                                                    .padding(top = 8.dp, bottom = 12.dp, start = 16.dp, end = 16.dp)
                                             ) {
-                                                EmptyStateView(
-                                                    title = if (uiState.searchQuery.isNotEmpty()) "No results" else "Nothing in folder",
-                                                    subtitle = if (uiState.searchQuery.isNotEmpty()) "" else "Looks empty over here."
+                                                Text(
+                                                    text = strings.externalResults,
+                                                    style = MaterialTheme.typography.labelMedium.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontFamily = SnProFamily
+                                                    ),
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = strings.apiSearch,
+                                                        style = MaterialTheme.typography.titleSmall.copy(
+                                                            fontFamily = SnProFamily
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Text(
+                                                        text = "${uiState.apiSearchResults.size} ${strings.viaApi}",
+                                                        style = MaterialTheme.typography.bodySmall.copy(
+                                                            fontFamily = SnProFamily
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        if (uiState.apiSearchLoading) {
+                                            item {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(32.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.size(32.dp),
+                                                        strokeWidth = 2.dp
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        uiState.apiSearchError?.let { err ->
+                                            item {
+                                                Text(
+                                                    text = err,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.error,
+                                                    modifier = Modifier.padding(16.dp)
                                                 )
                                             }
                                         }
-                                    } else {
+                                        items(
+                                            items = uiState.apiSearchResults,
+                                            key = { "${it.source}_${it.externalId ?: it.title}" },
+                                            contentType = { "api_card" }
+                                        ) { result ->
+                                            val isAdded = viewModel.isAddedFromApi(result)
+                                            val key = "${result.source}_${result.externalId ?: result.title}"
+                                            val isLoading = uiState.addingFromApiId == key
+                                            ApiSearchResultCard(
+                                                result = result,
+                                                isAdded = isAdded,
+                                                isLoading = isLoading,
+                                                addLabel = strings.addButton,
+                                                addedLabel = strings.addedButton,
+                                                onAddClick = {
+                                                    performHaptic(view, "light")
+                                                    viewModel.addFromApi(result)
+                                                },
+                                                modifier = Modifier.padding(horizontal = 16.dp)
+                                            )
+                                        }
+                                        item {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 32.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                EmptyStateView(
+                                                    title = "No results",
+                                                    subtitle = ""
+                                                )
+                                            }
+                                        }
+                                    } else if (list.isNotEmpty()) {
                                         items(
                                             items = list,
                                             key = { it.id },
@@ -378,12 +465,25 @@ fun HomeScreen(
                                                 backgroundContent = { SwipeBackground(dismissState) },
                                                 modifier = Modifier.padding(horizontal = 16.dp) // .animateItem() убран: конфликт с SharedTransition при возврате
                                             ) {
+                                                val cardState = remember(anime, currentLanguage) {
+                                                    AnimeCardState(
+                                                        id = anime.id,
+                                                        title = anime.title,
+                                                        rating = anime.rating,
+                                                        genres = persistentListOf(
+                                                            *anime.tags.take(3)
+                                                                .mapNotNull { genreRepository.getLabel(it, currentLanguage).takeIf { n -> n.isNotBlank() } }
+                                                                .toTypedArray()
+                                                        ),
+                                                        episodesCount = anime.episodes,
+                                                        categoryLabel = anime.categoryType.takeIf { it.isNotBlank() },
+                                                        imagePath = viewModel.getImgPath(anime.imageFileName)
+                                                    )
+                                                }
                                                 with(sharedTransitionScope) {
                                                     OneUiAnimeCard(
-                                                        anime = anime,
+                                                        state = cardState,
                                                         animatedVisibilityScope = animatedVisibilityScope,
-                                                        getImgPath = { name -> viewModel.getImgPath(name) },
-                                                        getGenreName = { genreId -> genreRepository.getLabel(genreId, currentLanguage) },
                                                         onClick = { navController.navigateToAddEdit(anime.id) },
                                                         onDetailsClick = {
                                                             performHaptic(view, "light")
@@ -391,6 +491,104 @@ fun HomeScreen(
                                                         }
                                                     )
                                                 }
+                                            }
+                                        }
+                                        if (uiState.searchQuery.isNotEmpty()) {
+                                            item {
+                                                Column(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(top = 24.dp, bottom = 12.dp, start = 16.dp, end = 16.dp)
+                                                ) {
+                                                    Text(
+                                                        text = strings.externalResults,
+                                                        style = MaterialTheme.typography.labelMedium.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontFamily = SnProFamily
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Text(
+                                                            text = strings.apiSearch,
+                                                            style = MaterialTheme.typography.titleSmall.copy(
+                                                                fontFamily = SnProFamily
+                                                            ),
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                        Text(
+                                                            text = "${uiState.apiSearchResults.size} ${strings.viaApi}",
+                                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                                fontFamily = SnProFamily
+                                                            ),
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            if (uiState.apiSearchLoading) {
+                                                item {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(32.dp),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        CircularProgressIndicator(
+                                                            modifier = Modifier.size(32.dp),
+                                                            strokeWidth = 2.dp
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            uiState.apiSearchError?.let { err ->
+                                                item {
+                                                    Text(
+                                                        text = err,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.error,
+                                                        modifier = Modifier.padding(16.dp)
+                                                    )
+                                                }
+                                            }
+                                            items(
+                                                items = uiState.apiSearchResults,
+                                                key = { "${it.source}_${it.externalId ?: it.title}" },
+                                                contentType = { "api_card" }
+                                            ) { result ->
+                                                val isAdded = viewModel.isAddedFromApi(result)
+                                                val key = "${result.source}_${result.externalId ?: result.title}"
+                                                val isLoading = uiState.addingFromApiId == key
+                                                ApiSearchResultCard(
+                                                    result = result,
+                                                    isAdded = isAdded,
+                                                    isLoading = isLoading,
+                                                    addLabel = strings.addButton,
+                                                    addedLabel = strings.addedButton,
+                                                    onAddClick = {
+                                                        performHaptic(view, "light")
+                                                        viewModel.addFromApi(result)
+                                                    },
+                                                    modifier = Modifier.padding(horizontal = 16.dp)
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        item {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillParentMaxSize()
+                                                    .padding(bottom = 120.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                EmptyStateView(
+                                                    title = "Nothing in folder",
+                                                    subtitle = "Looks empty over here."
+                                                )
                                             }
                                         }
                                     }

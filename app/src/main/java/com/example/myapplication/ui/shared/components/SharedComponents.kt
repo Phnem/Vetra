@@ -198,6 +198,18 @@ fun GenreSelectionSection(
     val seriesGenres = remember { genreRepository.getGenresForCategory(GenreCategory.SERIES) }
 
     var expandedCategory by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+    var hasAutoExpanded by remember { mutableStateOf(false) }
+    LaunchedEffect(activeCategory) {
+        if (!hasAutoExpanded && activeCategory.isNotEmpty()) {
+            val match = listOf("Anime", "Movies", "Series").find {
+                it.equals(activeCategory, ignoreCase = true)
+            }
+            if (match != null) {
+                expandedCategory = match
+                hasAutoExpanded = true
+            }
+        }
+    }
 
     val categories = listOf(
         Triple("Anime", strings.genreAnime, animeGenres),
@@ -218,7 +230,7 @@ fun GenreSelectionSection(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         categories.forEach { (categoryType, label, genres) ->
-            val isActive = activeCategory.isEmpty() || activeCategory == categoryType
+            val isActive = activeCategory.isEmpty() || activeCategory.equals(categoryType, ignoreCase = true)
             val hasSelectedTags = selectedTags.any { tag -> genres.any { it.id == tag } }
             val isExpanded = expandedCategory == categoryType
 
@@ -294,7 +306,7 @@ fun GenreSelectionSection(
                                 selected = isSelected,
                                 onClick = { onTagToggle(genreDef.id, categoryType) },
                                 label = { Text(displayName, fontSize = 13.sp) },
-                                enabled = isActive,
+                                enabled = true,
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = accentColor.copy(alpha = 0.15f),
                                     selectedLabelColor = accentColor

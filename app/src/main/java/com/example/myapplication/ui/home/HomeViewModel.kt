@@ -1,6 +1,9 @@
 package com.example.myapplication.ui.home
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.local.AnimeLocalDataSource
@@ -8,7 +11,10 @@ import com.example.myapplication.data.models.Anime
 import com.example.myapplication.data.models.AnimeUpdate
 import com.example.myapplication.data.repository.AnimeRepository
 import com.example.myapplication.data.repository.ImageStorageRepository
+import com.example.myapplication.domain.search.AddFromApiUseCase
+import com.example.myapplication.network.ApiSearchResult
 import com.example.myapplication.network.AppContentType
+import com.example.myapplication.network.AppLanguage
 import com.example.myapplication.data.models.SortOption
 import com.example.myapplication.notifications.AnimeNotifier
 import com.example.myapplication.DropboxSyncManager
@@ -23,18 +29,27 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import java.util.concurrent.TimeUnit
 import androidx.work.*
 import com.example.myapplication.worker.AnimeUpdateWorker
+
+private val KEY_CONTENT_TYPE = stringPreferencesKey("contentType")
+private val KEY_LANG = stringPreferencesKey("lang")
 
 class HomeViewModel(
     private val repository: AnimeRepository,
     private val localDataSource: AnimeLocalDataSource,
     private val notifier: AnimeNotifier,
     private val dropboxSyncManager: DropboxSyncManager,
-    private val imageStorage: ImageStorageRepository
+    private val imageStorage: ImageStorageRepository,
+    private val settingsDataStore: DataStore<Preferences>,
+    private val addFromApiUseCase: AddFromApiUseCase
 ) : ViewModel() {
+
+    private var apiSearchJob: Job? = null
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -102,7 +117,81 @@ class HomeViewModel(
     }
 
     fun updateSearchQuery(query: String) {
-        _uiState.update { it.copy(searchQuery = query) }
+        _uiState.update {
+            it.copy(
+                searchQuery = query,
+                apiSearchError = null,
+                apiSearchResults = if (query.isBlank()) persistentListOf() else it.apiSearchResults
+            )
+        }
+        apiSearchJob?.cancel()
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) {
+            _uiState.update { it.copy(apiSearchLoading = false, apiSearchResults = persistentListOf()) }
+            return
+        }
+        apiSearchJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(400)
+            if (_uiState.value.searchQuery.trim() != trimmed) return@launch
+            _uiState.update { it.copy(apiSearchLoading = true, apiSearchError = null) }
+            val contentType = runCatching {
+                AppContentType.valueOf(settingsDataStore.data.first()[KEY_CONTENT_TYPE] ?: "ANIME")
+            }.getOrElse { AppContentType.ANIME }
+            val language = runCatching {
+                AppLanguage.valueOf(settingsDataStore.data.first()[KEY_LANG] ?: "EN")
+            }.getOrElse { AppLanguage.EN }
+            repository.searchApi(trimmed, contentType, language)
+                .fold(
+                    onSuccess = { results ->
+                        if (_uiState.value.searchQuery.trim() == trimmed) {
+                            _uiState.update {
+                                it.copy(
+                                    apiSearchResults = results.toImmutableList(),
+                                    apiSearchLoading = false,
+                                    apiSearchError = null
+                                )
+                            }
+                        }
+                    },
+                    onFailure = { e ->
+                        if (_uiState.value.searchQuery.trim() == trimmed) {
+                            _uiState.update {
+                                it.copy(
+                                    apiSearchLoading = false,
+                                    apiSearchError = e.message ?: "Search failed"
+                                )
+                            }
+                        }
+                    }
+                )
+        }
+    }
+
+    fun isAddedFromApi(result: ApiSearchResult): Boolean {
+        val localList = localDataSource.getAllAnimeList()
+        val q = result.title.lowercase().replace(Regex("[^\\p{L}\\p{N}]"), "")
+        if (q.isEmpty()) return false
+        return localList.any { anime ->
+            val t = anime.title.lowercase().replace(Regex("[^\\p{L}\\p{N}]"), "")
+            t.isNotEmpty() && (t.contains(q) || q.contains(t))
+        }
+    }
+
+    fun addFromApi(result: ApiSearchResult) {
+        val key = "${result.source}_${result.externalId ?: result.title}"
+        viewModelScope.launch {
+            _uiState.update { it.copy(addingFromApiId = key) }
+            addFromApiUseCase(result)
+                .fold(
+                    onSuccess = {
+                        _uiState.update { it.copy(addingFromApiId = null) }
+                    },
+                    onFailure = { e ->
+                        e.printStackTrace()
+                        _uiState.update { it.copy(addingFromApiId = null) }
+                    }
+                )
+        }
     }
 
     fun updateSortOption(option: SortOption) {

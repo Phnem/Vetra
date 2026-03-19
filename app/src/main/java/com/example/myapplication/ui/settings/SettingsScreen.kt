@@ -2,23 +2,28 @@ package com.example.myapplication.ui.settings
 
 import android.content.Context
 import android.content.Intent
+import com.example.myapplication.data.models.UiStrings
 import android.net.Uri
 import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -26,20 +31,22 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.BackHandler
 import androidx.navigation.NavController
 import com.example.myapplication.DropboxSyncManager
+import com.example.myapplication.R
 import com.example.myapplication.data.models.*
 import com.example.myapplication.network.AppContentType
 import com.example.myapplication.network.AppLanguage
@@ -50,12 +57,15 @@ import com.example.myapplication.ui.shared.components.GlassIconButton
 import com.example.myapplication.ui.shared.inertialCollision
 import com.example.myapplication.ui.shared.rememberInertialCollisionState
 import com.example.myapplication.ui.navigation.navigateToWelcome
+import com.example.myapplication.SyncState
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import com.example.myapplication.R
-import com.example.myapplication.SyncState
-import androidx.compose.foundation.lazy.itemsIndexed
 import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateDpAsState
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -72,16 +82,30 @@ fun SettingsScreen(
     val view = LocalView.current
     val context = LocalContext.current
 
-    var expandedLang by remember { mutableStateOf(false) }
-    var expandedTheme by remember { mutableStateOf(false) }
-    var expandedUpdate by remember { mutableStateOf(false) }
-    var expandedContact by remember { mutableStateOf(false) }
-    var expandedCloud by remember { mutableStateOf(false) }
-    var expandedType by remember { mutableStateOf(false) }
-
     val strings = getStrings(uiState.language)
+    var showCloudSheet by remember { mutableStateOf(false) }
+    var showContactSheet by remember { mutableStateOf(false) }
+    val tiles = rememberSettingsTiles(
+        uiState = uiState,
+        strings = strings,
+        viewModel = viewModel,
+        context = context,
+        onCloudClick = { showCloudSheet = true },
+        onContactClick = { showContactSheet = true }
+    )
     val collisionState = rememberInertialCollisionState()
     val settingsHazeState = remember { HazeState() }
+
+    BackHandler(enabled = showCloudSheet || showContactSheet) {
+        showCloudSheet = false
+        showContactSheet = false
+    }
+
+    val blurRadius by animateDpAsState(
+        targetValue = if (showCloudSheet || showContactSheet) 16.dp else 0.dp,
+        animationSpec = tween(300),
+        label = "backgroundBlur"
+    )
 
     // Усиленный «punch»-эффект: мощнее удар, мягче пружина, чуть более упругий отскок.
     LaunchedEffect(Unit) {
@@ -92,10 +116,12 @@ fun SettingsScreen(
         )
     }
 
+    Box(modifier = Modifier.fillMaxSize()) {
     with(sharedTransitionScope) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .blur(blurRadius)
                 .sharedBounds(
                     rememberSharedContentState(key = "settings_container"),
                     animatedVisibilityScope = animatedVisibilityScope,
@@ -137,196 +163,136 @@ fun SettingsScreen(
                     )
                 }
 
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 32.dp)
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                    contentPadding = PaddingValues(bottom = 100.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    itemsIndexed(
-                        items = listOf(0, 1, 2, 3, 4, 5),
-                        key = { _, i -> i }
-                    ) { index, _ ->
+                    items(
+                        items = tiles,
+                        key = { tile: SettingsTile -> tile.id },
+                        span = { tile: SettingsTile -> GridItemSpan(tile.span) }
+                    ) { tile ->
+                        val index = tiles.indexOf(tile)
                         Box(modifier = Modifier.inertialCollision(collisionState, index, 1.2f)) {
-                            when (index) {
-                                0 -> {
-                                    val accentTint = EpisodesColor
-                                    SettingsPill(
-                            title = strings.languageCardTitle,
-                            icon = Icons.Outlined.Language,
-                            iconTint = accentTint,
-                            isExpanded = expandedLang,
-                            onClick = { performHaptic(view, "light"); expandedLang = !expandedLang }
-                        ) {
-                            SingleChoiceSegmentedButtonRow(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).padding(bottom = 8.dp)
-                            ) {
-                                val colors = SegmentedButtonDefaults.colors(
-                                    activeContainerColor = accentTint.copy(alpha = 0.12f),
-                                    activeContentColor = accentTint,
-                                    inactiveContainerColor = Color.Transparent
+                            when (tile) {
+                                is ToggleTile -> ToggleTileItem(
+                                    tile = tile,
+                                    strings = strings,
+                                    onPerformHaptic = { performHaptic(view, "light") }
                                 )
-                                SegmentedButton(
-                                    selected = uiState.language == AppLanguage.EN,
-                                    onClick = { viewModel.setLanguage(AppLanguage.EN) },
-                                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                                    colors = colors
-                                ) { Text(strings.langEn, fontFamily = SnProFamily, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-
-                                SegmentedButton(
-                                    selected = uiState.language == AppLanguage.RU,
-                                    onClick = { viewModel.setLanguage(AppLanguage.RU) },
-                                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                                    colors = colors
-                                ) { Text(strings.langRu, fontFamily = SnProFamily, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                            }
-                        }
+                                is ActionTile -> if (tile.id == "update") {
+                                    val updateState = when (uiState.updateStatus) {
+                                        AppUpdateStatus.IDLE -> UpdateTileState.Idle
+                                        AppUpdateStatus.LOADING -> UpdateTileState.Checking
+                                        AppUpdateStatus.UPDATE_AVAILABLE -> UpdateTileState.UpdateAvailable(
+                                            uiState.latestVersion ?: ""
+                                        )
+                                        AppUpdateStatus.NO_UPDATE -> UpdateTileState.UpToDate(uiState.currentVersion)
+                                        AppUpdateStatus.ERROR -> UpdateTileState.Error
                                     }
-
-                                1 -> {
-                                    val accentTint = Color(0xFF00BFA6)
-                                    SettingsPill(
-                                        title = strings.themeTitle,
-                            icon = Icons.Outlined.Palette,
-                            iconTint = accentTint,
-                            isExpanded = expandedTheme,
-                            onClick = { performHaptic(view, "light"); expandedTheme = !expandedTheme }
-                        ) {
-                            SingleChoiceSegmentedButtonRow(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).padding(bottom = 8.dp)
-                            ) {
-                                val colors = SegmentedButtonDefaults.colors(
-                                    activeContainerColor = accentTint.copy(alpha = 0.12f),
-                                    activeContentColor = accentTint,
-                                    inactiveContainerColor = Color.Transparent
-                                )
-                                val themeOptions = listOf(
-                                    AppTheme.LIGHT to strings.themeLight,
-                                    AppTheme.DARK to strings.themeDark,
-                                    AppTheme.SYSTEM to strings.themeSystem
-                                )
-                                themeOptions.forEachIndexed { themeIndex, (theme, label) ->
-                                    SegmentedButton(
-                                        selected = uiState.theme == theme,
-                                        onClick = {
-                                            performHaptic(view, "light")
-                                            viewModel.setTheme(theme)
-                                        },
-                                        shape = SegmentedButtonDefaults.itemShape(index = themeIndex, count = themeOptions.size),
-                                        colors = colors
-                                    ) { Text(label, fontFamily = SnProFamily, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                                }
-                            }
-                                        }
-                                    }
-
-                                2 -> {
-                                    val accentTint = Color(0xFFFF9500)
-                                    SettingsPill(
-                                        title = strings.contentTypeTitle,
-                            icon = Icons.Outlined.Category,
-                            iconTint = accentTint,
-                            isExpanded = expandedType,
-                            onClick = { expandedType = !expandedType }
-                        ) {
-                            SingleChoiceSegmentedButtonRow(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).padding(bottom = 8.dp)
-                            ) {
-                                val colors = SegmentedButtonDefaults.colors(
-                                    activeContainerColor = accentTint.copy(alpha = 0.12f),
-                                    activeContentColor = accentTint,
-                                    inactiveContainerColor = Color.Transparent
-                                )
-                                SegmentedButton(
-                                    selected = uiState.contentType == AppContentType.ANIME,
-                                    onClick = { viewModel.setContentType(AppContentType.ANIME) },
-                                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                                    colors = colors
-                                ) { Text(strings.typeAnime, fontFamily = SnProFamily, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-
-                                SegmentedButton(
-                                    selected = uiState.contentType == AppContentType.MOVIE,
-                                    onClick = { viewModel.setContentType(AppContentType.MOVIE) },
-                                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                                    colors = colors
-                                ) { Text(strings.typeMovies, fontFamily = SnProFamily, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                            }
-                                        }
-                                    }
-
-                                3 -> {
-                                    SettingsPill(
-                                        title = if (uiState.language == AppLanguage.RU) "Облачные настройки" else "Cloud Settings",
-                            icon = Icons.Outlined.Cloud,
-                            iconTint = BrandBlue,
-                            isExpanded = expandedCloud,
-                            onClick = { performHaptic(view, "light"); expandedCloud = !expandedCloud }
-                        ) {
-                            Box(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 4.dp)) {
-                                val lastSyncTimestamp = remember { context.getSharedPreferences("dropbox_prefs", Context.MODE_PRIVATE).getLong("last_sync_time", 0L) }
-                                val syncState by dropboxSyncManager.syncState.collectAsStateWithLifecycle()
-                                val scope = rememberCoroutineScope()
-                                CloudSettingsSection(
-                                    strings = CloudStrings(
-                                        title = if (uiState.language == AppLanguage.RU) "Синхронизация с облаком" else "Cloud Sync",
-                                        syncNow = strings.syncLabel,
-                                        lastSync = strings.lastSync,
-                                        neverSynced = strings.never,
-                                        logout = if (uiState.language == AppLanguage.RU) "Выйти" else "Logout"
-                                    ),
-                                    lastSyncTime = lastSyncTimestamp,
-                                    isSyncing = syncState == SyncState.SYNCING,
-                                    onSyncClick = { scope.launch { dropboxSyncManager.syncNow() } },
-                                    onLogout = { dropboxSyncManager.logout(); navController.navigateToWelcome() }
-                                )
-                            }
-                                        }
-                                    }
-
-                                4 -> {
-                                    SettingsPill(
-                                        title = strings.checkForUpdateTitle,
-                            icon = Icons.Outlined.SystemUpdate,
-                            iconTint = RateColor4,
-                            isExpanded = expandedUpdate,
-                            onClick = { performHaptic(view, "light"); expandedUpdate = !expandedUpdate }
-                        ) {
-                            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 14.dp, top = 4.dp), contentAlignment = Alignment.Center) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(text = "v${uiState.currentVersion}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(bottom = 8.dp))
-                                    UpdateStateButton(status = uiState.updateStatus, idleText = strings.checkButtonText, onClick = {
-                                        if (uiState.updateStatus == AppUpdateStatus.IDLE || uiState.updateStatus == AppUpdateStatus.ERROR) {
-                                            viewModel.checkAppUpdate(context)
-                                        } else if (uiState.updateStatus == AppUpdateStatus.UPDATE_AVAILABLE) {
-                                            uiState.latestDownloadUrl?.let { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
-                                        }
-                                    })
-                                }
-                            }
-                                        }
-                                    }
-
-                                5 -> {
-                                    SettingsPill(
-                                        title = strings.contactTitle,
-                            icon = Icons.Outlined.Person,
-                            iconTint = Color(0xFF3DDC84),
-                            isExpanded = expandedContact,
-                            onClick = { performHaptic(view, "light"); expandedContact = !expandedContact }
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp, top = 4.dp)) {
-                                Text(text = strings.contactSubtitle, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.secondary)
-                                Spacer(Modifier.height(12.dp))
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                                    Box(modifier = Modifier.size(64.dp).clip(CircleShape).clickable { performHaptic(view, "light"); context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Phnem/MAList"))) }, contentAlignment = Alignment.Center) {
-                                        Image(painter = painterResource(id = R.drawable.gh), contentDescription = "GitHub", modifier = Modifier.size(56.dp), contentScale = ContentScale.Fit)
-                                    }
-                                    Box(modifier = Modifier.size(64.dp).clip(CircleShape).clickable { performHaptic(view, "light"); context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/H415base"))) }, contentAlignment = Alignment.Center) {
-                                        Image(painter = painterResource(id = R.drawable.tg), contentDescription = "Telegram", modifier = Modifier.size(56.dp), contentScale = ContentScale.Fit)
-                                    }
-                                }
+                                    val isUpdateClickable = updateState is UpdateTileState.Idle ||
+                                        updateState is UpdateTileState.UpdateAvailable ||
+                                        updateState is UpdateTileState.Error
+                                    BaseTile(
+                                        tile = tile,
+                                        modifier = Modifier.clickable(
+                                            enabled = isUpdateClickable,
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            when (updateState) {
+                                                is UpdateTileState.Idle, is UpdateTileState.Error -> {
+                                                    performHaptic(view, "light")
+                                                    viewModel.checkAppUpdate(context)
+                                                }
+                                                is UpdateTileState.UpdateAvailable -> {
+                                                    performHaptic(view, "light")
+                                                    uiState.latestDownloadUrl?.let { url ->
+                                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                                    }
+                                                }
+                                                else -> {}
                                             }
                                         }
+                                    ) {
+                                        Column(modifier = Modifier.fillMaxSize()) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(40.dp)
+                                                    .clip(RoundedCornerShape(10.dp))
+                                                    .background(tile.accentColor.copy(alpha = 0.2f)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    tile.icon,
+                                                    contentDescription = null,
+                                                    tint = tile.accentColor,
+                                                    modifier = Modifier.size(22.dp)
+                                                )
+                                            }
+                                            Spacer(Modifier.height(8.dp))
+                                            Text(
+                                                text = tile.title,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                fontFamily = SnProFamily,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            tile.subtitle?.let {
+                                                Text(
+                                                    text = it,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    fontFamily = SnProFamily,
+                                                    modifier = Modifier.padding(top = 2.dp),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                            Spacer(Modifier.weight(1f))
+                                            UpdateTile(
+                                                state = updateState,
+                                                checkButtonText = strings.checkButtonText,
+                                                checkingText = strings.updateTileChecking,
+                                                availableText = strings.updateTileAvailable,
+                                                upToDateText = strings.updateTileUpToDate,
+                                                versionLabel = strings.updateTileVersionLabel
+                                            )
+                                        }
                                     }
+                                } else {
+                                    ActionTileItem(
+                                        tile = tile,
+                                        strings = strings,
+                                        onPerformHaptic = { performHaptic(view, "light") }
+                                    )
+                                }
+                                is DetailTile -> {
+                                    val tileVisible = when (tile.id) {
+                                        "cloud" -> !showCloudSheet
+                                        "contact" -> !showContactSheet
+                                        else -> true
+                                    }
+                                    Column(modifier = Modifier.fillMaxWidth().animateItem()) {
+                                        AnimatedVisibility(
+                                            visible = tileVisible,
+                                            enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
+                                            exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+                                        ) {
+                                            DetailTileItem(
+                                                tile = tile,
+                                                sharedTransitionScope = sharedTransitionScope,
+                                                animatedVisibilityScope = this@AnimatedVisibility,
+                                                onPerformHaptic = { performHaptic(view, "light") }
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -342,13 +308,7 @@ fun SettingsScreen(
                 icon = Icons.Default.Share,
                 onClick = {
                     performHaptic(view, "light")
-                    val sendIntent = Intent().apply {
-                        action = Intent.ACTION_SEND
-                        putExtra(Intent.EXTRA_TEXT, "Check out Vetro — anime list manager: https://github.com/Phnem/Vetra")
-                        type = "text/plain"
-                    }
-                    val shareIntent = Intent.createChooser(sendIntent, null)
-                    context.startActivity(shareIntent)
+                    viewModel.shareWithDb(context)
                 },
                 modifier = Modifier,
                 hazeState = settingsHazeState,
@@ -362,126 +322,446 @@ fun SettingsScreen(
             }
         }
     }
+
+    // Last Known State: сохраняем ключ при закрытии для корректной Exit-анимации
+    var lastSheetKey by remember { mutableStateOf("card_cloud") }
+    if (showCloudSheet) lastSheetKey = "card_cloud"
+    if (showContactSheet) lastSheetKey = "card_contact"
+
+    AnimatedVisibility(
+        modifier = Modifier.fillMaxSize(),
+        visible = showCloudSheet || showContactSheet,
+        enter = fadeIn(animationSpec = tween(300)),
+        exit = fadeOut(animationSpec = tween(250))
+    ) {
+        with(sharedTransitionScope) {
+            val sharedModifier = Modifier.sharedBounds(
+                sharedContentState = rememberSharedContentState(key = lastSheetKey),
+                animatedVisibilityScope = this@AnimatedVisibility,
+                resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(24.dp))
+            )
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.35f))
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) {
+                            showCloudSheet = false
+                            showContactSheet = false
+                        }
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .wrapContentHeight()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) {}
+                ) {
+                    when (lastSheetKey) {
+                        "card_cloud" -> CloudSettingsSheet(
+                            onDismiss = { showCloudSheet = false },
+                            onLogout = {
+                                showCloudSheet = false
+                                dropboxSyncManager.logout()
+                                navController.navigateToWelcome()
+                            },
+                            sharedModifier = sharedModifier
+                        )
+                        "card_contact" -> ContactSheet(
+                            onDismiss = { showContactSheet = false },
+                            sharedModifier = sharedModifier
+                        )
+                    }
+                }
+            }
+        }
+    }
+    }
 }
 
 @Composable
-private fun SettingsPill(
-    title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    iconTint: Color,
-    isExpanded: Boolean,
-    onClick: () -> Unit,
-    expandedContent: @Composable () -> Unit = {}
+fun rememberSettingsTiles(
+    uiState: SettingsUiState,
+    strings: UiStrings,
+    viewModel: SettingsViewModel,
+    context: Context,
+    onCloudClick: () -> Unit,
+    onContactClick: () -> Unit
+): List<SettingsTile> = remember(
+    uiState.language,
+    uiState.theme,
+    uiState.contentType,
+    uiState.updateStatus,
+    uiState.currentVersion,
+    uiState.latestDownloadUrl,
+    strings
 ) {
-    val cornerRadius by animateDpAsState(
-        targetValue = if (isExpanded) 28.dp else 100.dp,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
-        label = "pillShape"
+    listOf(
+        // 2 квадратных
+        ToggleTile(
+            id = "lang",
+            title = strings.languageCardTitle,
+            subtitle = if (uiState.language == AppLanguage.RU) "Язык интерфейса" else "Interface language",
+            icon = Icons.Outlined.Language,
+            accentColor = EpisodesColor,
+            span = 1,
+            options = listOf(
+                SegmentedOption(label = "EN") { viewModel.setLanguage(AppLanguage.EN) },
+                SegmentedOption(label = "RU") { viewModel.setLanguage(AppLanguage.RU) }
+            ),
+            selectedIndex = if (uiState.language == AppLanguage.RU) 1 else 0
+        ),
+        ToggleTile(
+            id = "theme",
+            title = strings.themeTitle,
+            subtitle = if (uiState.language == AppLanguage.RU) "Предпочтение темы" else "Theme preference",
+            icon = Icons.Outlined.Palette,
+            accentColor = Color(0xFF00BFA6),
+            span = 1,
+            options = listOf(
+                SegmentedOption(icon = Icons.Outlined.LightMode) { viewModel.setTheme(AppTheme.LIGHT) },
+                SegmentedOption(icon = Icons.Outlined.DarkMode) { viewModel.setTheme(AppTheme.DARK) },
+                SegmentedOption(icon = Icons.Outlined.BrightnessAuto) { viewModel.setTheme(AppTheme.SYSTEM) }
+            ),
+            selectedIndex = when (uiState.theme) {
+                AppTheme.LIGHT -> 0
+                AppTheme.DARK -> 1
+                AppTheme.SYSTEM -> 2
+            }
+        ),
+        // 1 длинный
+        DetailTile(
+            id = "cloud",
+            title = strings.cloudSettingsTitle,
+            subtitle = strings.cloudSettingsSubtitle,
+            icon = Icons.Outlined.Cloud,
+            accentColor = BrandBlue,
+            span = 2,
+            onClick = onCloudClick
+        ),
+        // 2 квадратных
+        ToggleTile(
+            id = "content_type",
+            title = strings.contentTypeTitle,
+            subtitle = if (uiState.language == AppLanguage.RU) "Аниме или ТВ" else "Anime or TV",
+            icon = Icons.Outlined.Category,
+            accentColor = Color(0xFFFF9500),
+            span = 1,
+            options = listOf(
+                SegmentedOption(label = strings.typeAnime) { viewModel.setContentType(AppContentType.ANIME) },
+                SegmentedOption(label = strings.typeMovies) { viewModel.setContentType(AppContentType.MOVIE) }
+            ),
+            selectedIndex = if (uiState.contentType == AppContentType.MOVIE) 1 else 0
+        ),
+        ActionTile(
+            id = "update",
+            title = strings.checkForUpdateTitle,
+            subtitle = uiState.currentVersion,
+            icon = Icons.Outlined.SystemUpdate,
+            accentColor = RateColor4,
+            span = 1,
+            onClick = {
+                when (uiState.updateStatus) {
+                    AppUpdateStatus.IDLE, AppUpdateStatus.ERROR -> viewModel.checkAppUpdate(context)
+                    AppUpdateStatus.UPDATE_AVAILABLE -> uiState.latestDownloadUrl?.let { url ->
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    }
+                    else -> {}
+                }
+            },
+            updateStatus = uiState.updateStatus,
+            currentVersion = uiState.currentVersion,
+            latestDownloadUrl = uiState.latestDownloadUrl
+        ),
+        // 1 длинный
+        DetailTile(
+            id = "contact",
+            title = strings.contactTitle,
+            subtitle = strings.contactSubtitle,
+            icon = Icons.Outlined.Person,
+            accentColor = Color(0xFF3DDC84),
+            span = 2,
+            onClick = onContactClick
+        )
     )
-    val shape = RoundedCornerShape(cornerRadius)
+}
 
-    val bg = MaterialTheme.colorScheme.surfaceVariant
-    val borderC = iconTint.copy(alpha = 0.3f)
+/**
+ * Сегментированный переключатель в виде «капсула внутри капсулы» (как на фото 3).
+ * Без галочек, с анимацией перемещения внутренней капсулы.
+ */
+@Composable
+fun CapsuleChipRow(
+    options: List<SegmentedOption>,
+    selectedIndex: Int,
+    accentColor: Color,
+    modifier: Modifier = Modifier,
+    contentDescription: (Int) -> String? = { null },
+    onOptionClick: (Int) -> Unit
+) {
+    val containerHeight = 44.dp
+    val containerCornerRadius = containerHeight / 2
+    val containerShape = RoundedCornerShape(containerCornerRadius)
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(bg)
-            .border(1.dp, borderC, shape)
-            .animateContentSize(animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow))
+    BoxWithConstraints(
+        modifier = modifier
+            .height(containerHeight)
+            .clip(containerShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onClick() }
-                .padding(vertical = 12.dp, horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        val innerWidth = maxWidth
+        val contentHeight = containerHeight
+        val segmentWidth = innerWidth / options.size
+        val pillWidth = segmentWidth
+        val pillCornerRadius = contentHeight / 2
+        val innerShape = RoundedCornerShape(pillCornerRadius)
+        val pillOffset by animateDpAsState(
+            targetValue = segmentWidth * selectedIndex,
+            animationSpec = tween(300, easing = FastOutSlowInEasing),
+            label = "pill_offset"
+        )
+
+        Box(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-                    .background(iconTint.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
+                    .align(Alignment.CenterStart)
+                    .offset(x = pillOffset)
+                    .width(pillWidth)
+                    .fillMaxHeight()
+                    .clip(innerShape)
+                    .background(accentColor.copy(alpha = 0.25f))
+            )
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(22.dp))
+                options.forEachIndexed { index, opt ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .fillMaxHeight()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { onOptionClick(index) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (opt.icon != null) {
+                            Icon(
+                                opt.icon,
+                                contentDescription = contentDescription(index),
+                                modifier = Modifier.size(20.dp),
+                                tint = if (selectedIndex == index) accentColor else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            Text(
+                                opt.label ?: "",
+                                fontFamily = SnProFamily,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = if (selectedIndex == index) accentColor else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
             }
-            Spacer(Modifier.width(16.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (isExpanded) FontWeight.Bold else FontWeight.Normal,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
-            )
-            val arrow by animateFloatAsState(
-                targetValue = if (isExpanded) 180f else 0f,
-                animationSpec = spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessMediumLow),
-                label = "arrow"
-            )
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = null,
-                tint = if (isExpanded) iconTint else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                modifier = Modifier.graphicsLayer { rotationZ = arrow }
-            )
-        }
-        if (isExpanded) {
-            expandedContent()
         }
     }
 }
 
-data class CloudStrings(
-    val title: String = "Синхронизация с облаком",
-    val syncNow: String = "Синхронизировать сейчас",
-    val lastSync: String = "Последняя синхронизация:",
-    val neverSynced: String = "Никогда",
-    val logout: String = "Выйти"
-)
+@Composable
+fun ToggleTileItem(
+    tile: ToggleTile,
+    strings: UiStrings,
+    onPerformHaptic: () -> Unit
+) {
+    BaseTile(tile = tile, modifier = Modifier) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(tile.accentColor.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(tile.icon, contentDescription = null, tint = tile.accentColor, modifier = Modifier.size(22.dp))
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = tile.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontFamily = SnProFamily,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            tile.subtitle?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            CapsuleChipRow(
+                options = tile.options,
+                selectedIndex = tile.selectedIndex,
+                accentColor = tile.accentColor,
+                modifier = Modifier.fillMaxWidth(),
+                contentDescription = { index ->
+                    when (tile.id) {
+                        "theme" -> when (index) {
+                            0 -> strings.themeLight
+                            1 -> strings.themeDark
+                            else -> strings.themeSystem
+                        }
+                        else -> null
+                    }
+                },
+                onOptionClick = { index ->
+                    onPerformHaptic()
+                    tile.options[index].onClick()
+                }
+            )
+        }
+    }
+}
 
 @Composable
-fun CloudSettingsSection(
-    strings: CloudStrings,
-    lastSyncTime: Long,
-    isSyncing: Boolean,
-    onSyncClick: () -> Unit,
-    onLogout: () -> Unit
+fun ActionTileItem(
+    tile: ActionTile,
+    strings: UiStrings,
+    onPerformHaptic: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Text(
-            text = strings.title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        Text(
-            text = "${strings.lastSync} ${if (lastSyncTime > 0) java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(java.util.Date(lastSyncTime)) else strings.neverSynced}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(
-                onClick = onSyncClick,
-                modifier = Modifier.weight(1f),
-                enabled = !isSyncing
+    BaseTile(
+        tile = tile,
+        modifier = Modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null
+        ) { onPerformHaptic(); tile.onClick() }
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(tile.accentColor.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
             ) {
-                if (isSyncing) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text(strings.syncNow, fontFamily = SnProFamily)
-                }
+                Icon(tile.icon, contentDescription = null, tint = tile.accentColor, modifier = Modifier.size(22.dp))
             }
-            OutlinedButton(onClick = onLogout) {
-                Text(strings.logout, fontFamily = SnProFamily)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = tile.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontFamily = SnProFamily,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            tile.subtitle?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            if (tile.updateStatus != null) {
+                UpdateStateButton(
+                    status = tile.updateStatus!!,
+                    idleText = strings.checkButtonText,
+                    onClick = tile.onClick
+                )
             }
         }
+    }
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun DetailTileItem(
+    tile: DetailTile,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    onPerformHaptic: () -> Unit
+) {
+    with(sharedTransitionScope) {
+        BaseTile(
+            tile = tile,
+            modifier = Modifier
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onPerformHaptic(); tile.onClick() }
+                .sharedBounds(
+                    sharedContentState = rememberSharedContentState(key = "card_${tile.id}"),
+                    animatedVisibilityScope = animatedVisibilityScope,
+                    resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                    clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(16.dp))
+                )
+        ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(tile.accentColor.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(tile.icon, contentDescription = null, tint = tile.accentColor, modifier = Modifier.size(22.dp))
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = tile.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontFamily = SnProFamily,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                tile.subtitle?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = tile.accentColor
+            )
+        }
+    }
     }
 }
 
@@ -511,7 +791,7 @@ fun UpdateStateButton(
     Box(
         modifier = Modifier
             .fillMaxWidth(if (status == AppUpdateStatus.IDLE) 1f else 0.6f)
-            .height(50.dp)
+            .height(44.dp)
             .clip(CircleShape)
             .background(backgroundColor)
             .clickable(enabled = status != AppUpdateStatus.LOADING) { onClick() },

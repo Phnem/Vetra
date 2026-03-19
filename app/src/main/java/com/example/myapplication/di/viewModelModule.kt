@@ -24,7 +24,9 @@ val viewModelModule = module {
             localDataSource = get(),
             notifier = get(),
             dropboxSyncManager = get(),
-            imageStorage = get()
+            imageStorage = get(),
+            settingsDataStore = get(named("settings")),
+            addFromApiUseCase = get()
         )
     }
     viewModel {
@@ -35,7 +37,7 @@ val viewModelModule = module {
             imageStorage = get()
         )
     }
-    viewModel { SettingsViewModel(repository = get(), settingsDataStore = get(named("settings"))) }
+    viewModel { SettingsViewModel(repository = get(), settingsDataStore = get(named("settings")), databaseFactory = get()) }
     viewModel {
         DetailsViewModel(
             savedStateHandle = get(),

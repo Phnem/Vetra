@@ -3,6 +3,7 @@ package com.example.myapplication.ui.home
 import com.example.myapplication.data.models.Anime
 import com.example.myapplication.data.models.AnimeUpdate
 import com.example.myapplication.data.models.SortOption
+import com.example.myapplication.network.ApiSearchResult
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
@@ -22,5 +23,9 @@ data class HomeUiState(
     val updates: ImmutableList<AnimeUpdate> = persistentListOf(),
     val selectedAnimeForDetails: Anime? = null,
     val statsAnimeList: ImmutableList<Anime> = persistentListOf(),
-    val isRestoringFromCloud: Boolean = false
+    val isRestoringFromCloud: Boolean = false,
+    val apiSearchResults: ImmutableList<ApiSearchResult> = persistentListOf(),
+    val apiSearchLoading: Boolean = false,
+    val apiSearchError: String? = null,
+    val addingFromApiId: String? = null
 )

@@ -26,3 +26,4 @@ fun NavController.navigateToSettings() {
 fun NavController.navigateToDetails(animeId: String) {
     navigate(DetailsRoute(animeId = animeId))
 }
+

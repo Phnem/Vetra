@@ -19,6 +19,7 @@ import com.example.myapplication.domain.addedit.GetAnimeForEditUseCase
 import com.example.myapplication.domain.addedit.SaveAnimeUseCase
 import com.example.myapplication.domain.addedit.UpdateCommentUseCase
 import com.example.myapplication.DropboxSyncManager
+import io.ktor.client.HttpClient
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.qualifier.named
 import org.koin.core.module.dsl.singleOf
@@ -30,7 +31,7 @@ private val Context.settingsDataStore: DataStore<Preferences> by preferencesData
 val databaseModule = module {
     single { SQLDelightDatabaseFactory(androidContext()) }
     single { AnimeLocalDataSource(get()) }
-    single<ImageStorageRepository> { ImageStorageRepositoryImpl(context = androidContext()) }
+    single<ImageStorageRepository> { ImageStorageRepositoryImpl(context = androidContext(), httpClient = get()) }
     single<PermissionChecker> { AndroidPermissionChecker(androidContext()) }
     single<IdGenerator> { RealIdGenerator() }
     single { GetAnimeForEditUseCase(get()) }

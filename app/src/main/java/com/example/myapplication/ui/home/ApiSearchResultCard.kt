@@ -1,14 +1,7 @@
 package com.example.myapplication.ui.home
 
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -17,6 +10,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -24,9 +19,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,40 +41,55 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.example.myapplication.domain.search.rating10To5
 import com.example.myapplication.isAppInDarkTheme
+import com.example.myapplication.network.ApiSearchResult
 import com.example.myapplication.ui.shared.fluidClickable
 import com.example.myapplication.ui.shared.theme.SnProFamily
 import com.example.myapplication.ui.shared.theme.getRatingColor
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.CupertinoMaterials
-import com.example.myapplication.safeHaze
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 
 @Immutable
-data class AnimeCardState(
-    val id: String,
+data class ApiSearchResultCardState(
     val title: String,
-    val rating: Int,
+    val rating: Int?,
     val genres: PersistentList<String>,
-    val episodesCount: Int,
-    val categoryLabel: String?,
-    val imagePath: String?
+    val episodesText: String,
+    val posterUrl: String?,
+    val isAdded: Boolean,
+    val isLoading: Boolean
 )
 
-@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun SharedTransitionScope.OneUiAnimeCard(
-    state: AnimeCardState,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-    onClick: () -> Unit,
-    onDetailsClick: () -> Unit,
+fun ApiSearchResultCard(
+    result: ApiSearchResult,
+    isAdded: Boolean,
+    isLoading: Boolean,
+    addLabel: String = "Add",
+    addedLabel: String = "Added",
+    onAddClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val localHazeState = remember { HazeState() }
+    val state = remember(result, isAdded, isLoading) {
+        val r10 = result.rating?.let { if (it > 10) it / 10 else it } ?: 0
+        ApiSearchResultCardState(
+            title = result.title,
+            rating = if (r10 > 0) rating10To5(r10) else null,
+            genres = persistentListOf(*(result.genres.take(3).toTypedArray())),
+            episodesText = buildString {
+                append(if (result.categoryType == "MOVIE") "1 film" else "${result.episodes} eps")
+                append(" · ")
+                append(result.source)
+            },
+            posterUrl = result.posterUrl,
+            isAdded = isAdded,
+            isLoading = isLoading
+        )
+    }
+
     val isDark = isAppInDarkTheme()
-    val borderStroke = if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.4f)
     val cardBg = if (isDark) Color(0xFF1C1F28) else Color.White
     val cardShadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color.Black.copy(alpha = 0.08f)
     val subtitleColor = if (isDark) Color(0xFF9898A0) else Color(0xFF8E8E93)
@@ -87,15 +97,8 @@ fun SharedTransitionScope.OneUiAnimeCard(
 
     Box(
         modifier = modifier
-            .sharedBounds(
-                sharedContentState = rememberSharedContentState(key = "anime_${state.id}_bounds"),
-                animatedVisibilityScope = animatedVisibilityScope,
-                resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
-                clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(24.dp))
-            )
             .fillMaxWidth()
             .height(180.dp)
-            .fluidClickable(scaleDown = 0.975f, onClick = onClick)
             .shadow(
                 elevation = if (isDark) 8.dp else 4.dp,
                 shape = RoundedCornerShape(24.dp),
@@ -103,10 +106,6 @@ fun SharedTransitionScope.OneUiAnimeCard(
             )
             .clip(RoundedCornerShape(24.dp))
             .background(cardBg)
-            .border(
-                BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
-                RoundedCornerShape(24.dp)
-            )
     ) {
         Row(
             modifier = Modifier
@@ -117,13 +116,7 @@ fun SharedTransitionScope.OneUiAnimeCard(
                 modifier = Modifier
                     .fillMaxHeight()
                     .aspectRatio(0.7f)
-                    .sharedElement(
-                        sharedContentState = rememberSharedContentState(key = "anime_${state.id}"),
-                        animatedVisibilityScope = animatedVisibilityScope
-                    )
-                    .skipToLookaheadSize()
                     .clip(RoundedCornerShape(16.dp))
-                    .hazeSource(state = localHazeState)
                     .background(if (isDark) Color(0xFF2C2C34) else Color(0xFFE8E8ED)),
                 contentAlignment = Alignment.Center
             ) {
@@ -131,15 +124,14 @@ fun SharedTransitionScope.OneUiAnimeCard(
                     text = state.title.take(1).uppercase(),
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Black,
-                    color = if (isDark) Color.White.copy(alpha = 0.3f)
-                    else Color.Black.copy(alpha = 0.15f),
+                    color = if (isDark) Color.White.copy(alpha = 0.3f) else Color.Black.copy(alpha = 0.15f),
                     fontFamily = SnProFamily
                 )
-                state.imagePath?.let { imgPath ->
+                state.posterUrl?.let { url ->
                     val context = LocalContext.current
                     AsyncImage(
                         model = ImageRequest.Builder(context)
-                            .data(imgPath)
+                            .data(url)
                             .crossfade(true)
                             .build(),
                         contentDescription = state.title,
@@ -176,27 +168,22 @@ fun SharedTransitionScope.OneUiAnimeCard(
                             .weight(1f)
                             .padding(end = 8.dp)
                     )
-                    if (state.rating > 0) {
-                        Box(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.secondaryContainer)
-                                .then(
-                                    if (isDark) Modifier.safeHaze(
-                                        state = localHazeState,
-                                        style = CupertinoMaterials.thin()
-                                    )
-                                    else Modifier
+                    state.rating?.let { rating5 ->
+                        if (rating5 > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                            ) {
+                                Text(
+                                    text = "★ $rating5",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        color = getRatingColor(rating5),
+                                        fontFamily = SnProFamily
+                                    ),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
-                        ) {
-                            Text(
-                                text = "★ ${state.rating}",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    color = getRatingColor(state.rating),
-                                    fontFamily = SnProFamily
-                                ),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+                            }
                         }
                     }
                 }
@@ -234,10 +221,7 @@ fun SharedTransitionScope.OneUiAnimeCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = buildString {
-                            append("${state.episodesCount} eps.")
-                            state.categoryLabel?.let { append(" · $it") }
-                        },
+                        text = state.episodesText,
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontSize = 13.sp,
                             fontFamily = SnProFamily
@@ -246,30 +230,40 @@ fun SharedTransitionScope.OneUiAnimeCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    FilledTonalButton(
-                        onClick = onDetailsClick,
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                            horizontal = 16.dp,
-                            vertical = 0.dp
-                        ),
-                        modifier = Modifier.height(32.dp)
+                    Box(
+                        modifier = Modifier
+                            .fluidClickable(
+                                scaleDown = 0.92f,
+                                onClick = { if (!state.isAdded && !state.isLoading) onAddClick() }
+                            )
+                            .clip(CircleShape)
+                            .background(
+                                if (state.isAdded) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.primary
+                            )
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = "Details",
+                                imageVector = if (state.isAdded) Icons.Default.Check else Icons.Default.Add,
+                                contentDescription = if (state.isAdded) addedLabel else addLabel,
+                                tint = if (state.isAdded) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                text = "Details",
+                                text = if (state.isLoading) "..." else if (state.isAdded) addedLabel else addLabel,
                                 style = MaterialTheme.typography.labelLarge.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontFamily = SnProFamily,
                                     fontSize = 13.sp
-                                )
+                                ),
+                                color = if (state.isAdded) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onPrimary
                             )
                         }
                     }

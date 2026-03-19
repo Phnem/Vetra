@@ -20,3 +20,9 @@ data class AddEditRoute(val animeId: String? = null)
 
 @Serializable
 data object SettingsRoute
+
+@Serializable
+data object SettingsCloudRoute
+
+@Serializable
+data object SettingsContactRoute
