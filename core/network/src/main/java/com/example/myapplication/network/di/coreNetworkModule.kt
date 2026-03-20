@@ -1,8 +1,7 @@
-package com.example.myapplication.di
+package com.example.myapplication.network.di
 
 import android.util.Log
 import com.apollographql.apollo.ApolloClient
-import com.example.myapplication.data.repository.AnimeRepository
 import com.example.myapplication.network.AniListRemoteDataSource
 import com.example.myapplication.network.ApiService
 import com.example.myapplication.network.ShikimoriRemoteDataSource
@@ -19,7 +18,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 
-val networkModule = module {
+val coreNetworkModule = module {
     single {
         HttpClient(CIO) {
             install(ContentNegotiation) {
@@ -59,5 +58,4 @@ val networkModule = module {
             aniList = get()
         )
     }
-    single<AnimeRepository> { AnimeRepository(apiService = get(), localDataSource = get()) }
 }

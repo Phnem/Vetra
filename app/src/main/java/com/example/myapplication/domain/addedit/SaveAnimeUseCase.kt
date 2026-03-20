@@ -4,6 +4,7 @@ import com.example.myapplication.data.local.AnimeLocalDataSource
 import com.example.myapplication.data.models.Anime
 import com.example.myapplication.data.repository.ImageStorageRepository
 import com.example.myapplication.domain.IdGenerator
+import kotlinx.collections.immutable.toImmutableList
 
 class SaveAnimeUseCase(
     private val localDataSource: AnimeLocalDataSource,
@@ -26,7 +27,7 @@ class SaveAnimeUseCase(
             orderIndex = if (isNew) localDataSource.getMaxOrderIndex() + 1 else params.orderIndex,
             dateAdded = if (isNew) idGenerator.currentTimeMillis() else params.dateAdded,
             isFavorite = params.isFavorite,
-            tags = params.selectedTags,
+            tags = params.selectedTags.toImmutableList(),
             categoryType = params.categoryType,
             comment = params.comment
         )

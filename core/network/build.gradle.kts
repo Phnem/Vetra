@@ -26,4 +26,8 @@ dependencies {
     api(libs.ktor.serialization.kotlinx.json)
     api(libs.kotlinx.serialization.json)
     api(libs.apollo.runtime)
+
+    implementation(libs.ktor.client.logging)
+    implementation(platform(libs.koin.bom))
+    implementation(libs.koin.android)
 }

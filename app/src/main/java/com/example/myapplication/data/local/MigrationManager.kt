@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import com.example.myapplication.data.models.Anime
 import com.example.myapplication.data.models.AnimeUpdate
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -205,7 +206,7 @@ class MigrationManager(
                     val dateAdded = obj["dateAdded"]?.jsonPrimitive?.content?.toLongOrNull() ?: System.currentTimeMillis()
                     val imageFileName = obj["imageFileName"]?.jsonPrimitive?.content
                     val isFavorite = obj["isFavorite"]?.jsonPrimitive?.content?.toBooleanStrictOrNull() ?: false
-                    val tags = obj["tags"]?.jsonArray?.mapNotNull { it.jsonPrimitive.content } ?: emptyList()
+                    val tags = (obj["tags"]?.jsonArray?.mapNotNull { it.jsonPrimitive.content } ?: emptyList()).toImmutableList()
                     val categoryType = obj["categoryType"]?.jsonPrimitive?.content ?: ""
                     restoredList.add(Anime(id, title, episodes, rating, imageFileName, orderIndex, dateAdded, isFavorite, tags, categoryType))
                 } catch (e: Exception) {

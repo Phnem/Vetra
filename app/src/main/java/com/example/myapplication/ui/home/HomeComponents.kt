@@ -1,16 +1,13 @@
 package com.example.myapplication.ui.home
 
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -23,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -65,6 +61,7 @@ sealed interface AnimeMenuEvent {
 @Composable
 fun AnimeListActionMenu(
     state: AnimeMenuState,
+    strings: UiStrings,
     onEvent: (AnimeMenuEvent) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -124,7 +121,7 @@ fun AnimeListActionMenu(
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Удалить")
+                        Text(strings.deleteConfirm)
                     }
                 }
                 AnimeMenuConfirmMode.ADD_TO_FAVORITE -> {
@@ -135,7 +132,7 @@ fun AnimeListActionMenu(
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Добавить")
+                        Text(strings.addButton)
                     }
                 }
             }
@@ -146,7 +143,7 @@ fun AnimeListActionMenu(
                     contentColor = MaterialTheme.colorScheme.onSurface
                 )
             ) {
-                Text("Отмена")
+                Text(strings.cancel)
             }
         }
     }
@@ -157,6 +154,7 @@ fun AnimeListActionMenu(
 fun AnimeListMenuSheet(
     anime: Anime,
     confirmMode: AnimeMenuConfirmMode,
+    strings: UiStrings,
     getImgPath: (String?) -> String?,
     onEvent: (AnimeMenuEvent) -> Unit,
     onDismiss: () -> Unit
@@ -183,7 +181,7 @@ fun AnimeListMenuSheet(
         AnimeMenuState(
             title = anime.title,
             imageUrl = getImgPath(anime.imageFileName) ?: "",
-            statusText = if (anime.rating > 0) "${anime.rating}/10" else "${anime.episodes} эп.",
+            statusText = if (anime.rating > 0) "${anime.rating}/10" else "${anime.episodes} ${strings.episodesShort}",
             confirmMode = confirmMode
         )
     }
@@ -229,6 +227,7 @@ fun AnimeListMenuSheet(
             ) {
                 AnimeListActionMenu(
                     state = menuState,
+                    strings = strings,
                     onEvent = { event ->
                         onEvent(event)
                         dismiss()
@@ -245,8 +244,6 @@ fun AnimeListMenuSheet(
 @Composable
 fun MalistWorkspaceTopBar(
     strings: UiStrings,
-    userAvatarPath: String?,
-    onSaveUserAvatar: (Uri) -> Unit,
     onOpenSort: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     filterSelectedTags: List<String> = emptyList(),
@@ -360,6 +357,7 @@ fun EmptyStateView(
 @Composable
 fun CloudRestoreIndicator(
     isRestoring: Boolean,
+    strings: UiStrings,
     modifier: Modifier = Modifier
 ) {
     AnimatedVisibility(
@@ -404,7 +402,7 @@ fun CloudRestoreIndicator(
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Восстановление базы данных...",
+                    text = strings.cloudRestoreTitle,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontFamily = SnProFamily,
                         fontWeight = FontWeight.SemiBold
@@ -413,7 +411,7 @@ fun CloudRestoreIndicator(
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "Загружаем вашу коллекцию из облака. Пожалуйста, подождите.",
+                    text = strings.cloudRestoreSubtitle,
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontFamily = SnProFamily
                     ),
@@ -491,166 +489,6 @@ fun SwipeBackground(dismissState: SwipeToDismissBoxState) {
                         scaleY = scale
                     }
             )
-        }
-    }
-}
-
-// ==========================================
-// SpringBottomDialog — polished
-// ==========================================
-@Composable
-fun SpringBottomDialog(
-    title: String,
-    subtitle: String,
-    confirmText: String,
-    cancelText: String,
-    icon: ImageVector,
-    accentColor: Color,
-    imagePath: String? = null,
-    onConfirm: () -> Unit,
-    onCancel: () -> Unit
-) {
-    val isDark = isAppInDarkTheme()
-    var visible by remember { mutableStateOf(false) }
-    var isConfirmed by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) { visible = true }
-
-    fun triggerDismiss(confirm: Boolean) {
-        isConfirmed = confirm
-        visible = false
-    }
-
-    LaunchedEffect(visible) {
-        if (!visible) {
-            kotlinx.coroutines.delay(250)
-            if (isConfirmed) onConfirm() else onCancel()
-        }
-    }
-
-    BackHandler { triggerDismiss(false) }
-
-    val panelBg = if (isDark) Color(0xFF1F222B) else MaterialTheme.colorScheme.surface
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .zIndex(10f),
-        contentAlignment = Alignment.BottomCenter
-    ) {
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(tween(200)),
-            exit = fadeOut(tween(150))
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.4f))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { triggerDismiss(false) }
-            )
-        }
-
-        AnimatedVisibility(
-            visible = visible,
-            enter = slideInVertically(
-                initialOffsetY = { it },
-                animationSpec = spring(dampingRatio = 0.75f, stiffness = 400f)
-            ) + fadeIn(),
-            exit = slideOutVertically(
-                targetOffsetY = { it },
-                animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMedium)
-            ) + fadeOut()
-        ) {
-            Card(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .navigationBarsPadding()
-                    .fillMaxWidth(),
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = panelBg),
-                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(28.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    if (imagePath != null) {
-                        AsyncImage(
-                            model = imagePath,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(72.dp)
-                                .clip(RoundedCornerShape(16.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                        Spacer(Modifier.height(16.dp))
-                    }
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape)
-                            .background(accentColor.copy(alpha = 0.12f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            icon,
-                            null,
-                            tint = accentColor,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                    Spacer(Modifier.height(20.dp))
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = SnProFamily
-                        ),
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontFamily = SnProFamily
-                        ),
-                        color = MaterialTheme.colorScheme.secondary,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(Modifier.height(28.dp))
-                    Button(
-                        onClick = { triggerDismiss(true) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = accentColor)
-                    ) {
-                        Text(
-                            confirmText,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            fontFamily = SnProFamily
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    TextButton(
-                        onClick = { triggerDismiss(false) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            cancelText,
-                            color = MaterialTheme.colorScheme.secondary,
-                            fontFamily = SnProFamily
-                        )
-                    }
-                }
-            }
         }
     }
 }
@@ -784,7 +622,7 @@ fun StatsOverlay(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            StatItem(value = totalAnime.toString(), label = "Total", color = BrandBlue)
+                            StatItem(value = totalAnime.toString(), label = strings.statsTotal, color = BrandBlue)
                             StatItem(value = String.format("%.1f", avgRating), label = strings.avgRating, color = RatingColor)
                             StatItem(value = totalEpisodes.toString(), label = strings.episodesWatched, color = EpisodesColor)
                             StatItem(value = favorites.toString(), label = strings.favorites, color = BrandRed)

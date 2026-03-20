@@ -69,7 +69,8 @@ class HomeViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppContentType.ANIME)
 
-    private val settingsLanguage: StateFlow<AppLanguage> = settingsDataStore.data
+    /** Language from DataStore — use this in UI instead of a separate SettingsViewModel (avoids duplicate VM scope). */
+    val uiLanguage: StateFlow<AppLanguage> = settingsDataStore.data
         .map { prefs ->
             runCatching { AppLanguage.valueOf(prefs[KEY_LANG] ?: "EN") }
                 .getOrElse { AppLanguage.EN }
@@ -117,8 +118,6 @@ class HomeViewModel(
         }
     }
 
-    fun loadAnime() {}
-
     /** Hot swap: закрывает старый коннект, открывает новый (после .copyTo миграции), UI переподписывается. */
     fun refreshList() {
         viewModelScope.launch {
@@ -164,7 +163,7 @@ class HomeViewModel(
             if (_uiState.value.searchQuery.trim() != trimmed) return@launch
             _uiState.update { it.copy(apiSearchLoading = true, apiSearchError = null) }
             val contentType = settingsContentType.value
-            val language = settingsLanguage.value
+            val language = uiLanguage.value
             repository.searchApi(trimmed, contentType, language)
                 .fold(
                     onSuccess = { results ->
@@ -243,14 +242,6 @@ class HomeViewModel(
         _uiState.update {
             it.copy(filterTags = tags.toImmutableList(), filterCategory = category)
         }
-    }
-
-    fun selectAnimeForDetails(anime: Anime) {
-        _uiState.update { it.copy(selectedAnimeForDetails = anime) }
-    }
-
-    fun clearSelectedAnime() {
-        _uiState.update { it.copy(selectedAnimeForDetails = null) }
     }
 
     fun deleteAnime(id: String) {

@@ -5,6 +5,8 @@ import app.cash.sqldelight.coroutines.mapToList
 import com.example.myapplication.data.local.AnimeDatabase
 import com.example.myapplication.data.models.Anime
 import com.example.myapplication.data.models.AnimeUpdate
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -38,12 +40,6 @@ class AnimeLocalDataSource(
 
     fun getMaxOrderIndex(): Int {
         return db().animeQueries.getMaxOrderIndex().executeAsOne().toInt()
-    }
-
-    fun getAnimePage(offset: Int, limit: Int): List<Anime> {
-        return db().animeQueries.getAnimePaged(limit.toLong(), offset.toLong())
-            .executeAsList()
-            .map { row -> mapRowToAnime(row.id, row.title, row.imagePath, row.episodes, row.rating, row.orderIndex, row.dateAdded, row.isFavorite, row.categoryType, getRowComment(row)) }
     }
 
     fun getAllAnimeList(): List<Anime> {
@@ -227,7 +223,7 @@ class AnimeLocalDataSource(
         db().animeQueries.deleteUpdateByAnimeId(animeId)
     }
 
-    private fun getTagsForAnime(animeId: String): List<String> {
-        return db().animeQueries.getAnimeTags(animeId).executeAsList()
+    private fun getTagsForAnime(animeId: String): ImmutableList<String> {
+        return db().animeQueries.getAnimeTags(animeId).executeAsList().toImmutableList()
     }
 }

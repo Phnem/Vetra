@@ -34,7 +34,8 @@ val viewModelModule = module {
             getAnimeUseCase = get(),
             saveAnimeUseCase = get(),
             updateCommentUseCase = get(),
-            imageStorage = get()
+            imageStorage = get(),
+            settingsDataStore = get(named("settings"))
         )
     }
     viewModel { SettingsViewModel(repository = get(), settingsDataStore = get(named("settings")), databaseFactory = get()) }

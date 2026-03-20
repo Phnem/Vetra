@@ -106,15 +106,4 @@ class AniListRemoteDataSource(
             if (count > 0) count to "AniList" else null
         }
     }
-
-    private fun isTitleSimilar(query: String, vararg targets: String?): Boolean {
-        val q = query.lowercase().replace(Regex("[^\\p{L}\\p{N}]"), "")
-        if (q.isEmpty()) return false
-        for (t in targets) {
-            if (t.isNullOrBlank()) continue
-            val normalized = t.lowercase().replace(Regex("[^\\p{L}\\p{N}]"), "")
-            if (normalized.contains(q) || q.contains(normalized)) return true
-        }
-        return false
-    }
 }

@@ -26,6 +26,7 @@ data class UiStrings(
     val episodesWatched: String,
     val timeSpent: String,
     val avgRating: String,
+    val statsTotal: String,
     val rankTitle: String,
     val updatesTitle: String,
     val updatesChecking: String,
@@ -90,6 +91,7 @@ data class UiStrings(
     val addButton: String,
     val addedButton: String,
     val viaApi: String,
-    val inLibrary: String,
-    val instantResults: String
+    val episodesShort: String,
+    val cloudRestoreTitle: String,
+    val cloudRestoreSubtitle: String
 )

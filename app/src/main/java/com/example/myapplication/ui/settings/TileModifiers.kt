@@ -9,38 +9,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
-/**
- * Радиальное свечение из правого верхнего угла.
- * Brush кэшируется по (accentColor, size) для избежания аллокаций на каждом кадре.
- */
-@Composable
 fun Modifier.tileGlow(accentColor: Color): Modifier {
-    val cache = remember(accentColor) {
-        object {
-            var lastBrush: Brush? = null
-            var lastSize: Size = Size.Zero
-        }
-    }
-    return this.drawBehind {
-        if (size != cache.lastSize) {
-            cache.lastBrush = Brush.radialGradient(
-                colors = listOf(accentColor.copy(alpha = 0.15f), Color.Transparent),
-                center = Offset(size.width, 0f),
-                radius = size.maxDimension * 0.8f
-            )
-            cache.lastSize = size
-        }
-        drawRect(brush = cache.lastBrush!!)
+    return this.drawWithCache {
+        val brush = Brush.radialGradient(
+            colors = listOf(accentColor.copy(alpha = 0.15f), Color.Transparent),
+            center = Offset(size.width, 0f),
+            radius = size.maxDimension * 0.8f
+        )
+        onDrawBehind { drawRect(brush = brush) }
     }
 }
 

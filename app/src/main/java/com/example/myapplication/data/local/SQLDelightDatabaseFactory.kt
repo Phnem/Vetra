@@ -44,8 +44,6 @@ class SQLDelightDatabaseFactory(private val context: Context) {
         dbConnectionTrigger.value += 1
     }
 
-    fun createDriver(): SqlDriver = getDriver()
-
     suspend fun checkpoint() {
         withContext(Dispatchers.IO) {
             try {

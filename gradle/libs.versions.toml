@@ -98,7 +98,6 @@ ktor-client-cio = { group = "io.ktor", name = "ktor-client-cio" }
 ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation" }
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json" }
 ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging" }
-ktor-client-auth = { group = "io.ktor", name = "ktor-client-auth" }
 
 # --- Apollo ---
 apollo-runtime = { module = "com.apollographql.apollo:apollo-runtime", version.ref = "apollo" }

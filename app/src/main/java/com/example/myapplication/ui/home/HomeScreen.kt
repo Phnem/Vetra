@@ -13,6 +13,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -46,6 +47,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -61,6 +63,7 @@ import com.example.myapplication.SimpGlassCard
 import com.example.myapplication.SortFilterOverlay
 import com.example.myapplication.data.models.*
 import com.example.myapplication.data.repository.GenreRepository
+import com.example.myapplication.network.AppLanguage
 import com.example.myapplication.utils.getStrings
 import com.example.myapplication.utils.performHaptic
 import com.example.myapplication.ui.details.AnimeDetailsSheet
@@ -85,9 +88,7 @@ fun HomeScreen(
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val genreRepository: GenreRepository = koinInject()
-    val settingsVm: com.example.myapplication.ui.settings.SettingsViewModel = org.koin.androidx.compose.koinViewModel()
-    val settingsState by settingsVm.uiState.collectAsStateWithLifecycle()
-    val currentLanguage = settingsState.language
+    val currentLanguage by viewModel.uiLanguage.collectAsStateWithLifecycle()
     val strings = getStrings(currentLanguage)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val kbd = LocalSoftwareKeyboardController.current
@@ -316,8 +317,6 @@ fun HomeScreen(
                                     item {
                                         MalistWorkspaceTopBar(
                                             strings = getStrings(currentLanguage),
-                                            userAvatarPath = null,
-                                            onSaveUserAvatar = { uri -> /* TODO */ },
                                             onOpenSort = {
                                                 performHaptic(view, "light")
                                                 showSortOverlay = !showSortOverlay
@@ -342,88 +341,16 @@ fun HomeScreen(
                                     val showApiFirst = list.isEmpty() && uiState.searchQuery.isNotEmpty()
 
                                     if (showApiFirst) {
-                                        item {
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(top = 8.dp, bottom = 12.dp, start = 16.dp, end = 16.dp)
-                                            ) {
-                                                Text(
-                                                    text = strings.externalResults,
-                                                    style = MaterialTheme.typography.labelMedium.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontFamily = SnProFamily
-                                                    ),
-                                                    color = MaterialTheme.colorScheme.primary
-                                                )
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Text(
-                                                        text = strings.apiSearch,
-                                                        style = MaterialTheme.typography.titleSmall.copy(
-                                                            fontFamily = SnProFamily
-                                                        ),
-                                                        color = MaterialTheme.colorScheme.onSurface
-                                                    )
-                                                    Text(
-                                                        text = "${apiSearchModels.size} ${strings.viaApi}",
-                                                        style = MaterialTheme.typography.bodySmall.copy(
-                                                            fontFamily = SnProFamily
-                                                        ),
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        if (uiState.apiSearchLoading) {
-                                            item {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(32.dp),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    CircularProgressIndicator(
-                                                        modifier = Modifier.size(32.dp),
-                                                        strokeWidth = 2.dp
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        uiState.apiSearchError?.let { err ->
-                                            item {
-                                                Text(
-                                                    text = err,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.error,
-                                                    modifier = Modifier.padding(16.dp)
-                                                )
-                                            }
-                                        }
-                                        items(
-                                            items = apiSearchModels,
-                                            key = { "${it.result.source}_${it.result.externalId ?: it.result.title}" },
-                                            contentType = { "api_card" }
-                                        ) { uiModel ->
-                                            val result = uiModel.result
-                                            val key = "${result.source}_${result.externalId ?: result.title}"
-                                            val isLoading = uiState.addingFromApiId == key
-                                            ApiSearchResultCard(
-                                                result = result,
-                                                isAdded = uiModel.isAdded,
-                                                isLoading = isLoading,
-                                                addLabel = strings.addButton,
-                                                addedLabel = strings.addedButton,
-                                                onAddClick = {
-                                                    performHaptic(view, "light")
-                                                    viewModel.addFromApi(result)
-                                                },
-                                                modifier = Modifier.padding(horizontal = 16.dp)
-                                            )
-                                        }
+                                        apiSearchResultsSection(
+                                            strings = strings,
+                                            apiSearchModels = apiSearchModels,
+                                            uiState = uiState,
+                                            currentLanguage = currentLanguage,
+                                            genreRepository = genreRepository,
+                                            view = view,
+                                            viewModel = viewModel,
+                                            topPadding = 8.dp
+                                        )
                                         item {
                                             Box(
                                                 modifier = Modifier
@@ -432,7 +359,7 @@ fun HomeScreen(
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 EmptyStateView(
-                                                    title = "No results",
+                                                    title = strings.noResults,
                                                     subtitle = ""
                                                 )
                                             }
@@ -495,88 +422,16 @@ fun HomeScreen(
                                             }
                                         }
                                         if (uiState.searchQuery.isNotEmpty()) {
-                                            item {
-                                                Column(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(top = 24.dp, bottom = 12.dp, start = 16.dp, end = 16.dp)
-                                                ) {
-                                                    Text(
-                                                        text = strings.externalResults,
-                                                        style = MaterialTheme.typography.labelMedium.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontFamily = SnProFamily
-                                                        ),
-                                                        color = MaterialTheme.colorScheme.primary
-                                                    )
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                                        verticalAlignment = Alignment.CenterVertically
-                                                    ) {
-                                                        Text(
-                                                            text = strings.apiSearch,
-                                                            style = MaterialTheme.typography.titleSmall.copy(
-                                                                fontFamily = SnProFamily
-                                                            ),
-                                                            color = MaterialTheme.colorScheme.onSurface
-                                                        )
-                                                        Text(
-                                                            text = "${apiSearchModels.size} ${strings.viaApi}",
-                                                            style = MaterialTheme.typography.bodySmall.copy(
-                                                                fontFamily = SnProFamily
-                                                            ),
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                            if (uiState.apiSearchLoading) {
-                                                item {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(32.dp),
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        CircularProgressIndicator(
-                                                            modifier = Modifier.size(32.dp),
-                                                            strokeWidth = 2.dp
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                            uiState.apiSearchError?.let { err ->
-                                                item {
-                                                    Text(
-                                                        text = err,
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = MaterialTheme.colorScheme.error,
-                                                        modifier = Modifier.padding(16.dp)
-                                                    )
-                                                }
-                                            }
-                                            items(
-                                                items = apiSearchModels,
-                                                key = { "${it.result.source}_${it.result.externalId ?: it.result.title}" },
-                                                contentType = { "api_card" }
-                                            ) { uiModel ->
-                                                val result = uiModel.result
-                                                val key = "${result.source}_${result.externalId ?: result.title}"
-                                                val isLoading = uiState.addingFromApiId == key
-                                                ApiSearchResultCard(
-                                                    result = result,
-                                                    isAdded = uiModel.isAdded,
-                                                    isLoading = isLoading,
-                                                    addLabel = strings.addButton,
-                                                    addedLabel = strings.addedButton,
-                                                    onAddClick = {
-                                                        performHaptic(view, "light")
-                                                        viewModel.addFromApi(result)
-                                                    },
-                                                    modifier = Modifier.padding(horizontal = 16.dp)
-                                                )
-                                            }
+                                            apiSearchResultsSection(
+                                                strings = strings,
+                                                apiSearchModels = apiSearchModels,
+                                                uiState = uiState,
+                                                currentLanguage = currentLanguage,
+                                                genreRepository = genreRepository,
+                                                view = view,
+                                                viewModel = viewModel,
+                                                topPadding = 24.dp
+                                            )
                                         }
                                     } else {
                                         item {
@@ -587,8 +442,8 @@ fun HomeScreen(
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 EmptyStateView(
-                                                    title = "Nothing in folder",
-                                                    subtitle = "Looks empty over here."
+                                                    title = strings.emptyTitle,
+                                                    subtitle = strings.emptySubtitle
                                                 )
                                             }
                                         }
@@ -599,6 +454,7 @@ fun HomeScreen(
                     }
                     CloudRestoreIndicator(
                         isRestoring = uiState.isRestoringFromCloud && list.isEmpty(),
+                        strings = strings,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -691,6 +547,7 @@ fun HomeScreen(
                 AnimeListMenuSheet(
                     anime = animeToDelete!!,
                     confirmMode = AnimeMenuConfirmMode.DELETE,
+                    strings = strings,
                     getImgPath = { viewModel.getImgPath(it) },
                     onEvent = { event ->
                         when (event) {
@@ -705,6 +562,7 @@ fun HomeScreen(
                 AnimeListMenuSheet(
                     anime = animeToFavorite!!,
                     confirmMode = AnimeMenuConfirmMode.ADD_TO_FAVORITE,
+                    strings = strings,
                     getImgPath = { viewModel.getImgPath(it) },
                     onEvent = { event ->
                         when (event) {
@@ -753,5 +611,107 @@ fun HomeScreen(
                 onDismiss = { showCSheet = false }
             )
         }
+    }
+}
+
+private fun LazyListScope.apiSearchResultsSection(
+    strings: UiStrings,
+    apiSearchModels: List<ApiSearchUiModel>,
+    uiState: HomeUiState,
+    currentLanguage: AppLanguage,
+    genreRepository: GenreRepository,
+    view: android.view.View,
+    viewModel: HomeViewModel,
+    topPadding: Dp
+) {
+    item {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = topPadding, bottom = 12.dp, start = 16.dp, end = 16.dp)
+        ) {
+            Text(
+                text = strings.externalResults,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = SnProFamily
+                ),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = strings.apiSearch,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontFamily = SnProFamily
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "${apiSearchModels.size} ${strings.viaApi}",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontFamily = SnProFamily
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+    if (uiState.apiSearchLoading) {
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(32.dp),
+                    strokeWidth = 2.dp
+                )
+            }
+        }
+    }
+    uiState.apiSearchError?.let { err ->
+        item {
+            Text(
+                text = err,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+    }
+    items(
+        items = apiSearchModels,
+        key = { "${it.result.source}_${it.result.externalId ?: it.result.title}" },
+        contentType = { "api_card" }
+    ) { uiModel ->
+        val result = uiModel.result
+        val key = "${result.source}_${result.externalId ?: result.title}"
+        val isLoading = uiState.addingFromApiId == key
+        val apiGenres = remember(result.genres, currentLanguage) {
+            persistentListOf(
+                *result.genres.take(3)
+                    .map { genreRepository.getLabel(it, currentLanguage) }
+                    .toTypedArray()
+            )
+        }
+        ApiSearchResultCard(
+            result = result,
+            isAdded = uiModel.isAdded,
+            isLoading = isLoading,
+            displayGenres = apiGenres,
+            addLabel = strings.addButton,
+            addedLabel = strings.addedButton,
+            onAddClick = {
+                performHaptic(view, "light")
+                viewModel.addFromApi(result)
+            },
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
     }
 }

@@ -67,17 +67,19 @@ fun ApiSearchResultCard(
     result: ApiSearchResult,
     isAdded: Boolean,
     isLoading: Boolean,
+    /** Localized genre labels; if null, raw API strings are used. */
+    displayGenres: PersistentList<String>? = null,
     addLabel: String = "Add",
     addedLabel: String = "Added",
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val state = remember(result, isAdded, isLoading) {
+    val state = remember(result, isAdded, isLoading, displayGenres) {
         val r10 = result.rating?.let { if (it > 10) it / 10 else it } ?: 0
         ApiSearchResultCardState(
             title = result.title,
             rating = if (r10 > 0) rating10To5(r10) else null,
-            genres = persistentListOf(*(result.genres.take(3).toTypedArray())),
+            genres = displayGenres ?: persistentListOf(*(result.genres.take(3).toTypedArray())),
             episodesText = buildString {
                 append(if (result.categoryType == "MOVIE") "1 film" else "${result.episodes} eps")
                 append(" · ")

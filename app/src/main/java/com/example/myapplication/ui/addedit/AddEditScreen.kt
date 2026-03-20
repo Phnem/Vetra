@@ -71,9 +71,7 @@ fun AddEditScreen(
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val settingsVm: com.example.myapplication.ui.settings.SettingsViewModel = org.koin.androidx.compose.koinViewModel()
-    val settingsState by settingsVm.uiState.collectAsStateWithLifecycle()
-    val currentLanguage = settingsState.language
+    val currentLanguage by viewModel.uiLanguage.collectAsStateWithLifecycle()
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
         viewModel.onEvent(AddEditEvent.OnImageUriChanged(it))
     }

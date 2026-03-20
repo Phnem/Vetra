@@ -7,8 +7,8 @@ import android.os.Environment
 import android.util.Log
 import com.example.myapplication.di.appModule
 import com.example.myapplication.di.databaseModule
-import com.example.myapplication.di.networkModule
 import com.example.myapplication.di.viewModelModule
+import com.example.myapplication.network.di.coreNetworkModule
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -30,8 +30,8 @@ class VetroApplication : Application(), SingletonImageLoader.Factory {
         startKoin {
             androidContext(this@VetroApplication)
             modules(
+                coreNetworkModule,
                 appModule,
-                networkModule,
                 databaseModule,
                 viewModelModule
             )

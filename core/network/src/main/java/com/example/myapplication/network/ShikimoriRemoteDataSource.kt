@@ -101,37 +101,4 @@ class ShikimoriRemoteDataSource(
             airedOn = airedOn
         )
     }
-
-    private fun isTitleSimilar(query: String, vararg targets: String?): Boolean {
-        val q = query.lowercase().replace(Regex("[^\\p{L}\\p{N}]"), "")
-        if (q.isEmpty()) return false
-        for (t in targets) {
-            if (t.isNullOrBlank()) continue
-            val normalized = t.lowercase().replace(Regex("[^\\p{L}\\p{N}]"), "")
-            if (normalized.contains(q) || q.contains(normalized)) return true
-            val dist = levenshtein(q, normalized)
-            val maxLen = maxOf(q.length, normalized.length)
-            if ((1.0 - dist.toDouble() / maxLen) > 0.7) return true
-        }
-        return false
-    }
-
-    private fun levenshtein(lhs: CharSequence, rhs: CharSequence): Int {
-        if (lhs == rhs) return 0
-        if (lhs.isEmpty()) return rhs.length
-        if (rhs.isEmpty()) return lhs.length
-        var cost = IntArray(lhs.length + 1) { it }
-        var newCost = IntArray(lhs.length + 1)
-        for (i in 1..rhs.length) {
-            newCost[0] = i
-            for (j in 1..lhs.length) {
-                val match = if (lhs[j - 1] == rhs[i - 1]) 0 else 1
-                newCost[j] = minOf(cost[j - 1] + match, cost[j] + 1, newCost[j - 1] + 1)
-            }
-            val swap = cost
-            cost = newCost
-            newCost = swap
-        }
-        return cost[lhs.length]
-    }
 }

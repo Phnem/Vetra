@@ -1,26 +1,43 @@
 package com.example.myapplication.ui.addedit
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.repository.ImageStorageRepository
+import com.example.myapplication.network.AppLanguage
 import com.example.myapplication.domain.addedit.GetAnimeForEditUseCase
 import com.example.myapplication.domain.addedit.SaveAnimeParams
 import com.example.myapplication.domain.addedit.SaveAnimeUseCase
 import com.example.myapplication.domain.addedit.UpdateCommentUseCase
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private val KEY_LANG = stringPreferencesKey("lang")
 
 class AddEditViewModel(
     private val getAnimeUseCase: GetAnimeForEditUseCase,
     private val saveAnimeUseCase: SaveAnimeUseCase,
     private val updateCommentUseCase: UpdateCommentUseCase,
-    private val imageStorage: ImageStorageRepository
+    private val imageStorage: ImageStorageRepository,
+    settingsDataStore: DataStore<Preferences>
 ) : ViewModel() {
+
+    val uiLanguage: StateFlow<AppLanguage> = settingsDataStore.data
+        .map { prefs ->
+            runCatching { AppLanguage.valueOf(prefs[KEY_LANG] ?: "EN") }
+                .getOrElse { AppLanguage.EN }
+        }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AppLanguage.EN)
 
     private val _uiState = MutableStateFlow(AddEditUiState())
     val uiState: StateFlow<AddEditUiState> = _uiState.asStateFlow()

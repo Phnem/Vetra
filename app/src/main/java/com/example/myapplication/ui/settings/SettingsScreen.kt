@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -172,12 +172,12 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(
+                    itemsIndexed(
                         items = tiles,
-                        key = { tile: SettingsTile -> tile.id },
-                        span = { tile: SettingsTile -> GridItemSpan(tile.span) }
-                    ) { tile ->
-                        val index = tiles.indexOf(tile)
+                        key = { _: Int, tile: SettingsTile -> tile.id },
+                        span = { _: Int, tile: SettingsTile -> GridItemSpan(tile.span) },
+                        contentType = { _: Int, tile: SettingsTile -> tile::class.simpleName }
+                    ) { index, tile ->
                         Box(modifier = Modifier.inertialCollision(collisionState, index, 1.2f)) {
                             when (tile) {
                                 is ToggleTile -> ToggleTileItem(

@@ -39,9 +39,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 
 // ==========================================

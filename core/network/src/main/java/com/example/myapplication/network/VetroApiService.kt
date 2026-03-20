@@ -93,24 +93,6 @@ class VetroApiService(
         return if (fuzzyOk) SearchMatch.FUZZY else SearchMatch.NONE
     }
 
-    private fun levenshtein(a: CharSequence, b: CharSequence): Int {
-        if (a == b) return 0
-        if (a.isEmpty()) return b.length
-        if (b.isEmpty()) return a.length
-        var prev = IntArray(a.length + 1) { it }
-        for (j in 1..b.length) {
-            val curr = IntArray(a.length + 1).apply {
-                set(0, j)
-                for (i in 1..a.length) {
-                    val cost = if (a[i - 1] == b[j - 1]) 0 else 1
-                    set(i, minOf(prev[i - 1] + cost, prev[i] + 1, get(i - 1) + 1))
-                }
-            }
-            prev = curr
-        }
-        return prev[a.length]
-    }
-
     /** Фильтрация (exact/partial/fuzzy) + ранжирование: exact > partial > fuzzy. */
     private fun filterAndRankByQuery(query: String, results: List<ApiSearchResult>): List<ApiSearchResult> {
         val seen = mutableSetOf<String>()
@@ -201,7 +183,7 @@ class VetroApiService(
                 parameters.append("query", query)
             }
         }.bodyAsText()
-        parseTmdbResults(response, "MOVIE", key)
+        parseTmdbResults(response, "MOVIE")
     }.getOrElse { emptyList() }
 
     private suspend fun searchTmdbTv(query: String): List<ApiSearchResult> = runCatching {
@@ -215,10 +197,10 @@ class VetroApiService(
                 parameters.append("query", query)
             }
         }.bodyAsText()
-        parseTmdbResults(response, "SERIES", key)
+        parseTmdbResults(response, "SERIES")
     }.getOrElse { emptyList() }
 
-    private suspend fun parseTmdbResults(jsonStr: String, categoryType: String, apiKey: String): List<ApiSearchResult> {
+    private suspend fun parseTmdbResults(jsonStr: String, categoryType: String): List<ApiSearchResult> {
         val root = json.parseToJsonElement(jsonStr).jsonObject
         val results = root["results"]?.jsonArray ?: return emptyList()
         return results.mapNotNull { el ->
@@ -320,16 +302,5 @@ class VetroApiService(
             }
             if (total > 0) total to "TMDB" else null
         }.getOrNull()
-    }
-
-    private fun isTitleSimilar(query: String, vararg targets: String?): Boolean {
-        val q = query.lowercase().replace(Regex("[^\\p{L}\\p{N}]"), "")
-        if (q.isEmpty()) return false
-        for (t in targets) {
-            if (t.isNullOrBlank()) continue
-            val n = t.lowercase().replace(Regex("[^\\p{L}\\p{N}]"), "")
-            if (n.contains(q) || q.contains(n)) return true
-        }
-        return false
     }
 }

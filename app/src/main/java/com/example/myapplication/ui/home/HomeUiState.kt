@@ -28,7 +28,6 @@ data class HomeUiState(
     val isGenreFilterVisible: Boolean = false,
     val isCheckingUpdates: Boolean = false,
     val updates: ImmutableList<AnimeUpdate> = persistentListOf(),
-    val selectedAnimeForDetails: Anime? = null,
     val statsAnimeList: ImmutableList<Anime> = persistentListOf(),
     val isRestoringFromCloud: Boolean = false,
     val apiSearchResults: ImmutableList<ApiSearchResult> = persistentListOf(),

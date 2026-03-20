@@ -19,10 +19,8 @@ import com.example.myapplication.domain.addedit.GetAnimeForEditUseCase
 import com.example.myapplication.domain.addedit.SaveAnimeUseCase
 import com.example.myapplication.domain.addedit.UpdateCommentUseCase
 import com.example.myapplication.DropboxSyncManager
-import io.ktor.client.HttpClient
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.qualifier.named
-import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
 
 private val Context.migrationDataStore: DataStore<Preferences> by preferencesDataStore(name = "migration_prefs")

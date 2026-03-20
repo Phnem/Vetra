@@ -41,10 +41,13 @@ class GenreRepository {
     }
 
     fun getLabel(id: String, lang: com.example.myapplication.network.AppLanguage): String {
-        val def = allGenres.find { it.id.equals(id, ignoreCase = true) }
+        val trimmed = id.trim()
+        val def = allGenres.firstOrNull { it.id.equals(trimmed, ignoreCase = true) }
+            ?: allGenres.firstOrNull { it.ru.equals(trimmed, ignoreCase = true) }
+            ?: allGenres.firstOrNull { it.en.equals(trimmed, ignoreCase = true) }
         return when (lang) {
-            com.example.myapplication.network.AppLanguage.RU -> def?.ru ?: id
-            com.example.myapplication.network.AppLanguage.EN -> def?.en ?: id
+            com.example.myapplication.network.AppLanguage.RU -> def?.ru ?: trimmed
+            com.example.myapplication.network.AppLanguage.EN -> def?.en ?: trimmed
         }
     }
 }
