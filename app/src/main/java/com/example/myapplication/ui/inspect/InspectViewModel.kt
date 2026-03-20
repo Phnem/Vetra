@@ -18,6 +18,7 @@ import com.example.myapplication.network.ApiSearchResult
 import com.example.myapplication.network.AppContentType
 import com.example.myapplication.network.AppLanguage
 import com.example.myapplication.ui.home.ApiSearchUiModel
+import com.example.myapplication.utils.getStrings
 import io.ktor.http.ContentType
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
@@ -114,14 +115,15 @@ class InspectViewModel(
     fun analyzeImage(context: Context, uri: Uri) {
         selectedImageUri.value = uri
         viewModelScope.launch {
+            val lang = uiLanguage.value
+            val str = getStrings(lang)
             _errorMessage.value = null
             _rawResults.value = emptyList()
-            _loadingMessage.value = context.getString(com.example.myapplication.R.string.inspect_loading_analyzing)
-            val lang = uiLanguage.value
+            _loadingMessage.value = str.inspectLoadingAnalyzing
             val outcome = runCatching {
                 val bytes = withContext(Dispatchers.IO) {
                     context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                } ?: error(context.getString(com.example.myapplication.R.string.inspect_read_image_failed))
+                } ?: error(str.inspectReadImageFailed)
                 val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
                 val traceCt = mimeToKtorContentType(mime)
                 inspectImageUseCase(
@@ -136,7 +138,7 @@ class InspectViewModel(
             outcome.fold(
                 onSuccess = { list ->
                     if (list.isEmpty()) {
-                        _errorMessage.value = context.getString(com.example.myapplication.R.string.inspect_no_results)
+                        _errorMessage.value = str.inspectNoResults
                     } else {
                         _rawResults.value = list
                     }
@@ -145,12 +147,12 @@ class InspectViewModel(
                     _errorMessage.value = when (e) {
                         is InspectGeminiRequiredException -> when (e.requirement) {
                             InspectGeminiRequirement.RU_ANIME_PATH ->
-                                context.getString(com.example.myapplication.R.string.inspect_gemini_required_ru_anime)
+                                str.inspectGeminiRequiredRuAnime
                             InspectGeminiRequirement.MOVIES_TV ->
-                                context.getString(com.example.myapplication.R.string.inspect_gemini_required_movies)
+                                str.inspectGeminiRequiredMovies
                         }
                         else -> e.message
-                            ?: context.getString(com.example.myapplication.R.string.inspect_error_generic)
+                            ?: str.inspectErrorGeneric
                     }
                 }
             )

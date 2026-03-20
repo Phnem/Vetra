@@ -93,5 +93,18 @@ data class UiStrings(
     val viaApi: String,
     val episodesShort: String,
     val cloudRestoreTitle: String,
-    val cloudRestoreSubtitle: String
+    val cloudRestoreSubtitle: String,
+    /** Экран «Поиск по кадру» — язык из настроек, не из системы */
+    val inspectTitle: String,
+    val inspectModeAnime: String,
+    val inspectModeMoviesTv: String,
+    val inspectPickScreenshot: String,
+    val inspectBack: String,
+    val inspectClearPhoto: String,
+    val inspectLoadingAnalyzing: String,
+    val inspectReadImageFailed: String,
+    val inspectNoResults: String,
+    val inspectErrorGeneric: String,
+    val inspectGeminiRequiredRuAnime: String,
+    val inspectGeminiRequiredMovies: String
 )

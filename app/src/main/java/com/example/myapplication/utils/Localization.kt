@@ -96,7 +96,19 @@ val RussianStrings = UiStrings(
     viaApi = "через API",
     episodesShort = "эп.",
     cloudRestoreTitle = "Восстановление базы данных...",
-    cloudRestoreSubtitle = "Загружаем вашу коллекцию из облака. Пожалуйста, подождите."
+    cloudRestoreSubtitle = "Загружаем вашу коллекцию из облака. Пожалуйста, подождите.",
+    inspectTitle = "Поиск по кадру",
+    inspectModeAnime = "Аниме",
+    inspectModeMoviesTv = "Фильмы / сериалы",
+    inspectPickScreenshot = "Нажмите, чтобы выбрать скриншот",
+    inspectBack = "Назад",
+    inspectClearPhoto = "Сбросить фото",
+    inspectLoadingAnalyzing = "Анализ скриншота…",
+    inspectReadImageFailed = "Не удалось прочитать изображение",
+    inspectNoResults = "Совпадений не найдено",
+    inspectErrorGeneric = "Произошла ошибка",
+    inspectGeminiRequiredRuAnime = "Для поиска аниме по кадру на русском нужен GEMINI_API_KEY в local.properties (trace.moe → Gemini → Shikimori).",
+    inspectGeminiRequiredMovies = "Для поиска фильмов и сериалов по скриншоту добавьте GEMINI_API_KEY в local.properties."
 )
 
 val EnglishStrings = UiStrings(
@@ -192,7 +204,19 @@ val EnglishStrings = UiStrings(
     viaApi = "via API",
     episodesShort = "ep.",
     cloudRestoreTitle = "Restoring database...",
-    cloudRestoreSubtitle = "Loading your collection from the cloud. Please wait."
+    cloudRestoreSubtitle = "Loading your collection from the cloud. Please wait.",
+    inspectTitle = "Search by frame",
+    inspectModeAnime = "Anime",
+    inspectModeMoviesTv = "Movies / TV",
+    inspectPickScreenshot = "Tap to select a screenshot",
+    inspectBack = "Back",
+    inspectClearPhoto = "Clear image",
+    inspectLoadingAnalyzing = "Analyzing screenshot…",
+    inspectReadImageFailed = "Could not read image",
+    inspectNoResults = "No matches found",
+    inspectErrorGeneric = "Something went wrong",
+    inspectGeminiRequiredRuAnime = "Add GEMINI_API_KEY to local.properties for Russian anime search (trace.moe → Gemini → Shikimori).",
+    inspectGeminiRequiredMovies = "Add GEMINI_API_KEY to local.properties to search movies and TV from screenshots."
 )
 
 fun getStrings(lang: AppLanguage): UiStrings = when(lang) {

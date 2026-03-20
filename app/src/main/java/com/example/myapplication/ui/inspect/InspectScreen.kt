@@ -41,13 +41,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
+import com.example.myapplication.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import com.example.myapplication.R
 import com.example.myapplication.domain.inspect.InspectContentMode
 import com.example.myapplication.ui.home.ApiSearchResultCard
 import com.example.myapplication.ui.settings.SegmentedOption
@@ -133,7 +132,7 @@ fun InspectScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.inspect_back),
+                            contentDescription = strings.inspectBack,
                             tint = backArrowColor,
                             modifier = Modifier.size(24.dp)
                         )
@@ -152,7 +151,7 @@ fun InspectScreen(
                     )
 
                     Text(
-                        text = stringResource(R.string.inspect_title),
+                        text = strings.inspectTitle,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = textC,
@@ -160,8 +159,8 @@ fun InspectScreen(
                     )
                 }
 
-                val animeLabel = stringResource(R.string.inspect_mode_anime)
-                val moviesLabel = stringResource(R.string.inspect_mode_movies)
+                val animeLabel = strings.inspectModeAnime
+                val moviesLabel = strings.inspectModeMoviesTv
                 InspectCapsuleChipRow(
                     options = listOf(
                         SegmentedOption(label = animeLabel) { },
@@ -221,14 +220,14 @@ fun InspectScreen(
                             ) {
                                 Icon(
                                     painter = painterResource(android.R.drawable.ic_menu_close_clear_cancel),
-                                    contentDescription = stringResource(R.string.inspect_back),
+                                    contentDescription = strings.inspectClearPhoto,
                                     tint = Color.White
                                 )
                             }
                         }
                         else -> {
                             Text(
-                                text = stringResource(R.string.inspect_pick_screenshot),
+                                text = strings.inspectPickScreenshot,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.bodyLarge
                             )
