@@ -3,6 +3,7 @@ package com.example.myapplication.di
 import com.example.myapplication.ui.addedit.AddEditViewModel
 import com.example.myapplication.ui.details.DetailsViewModel
 import com.example.myapplication.ui.home.HomeViewModel
+import com.example.myapplication.ui.inspect.InspectViewModel
 import com.example.myapplication.ui.settings.SettingsViewModel
 import com.example.myapplication.ui.splash.SplashViewModel
 import org.koin.core.module.dsl.viewModel
@@ -39,6 +40,14 @@ val viewModelModule = module {
         )
     }
     viewModel { SettingsViewModel(repository = get(), settingsDataStore = get(named("settings")), databaseFactory = get()) }
+    viewModel {
+        InspectViewModel(
+            inspectImageUseCase = get(),
+            localDataSource = get(),
+            addFromApiUseCase = get(),
+            settingsDataStore = get(named("settings"))
+        )
+    }
     viewModel {
         DetailsViewModel(
             savedStateHandle = get(),

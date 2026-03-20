@@ -125,6 +125,17 @@ Architecture remains strictly local-first.
 
 ---
 
+<h2>🔑 Optional API keys (Scene search)</h2>
+
+For **Поиск по кадру / Scene search** (trace.moe + AniList, Gemini, TMDB), add to **`local.properties`** (see `local.properties.example`):
+
+- **`GEMINI_API_KEY`** — Gemini structured JSON (RU anime path, movies/TV from image). Wired to app `BuildConfig`.
+- **`TMDB_API_KEY`** — movie/TV search. Wired to `core:network` `BuildConfig`.
+
+Keys are not stored in the repo.
+
+---
+
 <h2>⚡ Performance Upgrade (v3.0.0-alpha)</h2>
 
 Major architectural refactor:

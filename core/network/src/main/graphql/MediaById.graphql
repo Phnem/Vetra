@@ -1,0 +1,18 @@
+query MediaById($id: Int) {
+  Media(id: $id, type: ANIME) {
+    id
+    title {
+      romaji
+      english
+    }
+    description
+    type
+    status
+    episodes
+    coverImage {
+      large
+    }
+    averageScore
+    genres
+  }
+}

@@ -1,0 +1,7 @@
+# Copy to local.properties (not committed) and fill in as needed.
+
+# Google AI Studio — RU anime titles (Shikimori) & movie/TV identification from screenshots
+GEMINI_API_KEY=
+
+# TMDB — used by core:network for movie/TV search (BuildConfig in network module)
+TMDB_API_KEY=

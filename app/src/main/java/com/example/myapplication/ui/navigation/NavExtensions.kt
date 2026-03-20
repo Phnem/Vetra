@@ -23,6 +23,10 @@ fun NavController.navigateToSettings() {
     navigate(SettingsRoute)
 }
 
+fun NavController.navigateToInspect() {
+    navigate(InspectRoute)
+}
+
 fun NavController.navigateToDetails(animeId: String) {
     navigate(DetailsRoute(animeId = animeId))
 }

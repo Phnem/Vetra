@@ -73,6 +73,55 @@ class VetroApiService(
         }
     }
 
+    override suspend fun searchAnimeShikimoriOnly(query: String, language: AppLanguage): Result<List<ApiSearchResult>> {
+        return runCatching {
+            rateLimit.withLock { delay(400) }
+            val q = query.trim()
+            if (q.isEmpty()) return@runCatching emptyList()
+            val raw = shikimori.searchAnime(q, 20, language).getOrThrow()
+            // Inspect: выкидываем результаты Shikimori с 0 серий (episodes == 0)
+            val rawNonZeroEpisodes = raw.filter { it.episodes > 0 }
+            if (rawNonZeroEpisodes.isEmpty()) return@runCatching emptyList()
+
+            // Для Inspect RU-аниме нам критично "не получить пусто" из-за слишком строгого fuzzy:
+            // Gemini часто даёт близкое, но не 1:1 совпадение. Поэтому делаем мягкую фильтрацию.
+            val normQuery = normalizeForSearch(q)
+            if (normQuery.isEmpty()) return@runCatching rawNonZeroEpisodes
+
+            fun searchableKey(r: ApiSearchResult): String {
+                val both = (r.title + " " + (r.altTitle ?: "")).trim()
+                return normalizeForSearch(both)
+            }
+
+            val exactOrPartial = rawNonZeroEpisodes.filter { r ->
+                val key = searchableKey(r)
+                key.isNotEmpty() && (key.contains(normQuery) || normQuery.contains(key))
+            }
+
+            val ranked = (exactOrPartial.ifEmpty { rawNonZeroEpisodes })
+                .sortedWith(compareBy<ApiSearchResult> { r ->
+                    val key = searchableKey(r)
+                    when {
+                        key == normQuery -> 0
+                        key.contains(normQuery) || normQuery.contains(key) -> 1
+                        else -> 2
+                    }
+                }.thenByDescending { it.rating ?: Int.MIN_VALUE })
+                .distinctBy { it.source + "_" + (it.externalId ?: it.title) }
+
+            ranked.take(20)
+        }
+    }
+
+    override suspend fun mediaByAnilistId(id: Int): Result<ApiSearchResult?> {
+        return runCatching {
+            rateLimit.withLock { delay(400) }
+            aniList.mediaByAnilistId(id).getOrThrow()
+        }
+    }
+
+    private fun tmdbKey(): String = BuildConfig.TMDB_API_KEY
+
     private enum class SearchMatch { EXACT, PARTIAL, FUZZY, NONE }
 
     private fun normalizeForSearch(s: String): String =
@@ -173,7 +222,7 @@ class VetroApiService(
     }.getOrElse { emptyList() }
 
     private suspend fun searchTmdbMovie(query: String): List<ApiSearchResult> = runCatching {
-        val key = "4f4dc3cd35d58a551162eefe92ff549c"
+        val key = tmdbKey()
         val response = httpClient.get {
             url {
                 protocol = URLProtocol.HTTPS
@@ -187,7 +236,7 @@ class VetroApiService(
     }.getOrElse { emptyList() }
 
     private suspend fun searchTmdbTv(query: String): List<ApiSearchResult> = runCatching {
-        val key = "4f4dc3cd35d58a551162eefe92ff549c"
+        val key = tmdbKey()
         val response = httpClient.get {
             url {
                 protocol = URLProtocol.HTTPS
@@ -268,7 +317,7 @@ class VetroApiService(
 
     private suspend fun checkTmdb(query: String): Pair<Int, String>? {
         return runCatching {
-            val key = "4f4dc3cd35d58a551162eefe92ff549c"
+            val key = tmdbKey()
             val searchResponse = httpClient.get {
                 url {
                     protocol = URLProtocol.HTTPS

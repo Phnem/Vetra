@@ -2,7 +2,7 @@
 # Full schema: run :core:network:downloadAnilistApolloSchemaFromIntrospection (requires JAVA_HOME)
 
 type Query {
-  Media(search: String, type: MediaType): Media
+  Media(id: Int, search: String, type: MediaType): Media
   Page(page: Int, perPage: Int): Page
 }
 

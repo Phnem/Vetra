@@ -2,6 +2,7 @@ package com.example.myapplication.network
 
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.api.Optional
+import com.example.myapplication.network.anilist.MediaByIdQuery
 import com.example.myapplication.network.anilist.SearchMediaPageQuery
 import com.example.myapplication.network.anilist.SearchMediaQuery
 import kotlinx.coroutines.Dispatchers
@@ -89,6 +90,32 @@ class AniListRemoteDataSource(
                     externalId = media.id?.toString()
                 )
             }
+        }
+    }
+
+    suspend fun mediaByAnilistId(id: Int): Result<ApiSearchResult?> = runCatching {
+        withContext(Dispatchers.IO) {
+            val response = apolloClient.query(MediaByIdQuery(id = Optional.present(id))).execute()
+            val media = response.data?.Media ?: return@withContext null
+            val title = media.title
+            val romaji = title?.romaji?.orEmpty().orEmpty()
+            val english = title?.english?.orEmpty().orEmpty()
+            val displayTitle = english.ifEmpty { romaji }.ifEmpty { return@withContext null }
+            val desc = media.description?.replace(Regex("<[^>]+>"), "")?.trim().orEmpty()
+            val posterUrl = media.coverImage?.large
+            ApiSearchResult(
+                title = displayTitle,
+                altTitle = if (romaji.isNotEmpty() && romaji != displayTitle) romaji else null,
+                posterUrl = posterUrl,
+                episodes = media.episodes ?: 0,
+                description = desc,
+                type = media.type?.name ?: "ANIME",
+                genres = media.genres?.filterNotNull() ?: emptyList(),
+                rating = media.averageScore,
+                source = "AniList",
+                categoryType = "ANIME",
+                externalId = media.id?.toString()
+            )
         }
     }
 

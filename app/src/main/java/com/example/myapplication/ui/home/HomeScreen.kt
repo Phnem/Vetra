@@ -69,6 +69,7 @@ import com.example.myapplication.utils.performHaptic
 import com.example.myapplication.ui.details.AnimeDetailsSheet
 import com.example.myapplication.ui.navigation.navigateToAddEdit
 import com.example.myapplication.ui.navigation.navigateToDetails
+import com.example.myapplication.ui.navigation.navigateToInspect
 import com.example.myapplication.ui.navigation.navigateToWelcome
 import com.example.myapplication.ui.shared.theme.*
 import dev.chrisbanes.haze.HazeState
@@ -480,6 +481,10 @@ fun HomeScreen(
                             animatedVisibilityScope = animatedVisibilityScope,
                             onShowStats = { showCSheet = true },
                             onShowNotifs = {},
+                            onInspectClick = {
+                                performHaptic(view, "light")
+                                navController.navigateToInspect()
+                            },
                             onSearchClick = {
                                 performHaptic(view, "light")
                                 isSearchVisible = !isSearchVisible

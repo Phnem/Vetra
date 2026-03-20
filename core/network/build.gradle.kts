@@ -1,11 +1,28 @@
+import java.util.Properties
+
 plugins {
     id("vetro.android.library.plain")
     id("vetro.kotlin.serialization")
     alias(libs.plugins.apollo)
 }
 
+val localProperties = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+
 android {
     namespace = "com.example.myapplication.network"
+    buildFeatures {
+        buildConfig = true
+    }
+    defaultConfig {
+        buildConfigField(
+            "String",
+            "TMDB_API_KEY",
+            "\"${localProperties.getProperty("TMDB_API_KEY", "")}\""
+        )
+    }
 }
 
 apollo {

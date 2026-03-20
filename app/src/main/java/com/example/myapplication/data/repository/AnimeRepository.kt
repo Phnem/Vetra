@@ -98,4 +98,12 @@ class AnimeRepository(
     suspend fun searchApi(query: String, contentType: AppContentType, language: AppLanguage): Result<List<ApiSearchResult>> {
         return apiService.searchApi(query, contentType, language)
     }
+
+    suspend fun searchAnimeShikimoriOnly(query: String, language: AppLanguage): Result<List<ApiSearchResult>> {
+        return apiService.searchAnimeShikimoriOnly(query, language)
+    }
+
+    suspend fun mediaByAnilistId(id: Int): Result<ApiSearchResult?> {
+        return apiService.mediaByAnilistId(id)
+    }
 }

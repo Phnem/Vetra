@@ -95,6 +95,8 @@ import androidx.compose.ui.text.font.FontWeight
 import android.os.Build
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import com.example.myapplication.R
 import com.example.myapplication.data.models.AnimeUpdate
 import com.example.myapplication.data.models.SortOption
 import com.example.myapplication.data.models.UiStrings
@@ -346,6 +348,7 @@ fun GlassBottomNavigation(
     animatedVisibilityScope: AnimatedVisibilityScope,
     onShowStats: () -> Unit,
     onShowNotifs: () -> Unit,
+    onInspectClick: () -> Unit,
     onSearchClick: () -> Unit,
     isSearchActive: Boolean,
     modifier: Modifier = Modifier
@@ -363,6 +366,7 @@ fun GlassBottomNavigation(
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
+                .padding(end = 48.dp)
                 .height(64.dp)
                 .wrapContentWidth()
                 .clip(RoundedCornerShape(32.dp))
@@ -376,6 +380,45 @@ fun GlassBottomNavigation(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
+                Box(modifier = Modifier.size(52.dp), contentAlignment = Alignment.Center) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .fluidClickable {
+                                performHaptic(view, "light")
+                                onInspectClick()
+                            }
+                    ) {
+                        with(sharedTransitionScope) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .sharedBounds(
+                                        rememberSharedContentState(key = "inspect_container"),
+                                        animatedVisibilityScope = animatedVisibilityScope,
+                                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
+                                    )
+                                    .background(Color.Transparent),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.frame_inspect_24),
+                                    contentDescription = "Scene search",
+                                    tint = currentThemeColor.copy(alpha = 0.6f),
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .sharedElement(
+                                            rememberSharedContentState(key = "inspect_icon"),
+                                            animatedVisibilityScope = animatedVisibilityScope
+                                        )
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Box(modifier = Modifier.size(52.dp), contentAlignment = Alignment.Center) {
                     Box(
                         contentAlignment = Alignment.Center,
@@ -429,7 +472,7 @@ fun GlassBottomNavigation(
                                 Icon(
                                     imageVector = HeroiconsPlus,
                                     contentDescription = "Add",
-                                    tint = currentThemeColor,
+                                    tint = currentThemeColor.copy(alpha = 0.6f),
                                     modifier = Modifier
                                         .size(36.dp)
                                         .sharedElement(

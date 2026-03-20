@@ -24,6 +24,8 @@ import com.example.myapplication.ui.addedit.AddEditViewModel
 import com.example.myapplication.ui.details.DetailsScreen
 import com.example.myapplication.ui.home.HomeScreen
 import com.example.myapplication.ui.home.HomeViewModel
+import com.example.myapplication.ui.inspect.InspectScreen
+import com.example.myapplication.ui.inspect.InspectViewModel
 import com.example.myapplication.ui.settings.SettingsScreen
 import com.example.myapplication.ui.settings.SettingsViewModel
 import com.example.myapplication.ui.splash.SplashViewModel
@@ -40,6 +42,7 @@ fun AppNavGraph(
     val homeViewModel: HomeViewModel = koinViewModel()
     val addEditViewModel: AddEditViewModel = koinViewModel()
     val settingsViewModel: SettingsViewModel = koinViewModel()
+    val inspectViewModel: InspectViewModel = koinViewModel()
     val dropboxSyncManager: DropboxSyncManager = koinInject()
     val context = LocalContext.current
 
@@ -146,6 +149,15 @@ fun AppNavGraph(
                     navController = navController,
                     viewModel = settingsViewModel,
                     dropboxSyncManager = dropboxSyncManager,
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedVisibilityScope = this
+                )
+            }
+
+            composable<InspectRoute> {
+                InspectScreen(
+                    navController = navController,
+                    viewModel = inspectViewModel,
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this
                 )

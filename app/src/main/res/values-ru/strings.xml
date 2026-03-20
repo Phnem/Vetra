@@ -5,4 +5,15 @@
     <string name="btn_guest">Продолжить как гость</string>
     <string name="sync_conflict_title">Конфликт синхронизации</string>
     <string name="sync_conflict_msg">Данные изменились на обоих устройствах. Пожалуйста, выберите версию, которую нужно сохранить.</string>
+    <string name="inspect_loading_analyzing">Анализ скриншота…</string>
+    <string name="inspect_read_image_failed">Не удалось прочитать изображение</string>
+    <string name="inspect_no_results">Совпадений не найдено</string>
+    <string name="inspect_error_generic">Произошла ошибка</string>
+    <string name="inspect_pick_screenshot">Нажмите, чтобы выбрать скриншот</string>
+    <string name="inspect_title">Поиск по кадру</string>
+    <string name="inspect_mode_anime">Аниме</string>
+    <string name="inspect_mode_movies">Фильмы / сериалы</string>
+    <string name="inspect_gemini_required_movies">Для поиска фильмов и сериалов по скриншоту добавьте GEMINI_API_KEY в local.properties.</string>
+    <string name="inspect_gemini_required_ru_anime">Для поиска аниме по кадру на русском нужен GEMINI_API_KEY в local.properties (trace.moe → Gemini → Shikimori).</string>
+    <string name="inspect_back">Назад</string>
 </resources>

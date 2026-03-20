@@ -5,6 +5,7 @@ import com.apollographql.apollo.ApolloClient
 import com.example.myapplication.network.AniListRemoteDataSource
 import com.example.myapplication.network.ApiService
 import com.example.myapplication.network.ShikimoriRemoteDataSource
+import com.example.myapplication.network.TraceMoeRemoteDataSource
 import com.example.myapplication.network.VetroApiService
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -38,7 +39,7 @@ val coreNetworkModule = module {
                 }
             }
             install(HttpTimeout) {
-                requestTimeoutMillis = 10_000
+                requestTimeoutMillis = 120_000
             }
         }
     }
@@ -50,6 +51,7 @@ val coreNetworkModule = module {
             .build()
     }
     single { ShikimoriRemoteDataSource(get<HttpClient>()) }
+    single { TraceMoeRemoteDataSource(get<HttpClient>()) }
     single { AniListRemoteDataSource(get<ApolloClient>()) }
     single<ApiService> {
         VetroApiService(
