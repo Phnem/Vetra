@@ -1,8 +1,8 @@
 <h1 align="center">Vetra 🎬</h1>
 
 <p align="center">
-  <a href="images/343BG.png">
-    <img src="images/343SM.png" width="900">
+  <a href="images/001BG.png">
+    <img src="images/001SM.png" width="900">
   </a>
 </p>
 
@@ -35,11 +35,12 @@ Originally built as a personal anime tracker, it evolved into a flexible and sca
 <h2 align="center">📸 Screenshots</h2>
 
 <p align="center">
-  <a href="images/338BG.png"><img src="images/338SM.png" width="220"></a>
-  <a href="images/339BG.png"><img src="images/339SM.png" width="220"></a>
-  <a href="images/340BG.png"><img src="images/340SM.png" width="220"></a>
-  <a href="images/341BG.png"><img src="images/341SM.png" width="220"></a>
-  <a href="images/342BG.png"><img src="images/342SM.png" width="220"></a>
+  <a href="images/002BG.png"><img src="images/002SM.png" width="220"></a>
+  <a href="images/003BG.png"><img src="images/003SM.png" width="220"></a>
+  <a href="images/004BG.png"><img src="images/004SM.png" width="220"></a>
+  <a href="images/005BG.png"><img src="images/005SM.png" width="220"></a>
+  <a href="images/006BG.png"><img src="images/006SM.png" width="220"></a>
+  <a href="images/007BG.png"><img src="images/007SM.png" width="220"></a>
 </p>
 
 <p align="center">
