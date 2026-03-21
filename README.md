@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="images/001BG.png">
-    <img src="images/001SM.png" width="900">
+    <img src="images/001BG.png" width="900">
   </a>
 </p>
 
