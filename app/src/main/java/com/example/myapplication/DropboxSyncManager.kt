@@ -49,6 +49,25 @@ enum class SyncMode { AUTO, MANUAL }
 enum class NetworkMode { WIFI_AND_MOBILE, WIFI_ONLY, MOBILE_ONLY }
 enum class SyncState { IDLE, SYNCING, DONE, CONFLICT, ERROR, AUTH_REQUIRED }
 
+/**
+ * Aggregated metrics for the last completed (or partially completed) sync run.
+ *
+ * @property syncedCount Successfully completed transfer operations (uploads/downloads).
+ * @property errorCount Failed operations.
+ * @property totalProcessed Successes + failures + intentionally skipped units (already up to date).
+ */
+data class SyncReport(
+    val syncedCount: Int = 0,
+    val errorCount: Int = 0,
+    val totalProcessed: Int = 0
+)
+
+operator fun SyncReport.plus(other: SyncReport): SyncReport = SyncReport(
+    syncedCount = syncedCount + other.syncedCount,
+    errorCount = errorCount + other.errorCount,
+    totalProcessed = totalProcessed + other.totalProcessed
+)
+
 private const val TAG = "DropboxSync"
 private const val APP_KEY = "0isabzy5qvb6owr"
 private const val PREFS_NAME = "dropbox_prefs"
@@ -98,6 +117,9 @@ class DropboxSyncManager(
     val networkMode: StateFlow<NetworkMode> get() = _networkMode.asStateFlow()
     val syncState: StateFlow<SyncState> get() = _syncState.asStateFlow()
     val hasTokenFlow: StateFlow<Boolean> get() = _hasTokenFlow.asStateFlow()
+
+    private val _syncReport = MutableStateFlow(SyncReport())
+    val syncReport: StateFlow<SyncReport> = _syncReport.asStateFlow()
 
     data class StorageStats(
         val fileCount: Int,
@@ -209,16 +231,18 @@ class DropboxSyncManager(
         }
         migrateRemoteFolderIfNeeded()
         _syncState.value = SyncState.SYNCING
+        _syncReport.value = SyncReport()
         Log.d(TAG, "🚀 STARTING HASH-BASED SYNC")
 
+        var merged = SyncReport()
         try {
             val remoteFiles = getAllRemoteFiles()
-
-            syncCollection(remoteFiles)
-            syncDatabase(remoteFiles)
-
+            merged = syncCollection(remoteFiles)
+            merged += syncDatabase(remoteFiles)
+            _syncReport.value = merged
             SyncResult.Success
         } catch (e: Exception) {
+            _syncReport.value = merged
             if (e is com.dropbox.core.InvalidAccessTokenException || e.message?.contains("expired_access_token") == true) {
                 logout()
                 return@withContext SyncResult.Error("Auth required")
@@ -241,7 +265,22 @@ class DropboxSyncManager(
         } catch (e: Exception) { Log.e(TAG, "Remote migration: ${e.message}") }
     }
 
-    private suspend fun syncCollection(remoteFiles: Map<String, FileMetadata>) {
+    private fun syncCollection(remoteFiles: Map<String, FileMetadata>): SyncReport {
+        var synced = 0
+        var errors = 0
+        var total = 0
+        fun recordSuccess() {
+            synced++
+            total++
+        }
+        fun recordError() {
+            errors++
+            total++
+        }
+        fun recordSkip() {
+            total++
+        }
+
         val imgDir = File(rootDir, COLLECTION_DIR)
         if (!imgDir.exists()) imgDir.mkdirs()
 
@@ -256,7 +295,11 @@ class DropboxSyncManager(
 
             if (remoteMeta == null || remoteMeta.contentHash != localHash) {
                 Log.d(TAG, "📤 Uploading image: ${localImg.name}")
-                uploadFile(localImg, remotePath)
+                runCatching { uploadFile(localImg, remotePath) }
+                    .onSuccess { recordSuccess() }
+                    .onFailure { recordError() }
+            } else {
+                recordSkip()
             }
         }
 
@@ -266,19 +309,39 @@ class DropboxSyncManager(
                 val localImg = File(imgDir, remoteMeta.name)
                 if (!localImg.exists() || DropboxContentHasher.hashFile(localImg) != remoteMeta.contentHash) {
                     Log.d(TAG, "📥 Downloading image: ${remoteMeta.name}")
-                    downloadFile(remoteMeta.pathLower!!, localImg, remoteMeta.clientModified)
+                    runCatching {
+                        downloadFile(remoteMeta.pathLower!!, localImg, remoteMeta.clientModified)
+                    }.onSuccess { recordSuccess() }
+                        .onFailure { recordError() }
+                } else {
+                    recordSkip()
                 }
             }
+
+        return SyncReport(syncedCount = synced, errorCount = errors, totalProcessed = total)
     }
 
-    private suspend fun syncDatabase(remoteFiles: Map<String, FileMetadata>) {
+    private suspend fun syncDatabase(remoteFiles: Map<String, FileMetadata>): SyncReport {
+        var synced = 0
+        var errors = 0
+        var total = 0
+        fun recordSuccess() {
+            synced++
+            total++
+        }
+        fun recordError() {
+            errors++
+            total++
+        }
+        fun recordSkip() {
+            total++
+        }
+
         databaseFactory.checkpoint()
 
         val localDb = context.getDatabasePath(DB_NAME)
-        // Узнаем, сколько аниме в локальной БД (защита от свежесозданной пустой базы)
         val dbCount = try { animeLocalDataSource.getAnimeCount() } catch (e: Exception) { 0 }
 
-        // Делаем копию и сохраняем оригинальное время (этот фикс мы обсуждали)
         val tempDb = File(context.cacheDir, "sync_temp_$DB_NAME")
         if (localDb.exists()) {
             localDb.copyTo(tempDb, overwrite = true)
@@ -291,40 +354,47 @@ class DropboxSyncManager(
         val localHash = if (tempDb.exists()) DropboxContentHasher.hashFile(tempDb) else ""
 
         if (remoteMeta == null) {
-            // В облаке пусто. Загружаем, только если у нас РЕАЛЬНО есть данные
             if (dbCount > 0 && tempDb.exists()) {
                 Log.d(TAG, "📤 Cloud DB is empty. Uploading local DB...")
-                uploadFile(tempDb, remotePath)
+                runCatching { uploadFile(tempDb, remotePath) }
+                    .onSuccess { recordSuccess() }
+                    .onFailure { recordError() }
             } else {
                 Log.d(TAG, "⏭ Cloud is empty, but local is also empty. Skipping DB upload.")
+                recordSkip()
             }
         } else if (remoteMeta.contentHash != localHash) {
             val localTime = if (tempDb.exists()) tempDb.lastModified() else 0L
             val remoteTime = remoteMeta.clientModified.time
 
-            // Если локально 0 тайтлов - это 100% переустановка. Игнорируем локальное время и принудительно качаем из облака.
             if (dbCount == 0 || remoteTime > localTime) {
                 Log.d(TAG, "📥 Downloading DB from cloud (Reason: dbCount=$dbCount or Cloud is newer)...")
-                val newDb = downloadFile(
-                    remotePath = remoteMeta.pathLower!!,
-                    targetFile = File(context.cacheDir, "downloaded_$DB_NAME"),
-                    clientModified = remoteMeta.clientModified
-                )
-
-                newDb.copyTo(localDb, overwrite = true)
-                File(localDb.parent, "$DB_NAME-wal").delete()
-                File(localDb.parent, "$DB_NAME-shm").delete()
-
-                Log.d(TAG, "🔄 DB Replaced successfully.")
+                runCatching {
+                    val newDb = downloadFile(
+                        remotePath = remoteMeta.pathLower!!,
+                        targetFile = File(context.cacheDir, "downloaded_$DB_NAME"),
+                        clientModified = remoteMeta.clientModified
+                    )
+                    newDb.copyTo(localDb, overwrite = true)
+                    File(localDb.parent, "$DB_NAME-wal").delete()
+                    File(localDb.parent, "$DB_NAME-shm").delete()
+                    Log.d(TAG, "🔄 DB Replaced successfully.")
+                }.onSuccess { recordSuccess() }
+                    .onFailure { recordError() }
             } else {
                 Log.d(TAG, "📤 Local DB is newer and has data. Uploading...")
-                uploadFile(tempDb, remotePath)
+                runCatching { uploadFile(tempDb, remotePath) }
+                    .onSuccess { recordSuccess() }
+                    .onFailure { recordError() }
             }
         } else {
             Log.d(TAG, "⏭ DB is identical. Skipping.")
+            recordSkip()
         }
 
         if (tempDb.exists()) tempDb.delete()
+
+        return SyncReport(syncedCount = synced, errorCount = errors, totalProcessed = total)
     }
 
     private fun uploadFile(file: File, remotePath: String) {

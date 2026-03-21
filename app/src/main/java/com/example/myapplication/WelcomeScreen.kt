@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.ui.shared.theme.BrandBlue
+import com.example.myapplication.ui.shared.theme.DarkSurface
 import com.example.myapplication.ui.shared.theme.SnProFamily
 
 @Composable
@@ -32,7 +33,7 @@ fun WelcomeScreen(
 ) {
     val isDark = isSystemInDarkTheme()
 
-    val cardBackgroundColor = if (isDark) Color(0xFF1F222B) else Color(0xFFF0F2F5)
+    val cardBackgroundColor = if (isDark) DarkSurface else Color(0xFFF0F2F5)
 
     val titleColor = if (isDark) Color(0xFFF2F2F7) else Color(0xFF1C1C1E)
     val bodyColor = if (isDark) Color(0xFF9898A0) else Color(0xFF636366)

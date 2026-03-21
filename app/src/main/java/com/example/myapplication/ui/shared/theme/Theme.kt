@@ -35,7 +35,7 @@ fun OneUiTheme(
             secondary = DarkTextSecondary,
             outline = DarkBorder,
             error = BrandRed,
-            surfaceContainer = Color(0xFF2C2C2E)
+            surfaceContainer = DarkSurfaceVariant
         )
     } else {
         lightColorScheme(

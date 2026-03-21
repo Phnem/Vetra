@@ -176,7 +176,7 @@ fun AnimeListMenuSheet(
     BackHandler { dismiss() }
 
     val isDark = isAppInDarkTheme()
-    val panelBg = if (isDark) Color(0xFF1F222B) else MaterialTheme.colorScheme.surface
+    val panelBg = if (isDark) DarkSurface else MaterialTheme.colorScheme.surface
     val menuState = remember(anime, confirmMode) {
         AnimeMenuState(
             title = anime.title,
@@ -239,68 +239,34 @@ fun AnimeListMenuSheet(
 }
 
 // ==========================================
-// MalistWorkspaceTopBar — clean, minimal + Sort/Notifications
+// MalistWorkspaceTopBar — заголовок (кнопки сортировки/уведомлений вынесены в HomeScreen поверх scrim)
 // ==========================================
 @Composable
-fun MalistWorkspaceTopBar(
-    strings: UiStrings,
-    onOpenSort: () -> Unit = {},
-    onOpenNotifications: () -> Unit = {},
-    filterSelectedTags: List<String> = emptyList(),
-    updatesCount: Int = 0
-) {
-    Row(
+fun MalistWorkspaceTopBar(strings: UiStrings) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
             .padding(horizontal = 24.dp)
-            .padding(top = 20.dp, bottom = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(top = 20.dp, bottom = 8.dp)
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "Vetro",
-                style = MaterialTheme.typography.displaySmall.copy(
-                    fontWeight = FontWeight.Black,
-                    fontFamily = SnProFamily,
-                    letterSpacing = (-0.5).sp
-                ),
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = strings.statsSubtitle,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontFamily = SnProFamily
-                ),
-                color = MaterialTheme.colorScheme.secondary
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onOpenSort) {
-                val icon = if (filterSelectedTags.isNotEmpty()) Icons.Outlined.FilterList else Icons.Filled.Sort
-                val tint = if (filterSelectedTags.isNotEmpty()) BrandBlue else MaterialTheme.colorScheme.onSurface
-                Icon(icon, contentDescription = "Sort", tint = tint)
-            }
-            Box {
-                IconButton(onClick = onOpenNotifications) {
-                    Icon(
-                        imageVector = com.example.myapplication.HeroiconsRectangleStack,
-                        contentDescription = "Notifications",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                if (updatesCount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(4.dp)
-                            .size(8.dp)
-                            .background(BrandRed, CircleShape)
-                    )
-                }
-            }
-        }
+        Text(
+            text = "Vetro",
+            style = MaterialTheme.typography.displaySmall.copy(
+                fontWeight = FontWeight.Black,
+                fontFamily = SnProFamily,
+                letterSpacing = (-0.5).sp
+            ),
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = strings.statsSubtitle,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontFamily = SnProFamily
+            ),
+            color = MaterialTheme.colorScheme.secondary
+        )
     }
 }
 
@@ -532,7 +498,7 @@ fun StatsOverlay(
         }
     }
 
-    val panelBg = if (isDark) Color(0xFF1F222B) else MaterialTheme.colorScheme.surface
+    val panelBg = if (isDark) DarkSurface else MaterialTheme.colorScheme.surface
 
     Box(
         modifier = Modifier

@@ -18,6 +18,7 @@ import com.example.myapplication.network.AppLanguage
 import com.example.myapplication.data.models.SortOption
 import com.example.myapplication.notifications.AnimeNotifier
 import com.example.myapplication.DropboxSyncManager
+import com.example.myapplication.SyncReport
 import com.example.myapplication.SyncState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,6 +77,13 @@ class HomeViewModel(
                 .getOrElse { AppLanguage.EN }
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppLanguage.EN)
+
+    val syncReport: StateFlow<SyncReport> = dropboxSyncManager.syncReport
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = SyncReport()
+        )
 
     val animeListFlow: StateFlow<kotlinx.collections.immutable.ImmutableList<Anime>> = repository.observeAnimeList(
         searchQuery = _uiState.map { it.searchQuery },

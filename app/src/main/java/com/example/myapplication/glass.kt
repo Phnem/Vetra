@@ -102,6 +102,7 @@ import com.example.myapplication.data.models.SortOption
 import com.example.myapplication.data.models.UiStrings
 import com.example.myapplication.data.repository.GenreRepository
 import com.example.myapplication.network.AppLanguage
+import com.example.myapplication.ui.home.WorkspaceSortNotificationActions
 import com.example.myapplication.ui.navigation.navigateToAddEdit
 import com.example.myapplication.ui.navigation.navigateToSettings
 import com.example.myapplication.ui.shared.components.GenreSelectionSection
@@ -109,7 +110,9 @@ import com.example.myapplication.ui.shared.components.GlassIconButton
 import com.example.myapplication.ui.shared.fluidClickable
 import com.example.myapplication.ui.shared.gradientHighlightBorder
 import com.example.myapplication.ui.shared.theme.BrandBlue
-import com.example.myapplication.ui.shared.theme.BrandRed
+import com.example.myapplication.ui.shared.theme.DarkBackground
+import com.example.myapplication.ui.shared.theme.DarkSurface
+import com.example.myapplication.ui.shared.theme.DarkSurfaceVariant
 import com.example.myapplication.ui.shared.theme.SnProFamily
 import com.example.myapplication.ui.shared.CollisionDirection
 import com.example.myapplication.ui.shared.inertialCollision
@@ -122,7 +125,7 @@ import dev.chrisbanes.haze.materials.CupertinoMaterials
 
 @Composable
 fun isAppInDarkTheme(): Boolean {
-    return MaterialTheme.colorScheme.background.toArgb() == Color(0xFF111318).toArgb()
+    return MaterialTheme.colorScheme.background.toArgb() == DarkBackground.toArgb()
 }
 
 /** Стиль haze без подкрашивания и шума: только размытие (tint = transparent, noiseFactor = 0). */
@@ -226,6 +229,7 @@ fun GlassActionDock(
     hazeState: HazeState,
     isFloating: Boolean,
     sortOption: SortOption,
+    strings: UiStrings,
     filterSelectedTags: List<String>,
     updates: List<AnimeUpdate>,
     onOpenSort: () -> Unit,
@@ -233,25 +237,21 @@ fun GlassActionDock(
     modifier: Modifier = Modifier
 ) {
     val isDark = isAppInDarkTheme()
+    val glassOpaque = isFloating
 
     val topPadding by animateDpAsState(
         targetValue = if (isFloating) 16.dp else 0.dp,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "dockPadding"
     )
-    val effectAlpha by animateFloatAsState(
-        targetValue = if (isFloating) 1f else 0f,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "hazeAlpha"
-    )
     val borderStrokeBase = if (isDark) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.8f)
     val borderColor by animateColorAsState(
-        targetValue = if (isFloating) borderStrokeBase else Color.Transparent,
+        targetValue = if (glassOpaque) borderStrokeBase else Color.Transparent,
         label = "border"
     )
     val shineColorBase = if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.6f)
     val shineAlpha by animateFloatAsState(
-        targetValue = if (isFloating) 1f else 0f,
+        targetValue = if (glassOpaque) 1f else 0f,
         label = "shineAlpha"
     )
     val buttonBgColor by animateColorAsState(
@@ -261,77 +261,55 @@ fun GlassActionDock(
         label = "btnBg"
     )
 
-    Box(
+    AnimatedVisibility(
+        visible = isFloating,
+        enter = slideInVertically(
+            initialOffsetY = { -it },
+            animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+        ) + fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
+        exit = slideOutVertically(
+            targetOffsetY = { -it },
+            animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+        ) + fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
         modifier = modifier
             .padding(top = topPadding)
             .statusBarsPadding()
-            .clip(RoundedCornerShape(32.dp))
-            .safeHaze(state = hazeState, style = cleanHazeStyle)
-            .graphicsLayer { alpha = effectAlpha }
-            .border(0.5.dp, borderColor, RoundedCornerShape(32.dp))
     ) {
-        if (shineAlpha > 0f) {
-            Canvas(modifier = Modifier.matchParentSize()) {
-                val rect = Rect(offset = Offset.Zero, size = size)
-                val path = Path().apply { addRoundRect(RoundRect(rect, CornerRadius(32.dp.toPx()))) }
-                drawPath(
-                    path,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            shineColorBase.copy(alpha = shineColorBase.alpha * shineAlpha),
-                            Color.Transparent,
-                            Color.Transparent,
-                            shineColorBase.copy(alpha = 0.05f * shineAlpha)
-                        )
-                    ),
-                    style = Stroke(width = 1.dp.toPx())
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        Box(
+            Modifier
+                .clip(RoundedCornerShape(32.dp))
+                .safeHaze(state = hazeState, style = cleanHazeStyle)
+                .border(0.5.dp, borderColor, RoundedCornerShape(32.dp))
         ) {
-            IconButton(
-                onClick = { onOpenSort() },
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(buttonBgColor)
-            ) {
-                val icon = if (filterSelectedTags.isNotEmpty()) Icons.Outlined.FilterList else Icons.AutoMirrored.Filled.Sort
-                val tint = if (filterSelectedTags.isNotEmpty()) BrandBlue else MaterialTheme.colorScheme.onSurface
-
-                Icon(imageVector = icon, contentDescription = "Sort", tint = tint)
-            }
-
-            Box {
-                IconButton(
-                    onClick = { onOpenNotifications() },
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(buttonBgColor)
-                ) {
-                    Icon(
-                        imageVector = HeroiconsRectangleStack,
-                        contentDescription = "Notifications",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                if (updates.isNotEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(4.dp)
-                            .size(8.dp)
-                            .background(BrandRed, CircleShape)
+            if (shineAlpha > 0f) {
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    val rect = Rect(offset = Offset.Zero, size = size)
+                    val path = Path().apply { addRoundRect(RoundRect(rect, CornerRadius(32.dp.toPx()))) }
+                    drawPath(
+                        path,
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                shineColorBase.copy(alpha = shineColorBase.alpha * shineAlpha),
+                                Color.Transparent,
+                                Color.Transparent,
+                                shineColorBase.copy(alpha = 0.05f * shineAlpha)
+                            )
+                        ),
+                        style = Stroke(width = 1.dp.toPx())
                     )
                 }
             }
+
+            WorkspaceSortNotificationActions(
+                strings = strings,
+                filterSelectedTags = filterSelectedTags,
+                updatesCount = updates.size,
+                onOpenSort = onOpenSort,
+                onOpenNotifications = onOpenNotifications,
+                dockButtonBackground = buttonBgColor,
+                useDockSizing = true,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
         }
     }
 }
@@ -693,8 +671,6 @@ val HeroiconsRectangleStack: ImageVector
 // ==========================================
 // ЦВЕТА И РАСШИРЕНИЯ ДЛЯ СТАРОГО ДИЗАЙНА
 // ==========================================
-private val CustomDarkSurface = Color(0xFF1F222B)
-private val CustomDarkCard = Color(0xFF262A35)
 private val CustomDarkBorder = Color.White.copy(alpha = 0.08f)
 private val IconFilterColor = Color(0xFFE91E63)
 
@@ -733,9 +709,9 @@ fun SortFilterOverlay(
     onSortSelected: (SortOption) -> Unit,
     onOpenGenreFilter: () -> Unit
 ) {
-    val isDark = MaterialTheme.colorScheme.background.toArgb() == Color(0xFF111318).toArgb()
-    val panelBgColor = if (isDark) CustomDarkSurface else MaterialTheme.colorScheme.surface
-    val itemCardColor = if (isDark) CustomDarkCard else MaterialTheme.colorScheme.surfaceVariant
+    val isDark = isAppInDarkTheme()
+    val panelBgColor = if (isDark) DarkSurface else MaterialTheme.colorScheme.surface
+    val itemCardColor = if (isDark) DarkSurfaceVariant else MaterialTheme.colorScheme.surfaceVariant
     val itemBorderColor = if (isDark) CustomDarkBorder else MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
 
     val collisionState = rememberInertialCollisionState()
@@ -984,7 +960,7 @@ fun GenreFilterOverlay(
 ) {
     val genreRepository: GenreRepository = org.koin.compose.koinInject()
     val isDark = isAppInDarkTheme()
-    val panelBg = if (isDark) Color(0xFF1F222B) else MaterialTheme.colorScheme.surface
+    val panelBg = if (isDark) DarkSurface else MaterialTheme.colorScheme.surface
     val borderColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
 
     val collisionState = rememberInertialCollisionState()

@@ -91,6 +91,7 @@ fun HomeScreen(
     val genreRepository: GenreRepository = koinInject()
     val currentLanguage by viewModel.uiLanguage.collectAsStateWithLifecycle()
     val strings = getStrings(currentLanguage)
+    val syncReport by viewModel.syncReport.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val kbd = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -161,7 +162,7 @@ fun HomeScreen(
 
     val listState = rememberLazyListState()
     var overscrollAmount by remember { mutableFloatStateOf(0f) }
-    val isHeaderFloating by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 10 } }
+    val isHeaderFloating by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 20 } }
     val showScrollToTop by remember { derivedStateOf { listState.firstVisibleItemIndex > 4 } }
     val bgColor = MaterialTheme.colorScheme.background
 
@@ -177,36 +178,26 @@ fun HomeScreen(
         label = "scrollToTopBottom"
     )
 
+    val openWorkspaceSort: () -> Unit = {
+        performHaptic(view, "light")
+        showSortOverlay = !showSortOverlay
+        if (showSortOverlay) {
+            showNotificationsOverlay = false
+            viewModel.setGenreFilterVisible(false)
+        }
+    }
+    val openWorkspaceNotifications: () -> Unit = {
+        performHaptic(view, "light")
+        showNotificationsOverlay = !showNotificationsOverlay
+        if (showNotificationsOverlay) {
+            showSortOverlay = false
+            viewModel.setGenreFilterVisible(false)
+        }
+    }
+
     Scaffold(containerColor = Color.Transparent, bottomBar = {}, floatingActionButton = {}) { _ ->
         Box(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.fillMaxSize().background(bgColor))
-
-            Box(modifier = Modifier.zIndex(6f).align(Alignment.TopEnd).padding(end = 16.dp)) {
-                GlassActionDock(
-                    hazeState = hazeState,
-                    isFloating = isHeaderFloating,
-                    sortOption = uiState.sortOption,
-                    filterSelectedTags = uiState.filterTags,
-                    updates = uiState.updates,
-                    onOpenSort = {
-                        performHaptic(view, "light")
-                        showSortOverlay = !showSortOverlay
-                        if (showSortOverlay) {
-                            showNotificationsOverlay = false
-                            viewModel.setGenreFilterVisible(false)
-                        }
-                    },
-                    onOpenNotifications = {
-                        performHaptic(view, "light")
-                        showNotificationsOverlay = !showNotificationsOverlay
-                        if (showNotificationsOverlay) {
-                            showSortOverlay = false
-                            viewModel.setGenreFilterVisible(false)
-                        }
-                    },
-                    modifier = Modifier.padding(top = 12.dp)
-                )
-            }
 
             if (notifVisibleState.currentState || notifVisibleState.targetState) {
                 Box(modifier = Modifier.zIndex(5f).fillMaxSize()) {
@@ -214,6 +205,7 @@ fun HomeScreen(
                         syncManager = dropboxSyncManager,
                         visibleState = notifVisibleState,
                         strings = getStrings(currentLanguage),
+                        syncReport = syncReport,
                         updates = uiState.updates,
                         isCheckingUpdates = uiState.isCheckingUpdates,
                         onDismiss = { showNotificationsOverlay = false },
@@ -316,27 +308,7 @@ fun HomeScreen(
                                         .hazeSource(state = hazeState)
                                 ) {
                                     item {
-                                        MalistWorkspaceTopBar(
-                                            strings = getStrings(currentLanguage),
-                                            onOpenSort = {
-                                                performHaptic(view, "light")
-                                                showSortOverlay = !showSortOverlay
-                                                if (showSortOverlay) {
-                                                    showNotificationsOverlay = false
-                                                    viewModel.setGenreFilterVisible(false)
-                                                }
-                                            },
-                                            onOpenNotifications = {
-                                                performHaptic(view, "light")
-                                                showNotificationsOverlay = !showNotificationsOverlay
-                                                if (showNotificationsOverlay) {
-                                                    showSortOverlay = false
-                                                    viewModel.setGenreFilterVisible(false)
-                                                }
-                                            },
-                                            filterSelectedTags = uiState.filterTags,
-                                            updatesCount = uiState.updates.size
-                                        )
+                                        MalistWorkspaceTopBar(strings = getStrings(currentLanguage))
                                     }
 
                                     val showApiFirst = list.isEmpty() && uiState.searchQuery.isNotEmpty()
@@ -601,6 +573,43 @@ fun HomeScreen(
                         imageVector = Icons.Default.KeyboardArrowUp,
                         contentDescription = "Up",
                         tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            // Поверх scrim/blur оверлеев: TopBar-кнопки и Glass dock остаются чёткими
+            Box(modifier = Modifier.fillMaxSize().zIndex(30f)) {
+                if (!isHeaderFloating) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(top = 20.dp, bottom = 8.dp)
+                            .padding(horizontal = 24.dp)
+                    ) {
+                        WorkspaceSortNotificationActions(
+                            strings = strings,
+                            filterSelectedTags = uiState.filterTags,
+                            updatesCount = uiState.updates.size,
+                            onOpenSort = openWorkspaceSort,
+                            onOpenNotifications = openWorkspaceNotifications,
+                            dockButtonBackground = Color.Transparent,
+                            useDockSizing = false,
+                            modifier = Modifier.align(Alignment.CenterEnd)
+                        )
+                    }
+                }
+                Box(modifier = Modifier.align(Alignment.TopEnd).padding(end = 16.dp)) {
+                    GlassActionDock(
+                        hazeState = hazeState,
+                        isFloating = isHeaderFloating,
+                        sortOption = uiState.sortOption,
+                        strings = strings,
+                        filterSelectedTags = uiState.filterTags,
+                        updates = uiState.updates,
+                        onOpenSort = openWorkspaceSort,
+                        onOpenNotifications = openWorkspaceNotifications,
+                        modifier = Modifier.padding(top = 12.dp)
                     )
                 }
             }
